@@ -89,9 +89,10 @@ export default function EscalasClient({ profile, initialStores }: Props) {
       p_week_start: weekKey,
       p_created_by: user?.id,
     });
-    if (error || (data as any)?.success === false) {
+    const result = data as { success?: boolean; error?: string; slots_created?: number } | null;
+    if (error || result?.success === false) {
       setGenerating(false);
-      toast.error((error?.message ?? (data as any)?.error) || "Erro ao gerar escala");
+      toast.error((error?.message ?? result?.error) || "Erro ao gerar escala");
       return;
     }
     const { data: generatedSchedule, error: scheduleError } = await supabase
@@ -110,7 +111,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     await reload(generatedSchedule.id);
     setRefreshKey((k) => k + 1);
     setGenerating(false);
-    toast.success(`Escala gerada: ${(data as any)?.slots_created ?? 0} slots`);
+    toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
   }
 
   if (!selectedStore) {
