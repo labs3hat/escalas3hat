@@ -51,6 +51,25 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
     return { type, isStart: start === slotIdx, isEnd: end === slotIdx }
   }
 
+  // Funcionário em folga o dia todo (coluna inteira)
+  function isFullDayOff(empId: string, dow: number) {
+    let hasOff = false
+    for (const s of SLOT_KEYS) {
+      const t = getSlot(empId, dow, s)
+      if (t === 'work' || t === 'interval') return false
+      if (t === 'day_off') hasOff = true
+    }
+    return hasOff
+  }
+
+  const washDays: number[] = (store as any).machine_wash_days ?? []
+  const stockDays: number[] = (store as any).stock_count_days ?? []
+  function stripePattern(hex: string) {
+    const c = hex2rgba(hex, 0.22)
+    const c2 = hex2rgba(hex, 0.10)
+    return `repeating-linear-gradient(45deg, ${c} 0 6px, ${c2} 6px 12px)`
+  }
+
   return (
     <>
       <div className="overflow-auto h-full">
@@ -79,6 +98,14 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                     <span className={`block text-sm font-semibold ${isToday ? 'text-brand-700' : 'text-gray-800'}`}>
                       {d.getDate()}/{String(d.getMonth() + 1).padStart(2, '0')}
                     </span>
+                    <div className="flex items-center justify-center gap-1 mt-0.5 min-h-[14px]">
+                      {washDays.includes(d.getDay()) && (
+                        <span title="Lavagem de máquina" className="text-[9px] px-1 rounded bg-sky-100 text-sky-700 font-medium">🧺 Lav</span>
+                      )}
+                      {stockDays.includes(d.getDay()) && (
+                        <span title="Contagem de estoque" className="text-[9px] px-1 rounded bg-amber-100 text-amber-700 font-medium">📦 Est</span>
+                      )}
+                    </div>
                   </th>
                 )
               })}
@@ -90,20 +117,29 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                 const isToday = d.toDateString() === TODAY.toDateString()
                 const isWknd = d.getDay() === 0 || d.getDay() === 6
                 const dayAlt = di % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                return employees.map((emp, ei) => (
-                  <th
-                    key={`${di}-${ei}`}
-                    className={`border-b border-gray-200 text-center py-1 px-0.5 w-9 ${
-                      isToday ? 'bg-brand-50/60' : isWknd ? 'bg-gray-100' : dayAlt
-                    }`}
-                    style={{ borderLeft: ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC' }}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full mx-auto mb-0.5" style={{ backgroundColor: emp.color }} />
-                    <div className="text-[9px] font-semibold" style={{ color: emp.color }}>
-                      {emp.name.split(' ')[0].substring(0, 4)}
-                    </div>
-                  </th>
-                ))
+                return employees.map((emp, ei) => {
+                  const off = isFullDayOff(emp.id, d.getDay())
+                  return (
+                    <th
+                      key={`${di}-${ei}`}
+                      className={`border-b border-gray-200 text-center py-1 px-0.5 w-9 ${
+                        !off && (isToday ? 'bg-brand-50/60' : isWknd ? 'bg-gray-100' : dayAlt)
+                      }`}
+                      style={{
+                        borderLeft: ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC',
+                        ...(off ? { background: stripePattern(emp.color) } : {}),
+                      }}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full mx-auto mb-0.5" style={{ backgroundColor: emp.color }} />
+                      <div className="text-[9px] font-semibold" style={{ color: emp.color }}>
+                        {emp.name.split(' ')[0].substring(0, 4)}
+                      </div>
+                      {off && (
+                        <div className="text-[8px] font-bold mt-0.5" style={{ color: emp.color }}>FOLGA</div>
+                      )}
+                    </th>
+                  )
+                })
               })}
             </tr>
           </thead>
@@ -137,6 +173,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                     return employees.map((emp, ei) => {
                       const slotType = getSlot(emp.id, dow, slot)
                       const block = getBlockInfo(emp.id, dow, si)
+                      const fullOff = isFullDayOff(emp.id, dow)
 
                       const dayAltBg = di % 2 === 0 ? '#FBFBF9' : 'transparent'
                       const cellBg = isToday ? 'rgba(29,158,117,0.04)' : isWknd ? '#F1F0EC' : dayAltBg
@@ -146,11 +183,13 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                       if (slotType === 'work' && block) {
                         style = {
                           ...style,
-                          backgroundColor: hex2rgba(emp.color, 0.18),
+                          backgroundColor: hex2rgba(emp.color, 0.30),
                           borderLeft: `3px solid ${emp.color}`,
                         }
                       } else if (slotType === 'interval') {
-                        style = { ...style, backgroundColor: '#D3D1C7' }
+                        style = { ...style, backgroundColor: hex2rgba(emp.color, 0.10), borderLeft: `1px dashed ${emp.color}` }
+                      } else if (fullOff) {
+                        style = { ...style, background: stripePattern(emp.color) }
                       } else if (slotType === 'day_off') {
                         style = { ...style, backgroundColor: '#F1F0EC' }
                       }
