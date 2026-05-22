@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import type { Employee, Store } from '@/types'
@@ -14,6 +14,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [editing, setEditing] = useState<Employee | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => { load() }, [store.id])
 
@@ -29,6 +30,23 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     await supabase.from('employees').update({ active: false }).eq('id', id)
     setEmployees(prev => prev.filter(e => e.id !== id))
     toast.success('Funcionário desativado')
+  }
+
+  async function handleSync() {
+    setSyncing(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-sheets-employees')
+      if (error) throw error
+      const created = data?.created ?? 0
+      const updated = data?.updated ?? 0
+      const deactivated = data?.deactivated ?? 0
+      toast.success(`${created} criados, ${updated} atualizados, ${deactivated} desativados`)
+      await load()
+    } catch (e: any) {
+      toast.error(`Erro ao sincronizar: ${e?.message ?? 'desconhecido'}`)
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const form = editing ?? {
@@ -71,10 +89,17 @@ export default function FuncionariosTab({ store }: { store: Store }) {
         <span className="text-sm font-medium text-gray-700">
           {employees.length} funcionário{employees.length !== 1 ? 's' : ''} cadastrado{employees.length !== 1 ? 's' : ''}
         </span>
-        <button onClick={() => { setEditing(null); setShowForm(true) }}
-          className="flex items-center gap-1.5 text-sm bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg font-medium">
-          <Plus size={14} /> Novo funcionário
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleSync} disabled={syncing}
+            className="flex items-center gap-1.5 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg font-medium disabled:opacity-50">
+            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar Sheets'}
+          </button>
+          <button onClick={() => { setEditing(null); setShowForm(true) }}
+            className="flex items-center gap-1.5 text-sm bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg font-medium">
+            <Plus size={14} /> Novo funcionário
+          </button>
+        </div>
       </div>
 
       {/* Form */}
