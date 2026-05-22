@@ -141,49 +141,33 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
           </thead>
 
           <tbody>
-            {SLOT_KEYS.map((slot, si) => {
+            {SLOT_KEYS.map((slot) => {
               const onHour = isOnHour(slot)
-              const peak = isPeak(slot)
               return (
-                <tr key={slot} className={peak ? 'bg-brand-50/20' : ''}>
+                <tr key={slot}>
                   {/* Hour label */}
-                  <td className={`sticky left-0 z-5 bg-white border-r border-gray-100 w-14 px-2 text-right align-top pt-0.5 ${
-                    onHour ? 'border-t border-gray-200' : ''
+                  <td className={`sticky left-0 z-5 bg-white border-r border-gray-200 w-16 px-2 text-left align-middle ${
+                    onHour ? 'border-t border-gray-200' : 'border-t border-gray-50'
                   }`}>
-                    {onHour && (
-                      <span className="text-[10px] font-medium text-gray-500">
-                        {slot.substring(0, 2)}h
-                      </span>
-                    )}
-                    {!onHour && (
-                      <span className="text-[8px] text-gray-300">{slot.substring(3, 5)}</span>
-                    )}
+                    <span className={`text-[11px] ${onHour ? 'font-semibold text-gray-700' : 'text-gray-400'}`}>
+                      {slot}
+                    </span>
                   </td>
 
                   {/* Cells */}
                   {weekDates.map((d, di) => {
                     const dow = d.getDay()
-                    const isToday = d.toDateString() === TODAY.toDateString()
-                    const isWknd = dow === 0 || dow === 6
-
                     return employees.map((emp, ei) => {
                       const slotType = getSlot(emp.id, dow, slot)
-                      const block = getBlockInfo(emp.id, dow, si)
                       const fullOff = isFullDayOff(emp.id, dow)
 
-                      const dayAltBg = di % 2 === 0 ? '#FBFBF9' : 'transparent'
-                      const cellBg = isToday ? 'rgba(29,158,117,0.04)' : isWknd ? '#F1F0EC' : dayAltBg
-                      const borderLeft = ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC'
-                      let style: React.CSSProperties = { backgroundColor: cellBg, borderLeft }
+                      const borderLeft = ei === 0 ? '2px solid #888780' : '0.5px solid #E5E5E0'
+                      let style: React.CSSProperties = { backgroundColor: 'white', borderLeft }
 
-                      if (slotType === 'work' && block) {
-                        style = {
-                          ...style,
-                          backgroundColor: hex2rgba(emp.color, 0.30),
-                          borderLeft: `3px solid ${emp.color}`,
-                        }
+                      if (slotType === 'work') {
+                        style = { ...style, backgroundColor: emp.color }
                       } else if (slotType === 'interval') {
-                        style = { ...style, backgroundColor: hex2rgba(emp.color, 0.10), borderLeft: `1px dashed ${emp.color}` }
+                        style = { ...style, backgroundColor: '#E8D9B8' }
                       } else if (fullOff) {
                         style = { ...style, background: stripePattern(emp.color) }
                       } else if (slotType === 'day_off') {
@@ -195,26 +179,10 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                           key={`${di}-${ei}`}
                           onClick={() => setModal({ emp, dow, slot, date: d, current: slotType })}
                           style={style}
-                          className={`w-9 h-[18px] cursor-pointer hover:brightness-95 relative ${
-                            onHour ? 'border-t border-gray-100' : ''
+                          className={`w-12 h-7 cursor-pointer hover:brightness-95 ${
+                            onHour ? 'border-t border-gray-200' : 'border-t border-gray-50'
                           }`}
-                        >
-                          {/* Label no topo do bloco */}
-                          {block?.isStart && slotType !== 'empty' && (
-                            <span
-                              className="absolute left-0.5 top-0 text-[8px] font-semibold leading-none pt-0.5 truncate max-w-full"
-                              style={{
-                                color: slotType === 'work' ? emp.color
-                                  : slotType === 'interval' ? '#444441'
-                                  : '#888780'
-                              }}
-                            >
-                              {slotType === 'work' ? emp.name.split(' ')[0].substring(0, 4)
-                                : slotType === 'interval' ? 'INT'
-                                : 'F'}
-                            </span>
-                          )}
-                        </td>
+                        />
                       )
                     })
                   })}
