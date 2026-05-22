@@ -63,7 +63,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
 
     if (existing) {
       await supabase.from('schedule_slots')
-        .update({ slot_type: slotType, updated_by: user?.id, updated_at: new Date().toISOString() })
+        .update({ slot_type: slotType as any, updated_by: user?.id, updated_at: new Date().toISOString() })
         .eq('id', existing.id)
       setSlots((prev) => prev.map((s) => s.id === existing.id ? { ...s, slot_type: slotType as any } : s))
     } else {
@@ -73,7 +73,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
           employee_id: employeeId,
           day_of_week: dayOfWeek,
           slot_time: slotTime,
-          slot_type: slotType,
+          slot_type: slotType as any,
           updated_by: user?.id,
         })
         .select()
@@ -90,12 +90,11 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
       .eq('id', schedule.id)
     setSchedule(prev => prev ? { ...prev, status: 'published' } : prev)
 
-    // registrar no histórico
     await supabase.from('schedule_changes').insert({
       schedule_id: schedule.id,
-      store_id: storeId,
+      store_id: storeId as string,
       change_type: 'publication',
-      created_by: user?.id,
+      created_by: user?.id as string,
       notes: `Escala publicada para a semana de ${weekKey}`,
     })
   }
