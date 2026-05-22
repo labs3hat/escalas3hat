@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/integrations/supabase/client'
-import { format, startOfWeek } from 'date-fns'
+import { format } from 'date-fns'
 import type { Schedule, ScheduleSlot } from '@/types'
 
 export function useSchedule(storeId: string | null, weekStart: Date) {
@@ -8,22 +8,34 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [loading, setLoading] = useState(true)
   const weekKey = format(weekStart, 'yyyy-MM-dd')
-  const scheduleIdRef = useRef<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (forceScheduleId?: string) => {
     if (!storeId) { setLoading(false); return }
     setLoading(true)
 
-    // busca a escala mais recente da semana (tolera duplicatas)
-    let { data: schedList } = await supabase
-      .from('schedules')
-      .select('*')
-      .eq('store_id', storeId)
-      .eq('week_start', weekKey)
-      .order('created_at', { ascending: false })
-      .limit(1)
+    let sched: Schedule | null = null
 
-    let sched = schedList?.[0] ?? null
+    if (forceScheduleId) {
+      const { data: forcedSched } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('id', forceScheduleId)
+        .single()
+      sched = (forcedSched as Schedule | null) ?? null
+    }
+
+    if (!sched) {
+      // busca a escala mais recente da semana (tolera duplicatas)
+      const { data: schedList } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('store_id', storeId)
+        .eq('week_start', weekKey)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      sched = (schedList?.[0] as Schedule | null) ?? null
+    }
 
     if (!sched) {
       const { data: { user } } = await supabase.auth.getUser()
@@ -36,7 +48,6 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     }
 
     setSchedule(sched)
-    scheduleIdRef.current = sched?.id ?? null
 
     if (sched) {
       const { data: slotData } = await supabase
