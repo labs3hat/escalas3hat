@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import type { Schedule, ScheduleSlot } from "@/types";
+import type { Schedule, ScheduleSlot, SlotType } from "@/types";
 
 function normalizeSlot(slot: ScheduleSlot): ScheduleSlot {
   return { ...slot, slot_time: slot.slot_time.slice(0, 5) };
@@ -108,6 +108,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     slotType: string,
   ) {
     if (!schedule) return;
+    const typedSlotType = slotType as SlotType;
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -121,13 +122,13 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
       await supabase
         .from("schedule_slots")
         .update({
-          slot_type: slotType as any,
+          slot_type: typedSlotType,
           updated_by: user?.id,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing.id);
       setSlots((prev) =>
-        prev.map((s) => (s.id === existing.id ? { ...s, slot_type: slotType as any } : s)),
+        prev.map((s) => (s.id === existing.id ? { ...s, slot_type: typedSlotType } : s)),
       );
     } else {
       const { data: newSlot } = await supabase
@@ -137,7 +138,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
           employee_id: employeeId,
           day_of_week: dayOfWeek,
           slot_time: slotTime,
-          slot_type: slotType as any,
+          slot_type: typedSlotType,
           updated_by: user?.id,
         })
         .select()
