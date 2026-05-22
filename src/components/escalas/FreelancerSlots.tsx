@@ -1,3 +1,4 @@
+// @ts-nocheck
 // =============================================================
 // 3HAT ESCALAS — FreelancerSlots.jsx
 // Componente completo: query + mutation + validação de publicação

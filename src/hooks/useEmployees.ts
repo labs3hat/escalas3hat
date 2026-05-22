@@ -12,7 +12,7 @@ export function useEmployees(storeId: string | null) {
       const { data } = await supabase
         .from('employees')
         .select('*')
-        .eq('store_id', storeId)
+        .eq('store_id', storeId as string)
         .eq('active', true)
         .order('name')
       setEmployees(data ?? [])

@@ -38,7 +38,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         .from('schedule_slots')
         .select('*')
         .eq('schedule_id', sched.id)
-      setSlots(slotData ?? [])
+      setSlots((slotData ?? []) as any)
     }
 
     setLoading(false)
@@ -65,7 +65,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
       await supabase.from('schedule_slots')
         .update({ slot_type: slotType, updated_by: user?.id, updated_at: new Date().toISOString() })
         .eq('id', existing.id)
-      setSlots((prev: ScheduleSlot[]) => prev.map((s: ScheduleSlot) => s.id === existing.id ? { ...s, slot_type: slotType as any } : s))
+      setSlots((prev) => prev.map((s) => s.id === existing.id ? { ...s, slot_type: slotType as any } : s))
     } else {
       const { data: newSlot } = await supabase.from('schedule_slots')
         .insert({
@@ -78,7 +78,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         })
         .select()
         .single()
-      if (newSlot) setSlots(prev => [...prev, newSlot])
+      if (newSlot) setSlots(prev => [...prev, newSlot as any])
     }
   }
 

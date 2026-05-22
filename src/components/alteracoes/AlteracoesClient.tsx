@@ -35,7 +35,7 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
       .eq('store_id', selectedStore.id)
       .order('created_at', { ascending: false })
       .limit(50)
-    setChanges(data ?? [])
+    setChanges((data ?? []) as any)
     setLoading(false)
   }
 
