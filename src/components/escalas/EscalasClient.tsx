@@ -162,6 +162,11 @@ export default function EscalasClient({ profile, initialStores }: Props) {
 
           {/* Actions */}
           <div className="ml-auto flex gap-2">
+            <button onClick={handleGenerate} disabled={generating}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-brand-200 rounded-lg text-brand-700 bg-brand-50 hover:bg-brand-100 disabled:opacity-50">
+              <Wand2 size={13} />
+              {generating ? 'Gerando...' : 'Gerar escala base'}
+            </button>
             <button onClick={handleCopy} disabled={copying}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50">
               <Copy size={13} />
