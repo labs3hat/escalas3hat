@@ -3,6 +3,10 @@ import { supabase } from '@/integrations/supabase/client'
 import { format } from 'date-fns'
 import type { Schedule, ScheduleSlot } from '@/types'
 
+function normalizeSlot(slot: ScheduleSlot): ScheduleSlot {
+  return { ...slot, slot_time: slot.slot_time.slice(0, 5) }
+}
+
 export function useSchedule(storeId: string | null, weekStart: Date) {
   const [schedule, setSchedule] = useState<Schedule | null>(null)
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
@@ -54,7 +58,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         .from('schedule_slots')
         .select('*')
         .eq('schedule_id', sched.id)
-      setSlots((slotData ?? []) as any)
+      setSlots(((slotData ?? []) as ScheduleSlot[]).map(normalizeSlot))
     } else {
       setSlots([])
     }
@@ -110,7 +114,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         })
         .select()
         .single()
-      if (newSlot) setSlots(prev => [...prev, newSlot as any])
+      if (newSlot) setSlots(prev => [...prev, normalizeSlot(newSlot as ScheduleSlot)])
     }
   }
 
