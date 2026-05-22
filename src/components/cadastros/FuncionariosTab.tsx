@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Edit, Trash2, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import type { Employee, Store } from '@/types'
