@@ -25,7 +25,7 @@ function CadastrosPage() {
     setProfile(prof as unknown as Profile | null)
 
     const isAdmin = prof && ['regional', 'diretoria', 'rh'].includes((prof as any).role)
-    let query = supabase.from('stores').select('*').eq('active', true).order('code')
+    let query = supabase.from('stores').select('*').eq('active', true).order('display_order', { ascending: true })
     if (!isAdmin) {
       query = query.in('id', (prof as any)?.store_ids ?? [])
     }

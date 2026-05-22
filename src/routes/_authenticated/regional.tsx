@@ -30,7 +30,7 @@ function RegionalPage() {
     }
 
     const { data: storesData } = await supabase
-      .from('stores').select('*').eq('active', true).order('code')
+      .from('stores').select('*').eq('active', true).order('display_order', { ascending: true })
     setStores((storesData ?? []) as unknown as Store[])
     setLoading(false)
   }

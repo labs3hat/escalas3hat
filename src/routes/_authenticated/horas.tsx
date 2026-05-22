@@ -36,7 +36,7 @@ function HorasPage() {
       .select('*, stores(name,code)')
       .in('store_id', (profile as any)?.store_ids ?? [])
       .eq('active', true)
-      .order('name')
+      .order('display_order', { ascending: true })
 
     const results = await Promise.all((employees ?? []).map(async (emp: any) => {
       const { data: sched } = await supabase.from('schedules').select('id')
