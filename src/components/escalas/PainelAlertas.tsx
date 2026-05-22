@@ -120,15 +120,20 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
 
       {/* Alertas */}
       <div className="px-3 py-3 border-b border-gray-100 flex-shrink-0">
-        <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Alertas</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide">Alertas</div>
+          {alerts.length > 0 && (
+            <span className="text-[9px] text-gray-400">{alerts.length}</span>
+          )}
+        </div>
         {alerts.length === 0 ? (
           <div className="flex items-center gap-1.5 text-[10px] text-brand-600 bg-brand-50 rounded-lg px-2 py-1.5">
             <CheckCircle size={11} />
             Nenhum conflito
           </div>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            {alerts.slice(0, 6).map((al, i) => (
+          <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1">
+            {alerts.map((al, i) => (
               <div key={i} className={`flex gap-1.5 items-start text-[9px] rounded-md px-2 py-1.5 leading-tight ${
                 al.type === 'critical' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
               }`}>
@@ -139,12 +144,10 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
                 {al.message}
               </div>
             ))}
-            {alerts.length > 6 && (
-              <div className="text-[9px] text-gray-400 text-center">+{alerts.length - 6} alertas</div>
-            )}
           </div>
         )}
       </div>
+
 
       {/* Horas */}
       <div className="px-3 py-3 flex-1">
