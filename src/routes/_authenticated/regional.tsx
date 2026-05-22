@@ -1,13 +1,13 @@
-import { createFileRoute, redirect, useRouteContext } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import RegionalClient from '@/components/regional/RegionalClient'
-import type { AppContext } from '@/routes/_authenticated'
+import { useAppContext } from '@/routes/_authenticated'
 
 export const Route = createFileRoute('/_authenticated/regional')({
   component: RegionalPage,
 })
 
 function RegionalPage() {
-  const { profile, stores } = useRouteContext({ from: '/_authenticated' }) as unknown as AppContext
+  const { profile, stores } = useAppContext()
   if (!profile || !['regional', 'diretoria', 'rh'].includes(profile.role)) {
     throw redirect({ to: '/escalas' })
   }

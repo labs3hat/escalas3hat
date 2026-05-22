@@ -1,18 +1,28 @@
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import Sidebar from '@/components/layout/Sidebar'
 import type { Profile, Store } from '@/types'
-
-export const Route = createFileRoute('/_authenticated')({
-  component: AuthenticatedLayout,
-})
 
 export interface AppContext {
   profile: Profile | null
   stores: Store[]
   reloadStores: () => Promise<void>
 }
+
+const AppCtx = createContext<AppContext>({
+  profile: null,
+  stores: [],
+  reloadStores: async () => {},
+})
+
+export function useAppContext() {
+  return useContext(AppCtx)
+}
+
+export const Route = createFileRoute('/_authenticated')({
+  component: AuthenticatedLayout,
+})
 
 function AuthenticatedLayout() {
   const navigate = useNavigate()
@@ -31,8 +41,8 @@ function AuthenticatedLayout() {
       .select('*')
       .eq('id', user.id)
       .single()
-    setProfile(prof as Profile | null)
-    return prof as Profile | null
+    setProfile(prof as unknown as Profile | null)
+    return prof as unknown as Profile | null
   }
 
   async function loadStores(prof: Profile | null) {
@@ -46,7 +56,7 @@ function AuthenticatedLayout() {
       query = query.in('id', prof.store_ids ?? [])
     }
     const { data } = await query
-    setStores((data ?? []) as Store[])
+    setStores((data ?? []) as unknown as Store[])
   }
 
   useEffect(() => {
@@ -57,7 +67,7 @@ function AuthenticatedLayout() {
       await loadStores(prof)
       if (active) setLoading(false)
     })()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e: unknown, session: unknown) => {
       if (!session) navigate({ to: '/auth/login' })
     })
     return () => {
@@ -67,10 +77,6 @@ function AuthenticatedLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const reloadStores = async () => {
-    await loadStores(profile)
-  }
-
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center text-sm text-gray-400">
@@ -79,14 +85,20 @@ function AuthenticatedLayout() {
     )
   }
 
-  const ctx: AppContext = { profile, stores, reloadStores }
+  const ctx: AppContext = {
+    profile,
+    stores,
+    reloadStores: () => loadStores(profile),
+  }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar profile={profile} />
-      <main className="flex-1 overflow-auto">
-        <Outlet context={ctx} />
-      </main>
-    </div>
+    <AppCtx.Provider value={ctx}>
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <Sidebar profile={profile} />
+        <main className="flex-1 overflow-auto">
+          <Outlet />
+        </main>
+      </div>
+    </AppCtx.Provider>
   )
 }
