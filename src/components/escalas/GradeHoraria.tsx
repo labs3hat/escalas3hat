@@ -112,27 +112,23 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
             </tr>
             {/* Header row 2: employees */}
             <tr>
-              <th className="sticky left-0 z-10 bg-gray-50 border-b border-r border-gray-200 w-14" />
+              <th className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 w-16 text-left px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+                Hora
+              </th>
               {weekDates.map((d, di) => {
-                const isToday = d.toDateString() === TODAY.toDateString()
-                const isWknd = d.getDay() === 0 || d.getDay() === 6
-                const dayAlt = di % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                 return employees.map((emp, ei) => {
                   const off = isFullDayOff(emp.id, d.getDay())
                   return (
                     <th
                       key={`${di}-${ei}`}
-                      className={`border-b border-gray-200 text-center py-1 px-0.5 w-9 ${
-                        !off && (isToday ? 'bg-brand-50/60' : isWknd ? 'bg-gray-100' : dayAlt)
-                      }`}
+                      className="border-b border-gray-200 text-center py-1 px-0.5 w-12 bg-white"
                       style={{
-                        borderLeft: ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC',
+                        borderLeft: ei === 0 ? '2px solid #888780' : '0.5px solid #E5E5E0',
                         ...(off ? { background: stripePattern(emp.color) } : {}),
                       }}
                     >
-                      <div className="w-1.5 h-1.5 rounded-full mx-auto mb-0.5" style={{ backgroundColor: emp.color }} />
-                      <div className="text-[9px] font-semibold" style={{ color: emp.color }}>
-                        {emp.name.split(' ')[0].substring(0, 4)}
+                      <div className="text-[9px] font-bold uppercase tracking-wide truncate" style={{ color: emp.color }}>
+                        {emp.name.split(' ')[0].substring(0, 7)}
                       </div>
                       {off && (
                         <div className="text-[8px] font-bold mt-0.5" style={{ color: emp.color }}>FOLGA</div>
