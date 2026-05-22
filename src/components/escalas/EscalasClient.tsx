@@ -27,6 +27,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
   const [view, setView] = useState<'grade' | 'resumo' | 'freelancers'>('grade')
   const [publishing, setPublishing] = useState(false)
   const [copying, setCopying] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   const weekStart = useMemo(() => {
     const base = startOfWeek(new Date(), { weekStartsOn: 1 })
