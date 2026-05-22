@@ -137,8 +137,9 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                       const slotType = getSlot(emp.id, dow, slot)
                       const block = getBlockInfo(emp.id, dow, si)
 
-                      let cellBg = isToday ? 'rgba(29,158,117,0.03)' : isWknd ? '#F9F9F7' : 'transparent'
-                      let borderLeft = ei === 0 ? '1px solid #E8E7E3' : '0.5px solid #F1F0EC'
+                      const dayAltBg = di % 2 === 0 ? '#FBFBF9' : 'transparent'
+                      const cellBg = isToday ? 'rgba(29,158,117,0.04)' : isWknd ? '#F1F0EC' : dayAltBg
+                      const borderLeft = ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC'
                       let style: React.CSSProperties = { backgroundColor: cellBg, borderLeft }
 
                       if (slotType === 'work' && block) {
