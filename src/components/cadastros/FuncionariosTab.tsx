@@ -32,6 +32,23 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     toast.success('Funcionário desativado')
   }
 
+  async function handleSync() {
+    setSyncing(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-sheets-employees')
+      if (error) throw error
+      const created = data?.created ?? 0
+      const updated = data?.updated ?? 0
+      const deactivated = data?.deactivated ?? 0
+      toast.success(`${created} criados, ${updated} atualizados, ${deactivated} desativados`)
+      await load()
+    } catch (e: any) {
+      toast.error(`Erro ao sincronizar: ${e?.message ?? 'desconhecido'}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const form = editing ?? {
     name: '', role: 'Atendente', work_regime: '6x1' as const,
     fixed_day_off: null, responsibilities: [] as string[], color: EMPLOYEE_COLORS[0], notes: '', active: true
