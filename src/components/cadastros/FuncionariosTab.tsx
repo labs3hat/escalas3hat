@@ -14,6 +14,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [editing, setEditing] = useState<Employee | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => { load() }, [store.id])
 
