@@ -8,7 +8,7 @@ export function useStores(storeIds?: string[]) {
 
   useEffect(() => {
     async function load() {
-      let query = supabase.from('stores').select('*').eq('active', true).order('code')
+      let query = supabase.from('stores').select('*').eq('active', true).order('display_order', { ascending: true })
       if (storeIds && storeIds.length > 0) {
         query = query.in('id', storeIds)
       }

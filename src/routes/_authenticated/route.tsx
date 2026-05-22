@@ -52,7 +52,7 @@ function AuthenticatedLayout() {
       return
     }
     const isAdmin = ['regional', 'diretoria', 'rh'].includes(prof.role)
-    let query = supabase.from('stores').select('*').eq('active', true).order('code')
+    let query = supabase.from('stores').select('*').eq('active', true).order('display_order', { ascending: true })
     if (!isAdmin) {
       query = query.in('id', prof.store_ids ?? [])
     }
