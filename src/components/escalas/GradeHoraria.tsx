@@ -98,6 +98,14 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                     <span className={`block text-sm font-semibold ${isToday ? 'text-brand-700' : 'text-gray-800'}`}>
                       {d.getDate()}/{String(d.getMonth() + 1).padStart(2, '0')}
                     </span>
+                    <div className="flex items-center justify-center gap-1 mt-0.5 min-h-[14px]">
+                      {washDays.includes(d.getDay()) && (
+                        <span title="Lavagem de máquina" className="text-[9px] px-1 rounded bg-sky-100 text-sky-700 font-medium">🧺 Lav</span>
+                      )}
+                      {stockDays.includes(d.getDay()) && (
+                        <span title="Contagem de estoque" className="text-[9px] px-1 rounded bg-amber-100 text-amber-700 font-medium">📦 Est</span>
+                      )}
+                    </div>
                   </th>
                 )
               })}
