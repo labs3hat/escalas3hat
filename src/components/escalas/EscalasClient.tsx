@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { addDays, startOfWeek, format, subWeeks, addWeeks } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2 } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import type { Profile, Store } from '@/types'
 import { SLOT_KEYS, DAY_NAMES, MONTHS } from '@/types'
@@ -26,6 +27,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
   const [view, setView] = useState<'grade' | 'resumo' | 'freelancers'>('grade')
   const [publishing, setPublishing] = useState(false)
   const [copying, setCopying] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   const weekStart = useMemo(() => {
     const base = startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -38,7 +40,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
 
   const { employees } = useEmployees(selectedStore?.id ?? null)
-  const { schedule, loading, updateSlot, publish, copyPreviousWeek, getSlot } =
+  const { schedule, loading, updateSlot, publish, copyPreviousWeek, getSlot, reload } =
     useSchedule(selectedStore?.id ?? null, weekStart)
 
   // ── NOVO: estado de freelancers ────────────────────────────
@@ -70,6 +72,24 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     await copyPreviousWeek(employees)
     toast.success('Semana anterior copiada!')
     setCopying(false)
+  }
+
+  async function handleGenerate() {
+    if (!selectedStore) return
+    setGenerating(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data, error } = await supabase.rpc('generate_base_schedule', {
+      p_store_id: selectedStore.id,
+      p_week_start: format(weekStart, 'yyyy-MM-dd'),
+      p_created_by: user?.id,
+    })
+    setGenerating(false)
+    if (error || (data as any)?.success === false) {
+      toast.error((error?.message ?? (data as any)?.error) || 'Erro ao gerar escala')
+      return
+    }
+    toast.success(`Escala gerada: ${(data as any)?.slots_created ?? 0} slots`)
+    await reload()
   }
 
   if (!selectedStore) {
@@ -142,6 +162,11 @@ export default function EscalasClient({ profile, initialStores }: Props) {
 
           {/* Actions */}
           <div className="ml-auto flex gap-2">
+            <button onClick={handleGenerate} disabled={generating}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-brand-200 rounded-lg text-brand-700 bg-brand-50 hover:bg-brand-100 disabled:opacity-50">
+              <Wand2 size={13} />
+              {generating ? 'Gerando...' : 'Gerar escala base'}
+            </button>
             <button onClick={handleCopy} disabled={copying}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50">
               <Copy size={13} />
