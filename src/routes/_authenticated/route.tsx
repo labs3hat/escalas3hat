@@ -21,6 +21,7 @@ export function useAppContext() {
 }
 
 export const Route = createFileRoute('/_authenticated')({
+  ssr: false,
   component: AuthenticatedLayout,
 })
 
