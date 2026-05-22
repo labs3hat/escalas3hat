@@ -35,19 +35,19 @@ export default function Sidebar({ profile, collapsed }: Props) {
 
   return (
     <aside
-      className={`bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full transition-[width] duration-200 ${
+      className={`bg-gray-900 text-gray-200 border-r border-gray-800 flex flex-col flex-shrink-0 h-full transition-[width] duration-200 ${
         collapsed ? 'w-14' : 'w-52'
       }`}
     >
       {/* Brand */}
-      <div className="px-3 py-3 border-b border-gray-200">
+      <div className="px-3 py-3 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-xs">3</span>
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-gray-900 leading-tight truncate">
+              <div className="text-sm font-semibold text-white leading-tight truncate">
                 3HAT Escalas
               </div>
               <div className="text-[10px] text-gray-400 truncate uppercase tracking-wide">
@@ -69,8 +69,8 @@ export default function Sidebar({ profile, collapsed }: Props) {
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 ${collapsed ? 'justify-center px-0' : 'px-4'} py-2.5 text-sm transition-colors border-l-2 ${
                 active
-                  ? 'bg-brand-50 text-brand-700 border-brand-500 font-medium'
-                  : 'text-gray-500 border-transparent hover:bg-gray-50 hover:text-gray-800'
+                  ? 'bg-gray-800 text-white border-brand-400 font-medium'
+                  : 'text-gray-400 border-transparent hover:bg-gray-800 hover:text-white'
               }`}
             >
               <Icon size={16} className="flex-shrink-0" />
@@ -81,11 +81,11 @@ export default function Sidebar({ profile, collapsed }: Props) {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-gray-200">
+      <div className="p-3 border-t border-gray-800">
         {!collapsed && (
           <>
-            <div className="text-xs text-gray-500 mb-0.5 truncate px-1">{profile?.email}</div>
-            <div className="text-[10px] text-gray-400 mb-2 px-1 uppercase tracking-wide">
+            <div className="text-xs text-gray-300 mb-0.5 truncate px-1">{profile?.email}</div>
+            <div className="text-[10px] text-gray-500 mb-2 px-1 uppercase tracking-wide">
               {profile?.role ?? '—'}
             </div>
           </>
@@ -93,7 +93,7 @@ export default function Sidebar({ profile, collapsed }: Props) {
         <button
           onClick={handleLogout}
           title="Sair"
-          className={`flex items-center gap-2 text-xs text-gray-500 hover:text-red-500 ${collapsed ? 'justify-center w-full' : 'px-1'} py-1 transition-colors w-full`}
+          className={`flex items-center gap-2 text-xs text-gray-400 hover:text-red-400 ${collapsed ? 'justify-center w-full' : 'px-1'} py-1 transition-colors w-full`}
         >
           <LogOut size={14} />
           {!collapsed && <span>Sair</span>}
@@ -102,3 +102,4 @@ export default function Sidebar({ profile, collapsed }: Props) {
     </aside>
   )
 }
+
