@@ -65,7 +65,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
       await supabase.from('schedule_slots')
         .update({ slot_type: slotType, updated_by: user?.id, updated_at: new Date().toISOString() })
         .eq('id', existing.id)
-      setSlots(prev => prev.map(s => s.id === existing.id ? { ...s, slot_type: slotType as any } : s))
+      setSlots((prev: ScheduleSlot[]) => prev.map((s: ScheduleSlot) => s.id === existing.id ? { ...s, slot_type: slotType as any } : s))
     } else {
       const { data: newSlot } = await supabase.from('schedule_slots')
         .insert({
