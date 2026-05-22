@@ -74,6 +74,24 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     setCopying(false)
   }
 
+  async function handleGenerate() {
+    if (!selectedStore) return
+    setGenerating(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data, error } = await supabase.rpc('generate_base_schedule', {
+      p_store_id: selectedStore.id,
+      p_week_start: format(weekStart, 'yyyy-MM-dd'),
+      p_created_by: user?.id,
+    })
+    setGenerating(false)
+    if (error || (data as any)?.success === false) {
+      toast.error((error?.message ?? (data as any)?.error) || 'Erro ao gerar escala')
+      return
+    }
+    toast.success(`Escala gerada: ${(data as any)?.slots_created ?? 0} slots`)
+    await reload()
+  }
+
   if (!selectedStore) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 text-sm">
