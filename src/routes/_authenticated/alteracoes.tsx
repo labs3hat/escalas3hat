@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import AlteracoesClient from '@/components/alteracoes/AlteracoesClient'
-import { useAppContext } from '@/routes/_authenticated'
+import { useAppContext } from '@/routes/_authenticated/route'
 
 export const Route = createFileRoute('/_authenticated/alteracoes')({
   component: AlteracoesPage,
