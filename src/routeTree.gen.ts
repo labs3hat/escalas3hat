@@ -9,38 +9,130 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthenticatedRegionalRouteImport } from './routes/_authenticated/regional'
+import { Route as AuthenticatedHorasRouteImport } from './routes/_authenticated/horas'
+import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
+import { Route as AuthenticatedCadastrosRouteImport } from './routes/_authenticated/cadastros'
+import { Route as AuthenticatedAlteracoesRouteImport } from './routes/_authenticated/alteracoes'
 
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRegionalRoute = AuthenticatedRegionalRouteImport.update({
+  id: '/regional',
+  path: '/regional',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedHorasRoute = AuthenticatedHorasRouteImport.update({
+  id: '/horas',
+  path: '/horas',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedEscalasRoute = AuthenticatedEscalasRouteImport.update({
+  id: '/escalas',
+  path: '/escalas',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCadastrosRoute = AuthenticatedCadastrosRouteImport.update({
+  id: '/cadastros',
+  path: '/cadastros',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAlteracoesRoute = AuthenticatedAlteracoesRouteImport.update({
+  id: '/alteracoes',
+  path: '/alteracoes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/alteracoes': typeof AuthenticatedAlteracoesRoute
+  '/cadastros': typeof AuthenticatedCadastrosRoute
+  '/escalas': typeof AuthenticatedEscalasRoute
+  '/horas': typeof AuthenticatedHorasRoute
+  '/regional': typeof AuthenticatedRegionalRoute
+  '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/alteracoes': typeof AuthenticatedAlteracoesRoute
+  '/cadastros': typeof AuthenticatedCadastrosRoute
+  '/escalas': typeof AuthenticatedEscalasRoute
+  '/horas': typeof AuthenticatedHorasRoute
+  '/regional': typeof AuthenticatedRegionalRoute
+  '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_authenticated/alteracoes': typeof AuthenticatedAlteracoesRoute
+  '/_authenticated/cadastros': typeof AuthenticatedCadastrosRoute
+  '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
+  '/_authenticated/horas': typeof AuthenticatedHorasRoute
+  '/_authenticated/regional': typeof AuthenticatedRegionalRoute
+  '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/alteracoes'
+    | '/cadastros'
+    | '/escalas'
+    | '/horas'
+    | '/regional'
+    | '/auth/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/alteracoes'
+    | '/cadastros'
+    | '/escalas'
+    | '/horas'
+    | '/regional'
+    | '/auth/login'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/_authenticated/alteracoes'
+    | '/_authenticated/cadastros'
+    | '/_authenticated/escalas'
+    | '/_authenticated/horas'
+    | '/_authenticated/regional'
+    | '/auth/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AuthLoginRoute: typeof AuthLoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +140,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/regional': {
+      id: '/_authenticated/regional'
+      path: '/regional'
+      fullPath: '/regional'
+      preLoaderRoute: typeof AuthenticatedRegionalRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/horas': {
+      id: '/_authenticated/horas'
+      path: '/horas'
+      fullPath: '/horas'
+      preLoaderRoute: typeof AuthenticatedHorasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/escalas': {
+      id: '/_authenticated/escalas'
+      path: '/escalas'
+      fullPath: '/escalas'
+      preLoaderRoute: typeof AuthenticatedEscalasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/cadastros': {
+      id: '/_authenticated/cadastros'
+      path: '/cadastros'
+      fullPath: '/cadastros'
+      preLoaderRoute: typeof AuthenticatedCadastrosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/alteracoes': {
+      id: '/_authenticated/alteracoes'
+      path: '/alteracoes'
+      fullPath: '/alteracoes'
+      preLoaderRoute: typeof AuthenticatedAlteracoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedAlteracoesRoute: typeof AuthenticatedAlteracoesRoute
+  AuthenticatedCadastrosRoute: typeof AuthenticatedCadastrosRoute
+  AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
+  AuthenticatedHorasRoute: typeof AuthenticatedHorasRoute
+  AuthenticatedRegionalRoute: typeof AuthenticatedRegionalRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAlteracoesRoute: AuthenticatedAlteracoesRoute,
+  AuthenticatedCadastrosRoute: AuthenticatedCadastrosRoute,
+  AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
+  AuthenticatedHorasRoute: AuthenticatedHorasRoute,
+  AuthenticatedRegionalRoute: AuthenticatedRegionalRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AuthLoginRoute: AuthLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
