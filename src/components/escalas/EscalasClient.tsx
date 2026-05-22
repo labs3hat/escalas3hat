@@ -40,7 +40,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
 
   const { employees } = useEmployees(selectedStore?.id ?? null)
-  const { schedule, loading, updateSlot, publish, copyPreviousWeek, getSlot } =
+  const { schedule, loading, updateSlot, publish, copyPreviousWeek, getSlot, reload } =
     useSchedule(selectedStore?.id ?? null, weekStart)
 
   // ── NOVO: estado de freelancers ────────────────────────────
