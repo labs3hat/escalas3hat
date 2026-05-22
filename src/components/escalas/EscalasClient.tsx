@@ -111,150 +111,155 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     <div className="flex h-full">
       {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Topbar */}
-        <div className="px-5 py-3 border-b border-gray-200 bg-white flex items-center gap-3 flex-shrink-0 flex-wrap">
-          {/* Store selector */}
-          {initialStores.length > 1 && (
+        {/* Page header */}
+        <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-4 flex-shrink-0">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Escalas</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Grade semanal por loja</p>
+          </div>
+          {initialStores.length > 1 ? (
             <select
               value={selectedStore.id}
               onChange={(e) =>
                 setSelectedStore(initialStores.find((s) => s.id === e.target.value)!)
               }
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-brand-50 text-brand-700 font-medium focus:outline-none focus:border-brand-400"
+              className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 font-medium focus:outline-none focus:border-brand-400 min-w-[200px]"
             >
               {initialStores.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} — {s.shopping}
+                  {s.code} — {s.shopping}
                 </option>
               ))}
             </select>
-          )}
-          {initialStores.length === 1 && (
-            <span className="text-sm font-medium bg-brand-50 text-brand-700 px-3 py-1.5 rounded-lg">
-              {selectedStore.name} — {selectedStore.shopping}
+          ) : (
+            <span className="text-sm font-medium bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-lg">
+              {selectedStore.code}
             </span>
           )}
+        </div>
 
-          {/* Week nav */}
-          <div className="flex items-center gap-1">
+        {/* Toolbar card */}
+        <div className="mx-6 mb-3 bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap flex-shrink-0">
+          {/* Left: week nav */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekOffset((w) => w - 1)}
-              className="w-7 h-7 border border-gray-200 rounded-md flex items-center justify-center text-gray-500 hover:bg-gray-50"
+              className="w-8 h-8 border border-gray-200 rounded-md flex items-center justify-center text-gray-500 hover:bg-gray-50"
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="text-sm font-medium text-gray-800 min-w-[155px] text-center">
+            <span className="text-sm font-medium text-gray-800 min-w-[160px] text-center">
               {weekLabel}
             </span>
             <button
               onClick={() => setWeekOffset((w) => w + 1)}
-              className="w-7 h-7 border border-gray-200 rounded-md flex items-center justify-center text-gray-500 hover:bg-gray-50"
+              className="w-8 h-8 border border-gray-200 rounded-md flex items-center justify-center text-gray-500 hover:bg-gray-50"
             >
               <ChevronRight size={14} />
             </button>
+            <button
+              onClick={() => setWeekOffset(0)}
+              className="text-sm px-3 py-1.5 border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 ml-1"
+            >
+              Hoje
+            </button>
           </div>
 
-          {/* Status */}
-          {schedule && (
-            <span
-              className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                schedule.status === "published"
-                  ? "bg-brand-50 text-brand-700"
-                  : "bg-amber-50 text-amber-700"
-              }`}
-            >
-              {schedule.status === "published" ? "Publicada" : "Rascunho"}
-            </span>
-          )}
-
-          {/* ── NOVO: badge de vagas em aberto ─────────────── */}
-          {openCount > 0 && (
-            <button
-              onClick={() => setView("freelancers")}
-              className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
-            >
-              <AlertTriangle size={11} />
-              {openCount} vaga{openCount > 1 ? "s" : ""} freelancer
-            </button>
-          )}
-          {/* ─────────────────────────────────────────────── */}
-
-          {/* Actions */}
-          <div className="ml-auto flex gap-2">
-            <button
-              onClick={handleGenerate}
-              disabled={generating}
-              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-brand-200 rounded-lg text-brand-700 bg-brand-50 hover:bg-brand-100 disabled:opacity-50"
-            >
-              <Wand2 size={13} />
-              {generating ? "Gerando..." : "Gerar escala base"}
-            </button>
+          {/* Right: status + actions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {schedule && (
+              <span
+                className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                  schedule.status === "published"
+                    ? "bg-brand-50 text-brand-700"
+                    : "bg-amber-50 text-amber-700"
+                }`}
+              >
+                {schedule.status === "published" ? "Publicada" : "Rascunho"}
+              </span>
+            )}
+            {openCount > 0 && (
+              <button
+                onClick={() => setView("freelancers")}
+                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+              >
+                <AlertTriangle size={11} />
+                {openCount} vaga{openCount > 1 ? "s" : ""} freelancer
+              </button>
+            )}
             <button
               onClick={handleCopy}
               disabled={copying}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             >
               <Copy size={13} />
-              {copying ? "Copiando..." : "Copiar sem. ant."}
+              {copying ? "Copiando..." : "Copiar semana anterior"}
             </button>
-            {/* ── MODIFICADO: botão bloqueado se há vagas abertas ── */}
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <Wand2 size={13} />
+              {generating ? "Gerando..." : "Gerar escala base"}
+            </button>
             <button
               onClick={handlePublish}
               disabled={publishing || schedule?.status === "published" || !freelancerOk}
               title={!freelancerOk ? `${openCount} vaga(s) freelancer em aberto` : undefined}
-              className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 text-sm px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {schedule?.status === "published" ? <Check size={13} /> : <Send size={13} />}
               {publishing
                 ? "Publicando..."
                 : schedule?.status === "published"
                   ? "Publicada"
-                  : "Publicar"}
+                  : "Publicar escala"}
             </button>
-            {/* ─────────────────────────────────────────────────── */}
           </div>
         </div>
 
-        {/* View tabs */}
-        <div className="flex border-b border-gray-200 bg-white px-5 flex-shrink-0">
-          {/* ── MODIFICADO: adicionada aba Freelancers ── */}
-          {(["grade", "resumo", "freelancers"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`py-2.5 px-3 text-sm border-b-2 -mb-px transition-colors relative ${
-                view === v
-                  ? "border-brand-500 text-brand-700 font-medium"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {v === "grade" ? "Grade horária" : v === "resumo" ? "Resumo diário" : "Freelancers"}
-              {/* Badge de contagem na aba */}
-              {v === "freelancers" && openCount > 0 && (
-                <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold rounded-full bg-amber-500 text-white">
-                  {openCount}
-                </span>
-              )}
-            </button>
-          ))}
-          {/* ─────────────────────────────────────────── */}
+        {/* Segmented tabs */}
+        <div className="px-6 flex items-center gap-2 flex-shrink-0">
+          <div className="inline-flex bg-gray-100 rounded-lg p-1">
+            {(["grade", "resumo", "freelancers"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-4 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1.5 ${
+                  view === v
+                    ? "bg-white text-gray-900 font-medium shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {v === "grade" ? "Grade semanal" : v === "resumo" ? "Resumo diário" : "Freelancers"}
+                {v === "freelancers" && openCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold rounded-full bg-amber-500 text-white">
+                    {openCount}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto px-6 py-4">
           {loading ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               Carregando escala...
             </div>
           ) : view === "grade" ? (
-            <GradeHoraria
-              key={`grade-${refreshKey}-${schedule?.id ?? "novo"}`}
-              employees={employees}
-              weekDates={weekDates}
-              getSlot={getSlot}
-              updateSlot={updateSlot}
-              store={selectedStore}
-            />
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden h-full">
+              <GradeHoraria
+                key={`grade-${refreshKey}-${schedule?.id ?? "novo"}`}
+                employees={employees}
+                weekDates={weekDates}
+                getSlot={getSlot}
+                updateSlot={updateSlot}
+                store={selectedStore}
+              />
+            </div>
           ) : view === "resumo" ? (
             <ResumoSemanal
               employees={employees}
@@ -263,7 +268,6 @@ export default function EscalasClient({ profile, initialStores }: Props) {
               store={selectedStore}
             />
           ) : (
-            // ── NOVO: aba de freelancers ──────────────────────
             <div className="p-4 max-w-lg">
               {schedule?.id ? (
                 <FreelancerSlots scheduleId={schedule.id} />
@@ -273,7 +277,6 @@ export default function EscalasClient({ profile, initialStores }: Props) {
                 </p>
               )}
             </div>
-            // ─────────────────────────────────────────────────
           )}
         </div>
       </div>

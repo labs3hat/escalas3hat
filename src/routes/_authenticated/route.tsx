@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
 import { createContext, useContext, useEffect, useState } from 'react'
+import { PanelLeft } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import Sidebar from '@/components/layout/Sidebar'
 import type { Profile, Store } from '@/types'
@@ -30,6 +31,7 @@ function AuthenticatedLayout() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   async function loadProfile() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -95,10 +97,22 @@ function AuthenticatedLayout() {
   return (
     <AppCtx.Provider value={ctx}>
       <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <Sidebar profile={profile} />
-        <main className="flex-1 overflow-auto">
-          <Outlet />
-        </main>
+        <Sidebar profile={profile} collapsed={sidebarCollapsed} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-12 bg-white border-b border-gray-200 flex items-center px-3 gap-2 flex-shrink-0">
+            <button
+              onClick={() => setSidebarCollapsed((c) => !c)}
+              className="w-8 h-8 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-800 flex items-center justify-center"
+              aria-label="Alternar menu"
+            >
+              <PanelLeft size={16} />
+            </button>
+            <span className="text-sm font-semibold text-gray-800">3HAT Escalas</span>
+          </header>
+          <main className="flex-1 overflow-auto">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </AppCtx.Provider>
   )
