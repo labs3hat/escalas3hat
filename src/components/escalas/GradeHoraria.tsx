@@ -204,9 +204,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                 return employees.map((emp, ei) => (
                   <td
                     key={`sum-${di}-${ei}`}
-                    className={`border-l border-gray-200 text-center py-1 ${
-                      ei === Math.floor(employees.length / 2) ? '' : ''
-                    }`}
+                    className="text-center py-1"
+                    style={{ borderLeft: ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC' }}
                   >
                     {ei === Math.floor(employees.length / 2) && (
                       <span className={`text-[9px] font-semibold ${ok ? 'text-brand-600' : fcOk ? 'text-amber-600' : 'text-red-600'}`}>
