@@ -88,12 +88,14 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
               {weekDates.map((d, di) => {
                 const isToday = d.toDateString() === TODAY.toDateString()
                 const isWknd = d.getDay() === 0 || d.getDay() === 6
+                const dayAlt = di % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                 return employees.map((emp, ei) => (
                   <th
                     key={`${di}-${ei}`}
-                    className={`border-b border-l border-gray-200 text-center py-1 px-0.5 w-9 ${
-                      isToday ? 'bg-brand-50/60' : isWknd ? 'bg-gray-50' : 'bg-gray-50'
+                    className={`border-b border-gray-200 text-center py-1 px-0.5 w-9 ${
+                      isToday ? 'bg-brand-50/60' : isWknd ? 'bg-gray-100' : dayAlt
                     }`}
+                    style={{ borderLeft: ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC' }}
                   >
                     <div className="w-1.5 h-1.5 rounded-full mx-auto mb-0.5" style={{ backgroundColor: emp.color }} />
                     <div className="text-[9px] font-semibold" style={{ color: emp.color }}>
