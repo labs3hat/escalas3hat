@@ -51,6 +51,25 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
     return { type, isStart: start === slotIdx, isEnd: end === slotIdx }
   }
 
+  // Funcionário em folga o dia todo (coluna inteira)
+  function isFullDayOff(empId: string, dow: number) {
+    let hasOff = false
+    for (const s of SLOT_KEYS) {
+      const t = getSlot(empId, dow, s)
+      if (t === 'work' || t === 'interval') return false
+      if (t === 'day_off') hasOff = true
+    }
+    return hasOff
+  }
+
+  const washDays: number[] = (store as any).machine_wash_days ?? []
+  const stockDays: number[] = (store as any).stock_count_days ?? []
+  function stripePattern(hex: string) {
+    const c = hex2rgba(hex, 0.22)
+    const c2 = hex2rgba(hex, 0.10)
+    return `repeating-linear-gradient(45deg, ${c} 0 6px, ${c2} 6px 12px)`
+  }
+
   return (
     <>
       <div className="overflow-auto h-full">
