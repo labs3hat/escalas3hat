@@ -68,9 +68,10 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                   <th
                     key={di}
                     colSpan={employees.length}
-                    className={`border-b border-l border-gray-200 text-center py-1.5 px-1 ${
-                      isToday ? 'bg-brand-50' : isWknd ? 'bg-gray-50' : 'bg-white'
+                    className={`border-b border-gray-200 text-center py-1.5 px-1 ${
+                      isToday ? 'bg-brand-50' : isWknd ? 'bg-gray-100' : di % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                     }`}
+                    style={{ borderLeft: '2px solid #888780' }}
                   >
                     <span className={`text-xs font-medium ${isToday ? 'text-brand-600' : 'text-gray-500'}`}>
                       {DAY_NAMES[d.getDay()]}
