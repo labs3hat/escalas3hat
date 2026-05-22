@@ -68,9 +68,10 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                   <th
                     key={di}
                     colSpan={employees.length}
-                    className={`border-b border-l border-gray-200 text-center py-1.5 px-1 ${
-                      isToday ? 'bg-brand-50' : isWknd ? 'bg-gray-50' : 'bg-white'
+                    className={`border-b border-gray-200 text-center py-1.5 px-1 ${
+                      isToday ? 'bg-brand-50' : isWknd ? 'bg-gray-100' : di % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                     }`}
+                    style={{ borderLeft: '2px solid #888780' }}
                   >
                     <span className={`text-xs font-medium ${isToday ? 'text-brand-600' : 'text-gray-500'}`}>
                       {DAY_NAMES[d.getDay()]}
@@ -88,12 +89,14 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
               {weekDates.map((d, di) => {
                 const isToday = d.toDateString() === TODAY.toDateString()
                 const isWknd = d.getDay() === 0 || d.getDay() === 6
+                const dayAlt = di % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                 return employees.map((emp, ei) => (
                   <th
                     key={`${di}-${ei}`}
-                    className={`border-b border-l border-gray-200 text-center py-1 px-0.5 w-9 ${
-                      isToday ? 'bg-brand-50/60' : isWknd ? 'bg-gray-50' : 'bg-gray-50'
+                    className={`border-b border-gray-200 text-center py-1 px-0.5 w-9 ${
+                      isToday ? 'bg-brand-50/60' : isWknd ? 'bg-gray-100' : dayAlt
                     }`}
+                    style={{ borderLeft: ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC' }}
                   >
                     <div className="w-1.5 h-1.5 rounded-full mx-auto mb-0.5" style={{ backgroundColor: emp.color }} />
                     <div className="text-[9px] font-semibold" style={{ color: emp.color }}>
@@ -135,8 +138,9 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                       const slotType = getSlot(emp.id, dow, slot)
                       const block = getBlockInfo(emp.id, dow, si)
 
-                      let cellBg = isToday ? 'rgba(29,158,117,0.03)' : isWknd ? '#F9F9F7' : 'transparent'
-                      let borderLeft = ei === 0 ? '1px solid #E8E7E3' : '0.5px solid #F1F0EC'
+                      const dayAltBg = di % 2 === 0 ? '#FBFBF9' : 'transparent'
+                      const cellBg = isToday ? 'rgba(29,158,117,0.04)' : isWknd ? '#F1F0EC' : dayAltBg
+                      const borderLeft = ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC'
                       let style: React.CSSProperties = { backgroundColor: cellBg, borderLeft }
 
                       if (slotType === 'work' && block) {
@@ -201,9 +205,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                 return employees.map((emp, ei) => (
                   <td
                     key={`sum-${di}-${ei}`}
-                    className={`border-l border-gray-200 text-center py-1 ${
-                      ei === Math.floor(employees.length / 2) ? '' : ''
-                    }`}
+                    className="text-center py-1"
+                    style={{ borderLeft: ei === 0 ? '2px solid #888780' : '0.5px solid #F1F0EC' }}
                   >
                     {ei === Math.floor(employees.length / 2) && (
                       <span className={`text-[9px] font-semibold ${ok ? 'text-brand-600' : fcOk ? 'text-amber-600' : 'text-red-600'}`}>

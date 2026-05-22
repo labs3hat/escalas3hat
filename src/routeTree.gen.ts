@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthenticatedTurnosRouteImport } from './routes/_authenticated/turnos'
 import { Route as AuthenticatedRegionalRouteImport } from './routes/_authenticated/regional'
 import { Route as AuthenticatedHorasRouteImport } from './routes/_authenticated/horas'
 import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
+import { Route as AuthenticatedConfigLojaRouteImport } from './routes/_authenticated/config-loja'
 import { Route as AuthenticatedCadastrosRouteImport } from './routes/_authenticated/cadastros'
 import { Route as AuthenticatedAlteracoesRouteImport } from './routes/_authenticated/alteracoes'
 
@@ -32,6 +34,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedTurnosRoute = AuthenticatedTurnosRouteImport.update({
+  id: '/turnos',
+  path: '/turnos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRegionalRoute = AuthenticatedRegionalRouteImport.update({
   id: '/regional',
   path: '/regional',
@@ -45,6 +52,11 @@ const AuthenticatedHorasRoute = AuthenticatedHorasRouteImport.update({
 const AuthenticatedEscalasRoute = AuthenticatedEscalasRouteImport.update({
   id: '/escalas',
   path: '/escalas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedConfigLojaRoute = AuthenticatedConfigLojaRouteImport.update({
+  id: '/config-loja',
+  path: '/config-loja',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCadastrosRoute = AuthenticatedCadastrosRouteImport.update({
@@ -62,18 +74,22 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alteracoes': typeof AuthenticatedAlteracoesRoute
   '/cadastros': typeof AuthenticatedCadastrosRoute
+  '/config-loja': typeof AuthenticatedConfigLojaRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/horas': typeof AuthenticatedHorasRoute
   '/regional': typeof AuthenticatedRegionalRoute
+  '/turnos': typeof AuthenticatedTurnosRoute
   '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alteracoes': typeof AuthenticatedAlteracoesRoute
   '/cadastros': typeof AuthenticatedCadastrosRoute
+  '/config-loja': typeof AuthenticatedConfigLojaRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/horas': typeof AuthenticatedHorasRoute
   '/regional': typeof AuthenticatedRegionalRoute
+  '/turnos': typeof AuthenticatedTurnosRoute
   '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRoutesById {
@@ -82,9 +98,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/alteracoes': typeof AuthenticatedAlteracoesRoute
   '/_authenticated/cadastros': typeof AuthenticatedCadastrosRoute
+  '/_authenticated/config-loja': typeof AuthenticatedConfigLojaRoute
   '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
   '/_authenticated/horas': typeof AuthenticatedHorasRoute
   '/_authenticated/regional': typeof AuthenticatedRegionalRoute
+  '/_authenticated/turnos': typeof AuthenticatedTurnosRoute
   '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRouteTypes {
@@ -93,18 +111,22 @@ export interface FileRouteTypes {
     | '/'
     | '/alteracoes'
     | '/cadastros'
+    | '/config-loja'
     | '/escalas'
     | '/horas'
     | '/regional'
+    | '/turnos'
     | '/auth/login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/alteracoes'
     | '/cadastros'
+    | '/config-loja'
     | '/escalas'
     | '/horas'
     | '/regional'
+    | '/turnos'
     | '/auth/login'
   id:
     | '__root__'
@@ -112,9 +134,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/alteracoes'
     | '/_authenticated/cadastros'
+    | '/_authenticated/config-loja'
     | '/_authenticated/escalas'
     | '/_authenticated/horas'
     | '/_authenticated/regional'
+    | '/_authenticated/turnos'
     | '/auth/login'
   fileRoutesById: FileRoutesById
 }
@@ -147,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/turnos': {
+      id: '/_authenticated/turnos'
+      path: '/turnos'
+      fullPath: '/turnos'
+      preLoaderRoute: typeof AuthenticatedTurnosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/regional': {
       id: '/_authenticated/regional'
       path: '/regional'
@@ -166,6 +197,13 @@ declare module '@tanstack/react-router' {
       path: '/escalas'
       fullPath: '/escalas'
       preLoaderRoute: typeof AuthenticatedEscalasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/config-loja': {
+      id: '/_authenticated/config-loja'
+      path: '/config-loja'
+      fullPath: '/config-loja'
+      preLoaderRoute: typeof AuthenticatedConfigLojaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cadastros': {
@@ -188,17 +226,21 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlteracoesRoute: typeof AuthenticatedAlteracoesRoute
   AuthenticatedCadastrosRoute: typeof AuthenticatedCadastrosRoute
+  AuthenticatedConfigLojaRoute: typeof AuthenticatedConfigLojaRoute
   AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
   AuthenticatedHorasRoute: typeof AuthenticatedHorasRoute
   AuthenticatedRegionalRoute: typeof AuthenticatedRegionalRoute
+  AuthenticatedTurnosRoute: typeof AuthenticatedTurnosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlteracoesRoute: AuthenticatedAlteracoesRoute,
   AuthenticatedCadastrosRoute: AuthenticatedCadastrosRoute,
+  AuthenticatedConfigLojaRoute: AuthenticatedConfigLojaRoute,
   AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
   AuthenticatedHorasRoute: AuthenticatedHorasRoute,
   AuthenticatedRegionalRoute: AuthenticatedRegionalRoute,
+  AuthenticatedTurnosRoute: AuthenticatedTurnosRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
