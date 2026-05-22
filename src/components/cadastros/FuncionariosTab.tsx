@@ -1,0 +1,202 @@
+import { useState, useEffect } from 'react'
+import { Plus, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from 'sonner'
+import type { Employee, Store } from '@/types'
+import { EMPLOYEE_COLORS } from '@/types'
+
+const REGIME_LABELS = { '6x1': '6×1', '5x2': '5×2' }
+const DAY_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+
+export default function FuncionariosTab({ store }: { store: Store }) {
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Employee | null>(null)
+  const [showForm, setShowForm] = useState(false)
+
+  useEffect(() => { load() }, [store.id])
+
+  async function load() {
+    const { data } = await supabase.from('employees').select('*')
+      .eq('store_id', store.id).order('name')
+    setEmployees(data ?? [])
+    setLoading(false)
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Desativar este funcionário?')) return
+    await supabase.from('employees').update({ active: false }).eq('id', id)
+    setEmployees(prev => prev.filter(e => e.id !== id))
+    toast.success('Funcionário desativado')
+  }
+
+  const form = editing ?? {
+    name: '', role: 'Atendente', work_regime: '6x1' as const,
+    fixed_day_off: null, responsibilities: [] as string[], color: EMPLOYEE_COLORS[0], notes: '', active: true
+  }
+
+  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const data = {
+      store_id: store.id,
+      name: fd.get('name') as string,
+      role: fd.get('role') as string,
+      work_regime: fd.get('work_regime') as '6x1' | '5x2',
+      fixed_day_off: fd.get('work_regime') === '5x2' ? Number(fd.get('fixed_day_off')) : null,
+      responsibilities: ['estoque','maquina'].filter(r => fd.get(r) === 'on'),
+      color: fd.get('color') as string,
+      notes: fd.get('notes') as string,
+      active: true,
+    }
+
+    if (editing) {
+      await supabase.from('employees').update(data).eq('id', editing.id)
+      toast.success('Funcionário atualizado')
+    } else {
+      await supabase.from('employees').insert(data)
+      toast.success('Funcionário cadastrado')
+    }
+    setShowForm(false)
+    setEditing(null)
+    load()
+  }
+
+  if (loading) return <div className="p-5 text-sm text-gray-400">Carregando...</div>
+
+  return (
+    <div className="p-5">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-sm font-medium text-gray-700">
+          {employees.length} funcionário{employees.length !== 1 ? 's' : ''} cadastrado{employees.length !== 1 ? 's' : ''}
+        </span>
+        <button onClick={() => { setEditing(null); setShowForm(true) }}
+          className="flex items-center gap-1.5 text-sm bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg font-medium">
+          <Plus size={14} /> Novo funcionário
+        </button>
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
+          <h3 className="text-sm font-semibold text-gray-800 mb-3">
+            {editing ? 'Editar funcionário' : 'Novo funcionário'}
+          </h3>
+          <form onSubmit={handleSave} className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Nome completo</label>
+              <input name="name" defaultValue={form.name} required
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Cargo</label>
+              <input name="role" defaultValue={form.role}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Regime</label>
+              <select name="work_regime" defaultValue={form.work_regime}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+                <option value="6x1">6×1</option>
+                <option value="5x2">5×2</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Folga fixa (5×2)</label>
+              <select name="fixed_day_off" defaultValue={form.fixed_day_off ?? ''}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+                <option value="">—</option>
+                {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Cor na grade</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {EMPLOYEE_COLORS.map(c => (
+                  <label key={c} className="cursor-pointer">
+                    <input type="radio" name="color" value={c} defaultChecked={form.color === c} className="sr-only" />
+                    <div className="w-5 h-5 rounded-full border-2 border-white ring-1 ring-gray-200"
+                      style={{ backgroundColor: c }} />
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Responsabilidades</label>
+              <div className="flex gap-3">
+                <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                  <input type="checkbox" name="estoque" defaultChecked={form.responsibilities?.includes('estoque')} />
+                  Contagem de estoque
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+                  <input type="checkbox" name="maquina" defaultChecked={form.responsibilities?.includes('maquina')} />
+                  Lavagem da máquina
+                </label>
+              </div>
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Observações</label>
+              <input name="notes" defaultValue={form.notes}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+            </div>
+            <div className="col-span-2 flex gap-2 justify-end">
+              <button type="button" onClick={() => { setShowForm(false); setEditing(null) }}
+                className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
+                Cancelar
+              </button>
+              <button type="submit"
+                className="px-4 py-2 text-sm bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium">
+                Salvar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* List */}
+      <div className="flex flex-col gap-2">
+        {employees.map(emp => (
+          <div key={emp.id} className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50"
+              onClick={() => setExpanded(expanded === emp.id ? null : emp.id)}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
+                style={{ backgroundColor: emp.color }}>
+                {emp.name.split(' ').slice(0,2).map(w=>w[0]).join('')}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900">{emp.name}</div>
+                <div className="flex gap-2 mt-0.5 flex-wrap">
+                  <span className="text-xs text-gray-400">{emp.role}</span>
+                  <span className={`text-xs font-medium px-1.5 rounded ${emp.work_regime === '5x2' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {REGIME_LABELS[emp.work_regime]}
+                  </span>
+                  {emp.responsibilities.includes('estoque') && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 rounded">Estoque</span>}
+                  {emp.responsibilities.includes('maquina') && <span className="text-xs bg-red-50 text-red-600 px-1.5 rounded">Máquina</span>}
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={e => { e.stopPropagation(); setEditing(emp); setShowForm(true) }}
+                  className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg">
+                  <Edit size={14} />
+                </button>
+                <button onClick={e => { e.stopPropagation(); handleDelete(emp.id) }}
+                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                  <Trash2 size={14} />
+                </button>
+                {expanded === emp.id ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+              </div>
+            </div>
+            {expanded === emp.id && (
+              <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-2 gap-3">
+                <div><span className="text-xs text-gray-400">Regime</span><div className="text-sm text-gray-700">{emp.work_regime === '5x2' ? '5×2' : '6×1'}</div></div>
+                <div><span className="text-xs text-gray-400">Folga fixa</span><div className="text-sm text-gray-700">{emp.fixed_day_off !== null ? DAY_NAMES[emp.fixed_day_off] : '—'}</div></div>
+                {emp.notes && <div className="col-span-2"><span className="text-xs text-gray-400">Observações</span><div className="text-sm text-gray-700">{emp.notes}</div></div>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
