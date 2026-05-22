@@ -101,7 +101,7 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, store }: 
                     {data.type === 'work' && (
                       <>
                         <div className="text-[10px] text-gray-500">
-                          {data.entry} – {data.exit} · {data.hrs}h
+                          {data.entry} – {data.exit} · {data.hrs}
                         </div>
                         <div className="flex gap-1 flex-wrap mt-0.5">
                           {data.hasEstoque && <span className="text-[8px] bg-blue-100 text-blue-700 px-1 rounded">Estoque</span>}
