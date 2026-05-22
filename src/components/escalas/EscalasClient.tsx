@@ -28,6 +28,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
   const [publishing, setPublishing] = useState(false)
   const [copying, setCopying] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const weekStart = useMemo(() => {
     const base = startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -78,18 +79,32 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     if (!selectedStore) return
     setGenerating(true)
     const { data: { user } } = await supabase.auth.getUser()
+    const weekKey = format(weekStart, 'yyyy-MM-dd')
     const { data, error } = await supabase.rpc('generate_base_schedule', {
       p_store_id: selectedStore.id,
-      p_week_start: format(weekStart, 'yyyy-MM-dd'),
+      p_week_start: weekKey,
       p_created_by: user?.id,
     })
-    setGenerating(false)
     if (error || (data as any)?.success === false) {
+      setGenerating(false)
       toast.error((error?.message ?? (data as any)?.error) || 'Erro ao gerar escala')
       return
     }
+    const { data: generatedSchedule, error: scheduleError } = await supabase
+      .from('schedules')
+      .select('id')
+      .eq('store_id', selectedStore.id)
+      .eq('week_start', weekKey)
+      .single()
+    if (scheduleError || !generatedSchedule?.id) {
+      setGenerating(false)
+      toast.error(scheduleError?.message || 'Escala gerada, mas não foi possível recarregar a grade')
+      return
+    }
+    await reload(generatedSchedule.id)
+    setRefreshKey(k => k + 1)
+    setGenerating(false)
     toast.success(`Escala gerada: ${(data as any)?.slots_created ?? 0} slots`)
-    await reload()
   }
 
   if (!selectedStore) {
@@ -218,6 +233,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
             </div>
           ) : view === 'grade' ? (
             <GradeHoraria
+              key={`grade-${refreshKey}-${schedule?.id ?? 'novo'}`}
               employees={employees}
               weekDates={weekDates}
               getSlot={getSlot}
