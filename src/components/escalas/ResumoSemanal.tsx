@@ -20,11 +20,14 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, store }: 
 
     const entry = workSlots[0]
     const lastSlot = workSlots[workSlots.length - 1]
-    const hrs = workSlots.length * 0.5
     const [eh, em] = entry.split(':').map(Number)
     const [lh, lm] = lastSlot.split(':').map(Number)
     // saída real = início do último slot + 30 min
+    const entryTotal = eh * 60 + em
     const exitTotal = lh * 60 + lm + 30
+    // duração líquida = (saída - entrada) - 60min de intervalo
+    const netMin = exitTotal - entryTotal - 60
+    const hrs = `${Math.floor(netMin / 60)}h${netMin % 60 ? String(netMin % 60).padStart(2,'0') : ''}`
     const xh = Math.floor(exitTotal / 60)
     const xm = exitTotal % 60
     const fmt = (h: number, m: number) => `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
