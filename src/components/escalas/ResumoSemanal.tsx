@@ -19,15 +19,20 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, store }: 
     if (workSlots.length === 0) return { type: 'empty' as const }
 
     const entry = workSlots[0]
-    const exit = workSlots[workSlots.length - 1]
+    const lastSlot = workSlots[workSlots.length - 1]
     const hrs = workSlots.length * 0.5
     const [eh, em] = entry.split(':').map(Number)
-    const [xh, xm] = exit.split(':').map(Number)
+    const [lh, lm] = lastSlot.split(':').map(Number)
+    // saída real = início do último slot + 30 min
+    const exitTotal = lh * 60 + lm + 30
+    const xh = Math.floor(exitTotal / 60)
+    const xm = exitTotal % 60
+    const fmt = (h: number, m: number) => `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
 
     return {
       type: 'work' as const,
-      entry: `${String(eh).padStart(2,'0')}h${em ? '30' : ''}`,
-      exit: `${String(xh).padStart(2,'0')}h${xm ? '30' : ''}`,
+      entry: fmt(eh, em),
+      exit: fmt(xh, xm),
       hrs,
       hasIntervalConflict: SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'interval').some(s => hasIntConflict(s)),
       hasEstoque: emp.responsibilities.includes('estoque') && dow === 1,
