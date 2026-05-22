@@ -173,6 +173,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                     return employees.map((emp, ei) => {
                       const slotType = getSlot(emp.id, dow, slot)
                       const block = getBlockInfo(emp.id, dow, si)
+                      const fullOff = isFullDayOff(emp.id, dow)
 
                       const dayAltBg = di % 2 === 0 ? '#FBFBF9' : 'transparent'
                       const cellBg = isToday ? 'rgba(29,158,117,0.04)' : isWknd ? '#F1F0EC' : dayAltBg
@@ -182,11 +183,13 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
                       if (slotType === 'work' && block) {
                         style = {
                           ...style,
-                          backgroundColor: hex2rgba(emp.color, 0.18),
+                          backgroundColor: hex2rgba(emp.color, 0.30),
                           borderLeft: `3px solid ${emp.color}`,
                         }
                       } else if (slotType === 'interval') {
-                        style = { ...style, backgroundColor: '#D3D1C7' }
+                        style = { ...style, backgroundColor: hex2rgba(emp.color, 0.10), borderLeft: `1px dashed ${emp.color}` }
+                      } else if (fullOff) {
+                        style = { ...style, background: stripePattern(emp.color) }
                       } else if (slotType === 'day_off') {
                         style = { ...style, backgroundColor: '#F1F0EC' }
                       }
