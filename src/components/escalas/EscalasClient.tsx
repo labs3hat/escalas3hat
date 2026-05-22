@@ -95,23 +95,8 @@ export default function EscalasClient({ profile, initialStores }: Props) {
       toast.error((error?.message ?? result?.error) || "Erro ao gerar escala");
       return;
     }
-    const { data: generatedSchedule, error: scheduleError } = await supabase
-      .from("schedules")
-      .select("id")
-      .eq("store_id", selectedStore.id)
-      .eq("week_start", weekKey)
-      .single();
-    if (scheduleError || !generatedSchedule?.id) {
-      setGenerating(false);
-      toast.error(
-        scheduleError?.message || "Escala gerada, mas não foi possível recarregar a grade",
-      );
-      return;
-    }
-    await reload(generatedSchedule.id);
-    setRefreshKey((k) => k + 1);
-    setGenerating(false);
     toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
+    window.location.reload();
   }
 
   if (!selectedStore) {
