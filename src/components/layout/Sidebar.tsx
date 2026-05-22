@@ -1,13 +1,15 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Calendar, RefreshCw, Clock, Users, Map, LogOut } from 'lucide-react'
+import { Calendar, RefreshCw, Clock, Users, Map, LogOut, Settings, Timer } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import type { Profile } from '@/types'
 
 const navItems = [
-  { href: '/escalas',    label: 'Escalas',    icon: Calendar },
-  { href: '/alteracoes', label: 'Alterações', icon: RefreshCw },
-  { href: '/horas',      label: 'Horas',      icon: Clock },
-  { href: '/cadastros',  label: 'Cadastros',  icon: Users },
+  { href: '/escalas',     label: 'Escalas',         icon: Calendar },
+  { href: '/alteracoes',  label: 'Alterações',      icon: RefreshCw },
+  { href: '/horas',       label: 'Horas',           icon: Clock },
+  { href: '/cadastros',   label: 'Funcionários',    icon: Users },
+  { href: '/turnos',      label: 'Turnos padrão',   icon: Timer },
+  { href: '/config-loja', label: 'Config. loja',    icon: Settings },
 ] as const
 
 const regionalItems = [
