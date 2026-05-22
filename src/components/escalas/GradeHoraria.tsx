@@ -73,7 +73,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateSlot
   return (
     <>
       <div className="overflow-auto h-full">
-        <table className="border-collapse" style={{ minWidth: `${52 + weekDates.length * employees.length * 34}px` }}>
+        <table className="border-collapse" style={{ minWidth: `${64 + weekDates.length * employees.length * 48}px` }}>
           {/* Header row 1: days */}
           <thead>
             <tr>
