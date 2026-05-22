@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { format, startOfWeek } from 'date-fns'
 import type { Schedule, ScheduleSlot } from '@/types'
@@ -8,18 +8,22 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [loading, setLoading] = useState(true)
   const weekKey = format(weekStart, 'yyyy-MM-dd')
+  const scheduleIdRef = useRef<string | null>(null)
 
   const load = useCallback(async () => {
     if (!storeId) { setLoading(false); return }
     setLoading(true)
 
-    // busca ou cria a escala da semana
-    let { data: sched } = await supabase
+    // busca a escala mais recente da semana (tolera duplicatas)
+    let { data: schedList } = await supabase
       .from('schedules')
       .select('*')
       .eq('store_id', storeId)
       .eq('week_start', weekKey)
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    let sched = schedList?.[0] ?? null
 
     if (!sched) {
       const { data: { user } } = await supabase.auth.getUser()
@@ -32,6 +36,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     }
 
     setSchedule(sched)
+    scheduleIdRef.current = sched?.id ?? null
 
     if (sched) {
       const { data: slotData } = await supabase
@@ -39,12 +44,28 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         .select('*')
         .eq('schedule_id', sched.id)
       setSlots((slotData ?? []) as any)
+    } else {
+      setSlots([])
     }
 
     setLoading(false)
   }, [storeId, weekKey])
 
   useEffect(() => { load() }, [load])
+
+  // Realtime: recarrega quando schedule_slots mudar para a escala atual
+  useEffect(() => {
+    if (!schedule?.id) return
+    const channel = supabase
+      .channel(`schedule-slots-${schedule.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'schedule_slots', filter: `schedule_id=eq.${schedule.id}` },
+        () => { load() }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [schedule?.id, load])
 
   async function updateSlot(
     employeeId: string,
