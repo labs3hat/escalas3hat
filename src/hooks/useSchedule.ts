@@ -147,6 +147,87 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     }
   }
 
+  /**
+   * Recria todos os slots de um funcionário em um dia.
+   *  - dayType 'day_off': apaga tudo e insere 1 slot day_off às 08:00
+   *  - dayType 'empty':   apaga todos os slots do dia
+   *  - dayType 'work':    apaga e recria slots de 30min entre entry e exit;
+   *                       slots dentro de [breakStart, breakEnd) são 'interval', demais 'work'.
+   */
+  async function updateDay(
+    employeeId: string,
+    dayOfWeek: number,
+    dayType: "work" | "day_off" | "empty",
+    payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
+  ) {
+    if (!schedule) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // remover todos os slots desse funcionário nesse dia
+    await supabase
+      .from("schedule_slots")
+      .delete()
+      .eq("schedule_id", schedule.id)
+      .eq("employee_id", employeeId)
+      .eq("day_of_week", dayOfWeek);
+
+    const toInsert: Array<{
+      schedule_id: string;
+      employee_id: string;
+      day_of_week: number;
+      slot_time: string;
+      slot_type: SlotType;
+      updated_by?: string;
+    }> = [];
+
+    if (dayType === "day_off") {
+      toInsert.push({
+        schedule_id: schedule.id,
+        employee_id: employeeId,
+        day_of_week: dayOfWeek,
+        slot_time: "08:00",
+        slot_type: "day_off" as SlotType,
+        updated_by: user?.id,
+      });
+    } else if (dayType === "work" && payload) {
+      const toMin = (s: string) => {
+        const [h, m] = s.split(":").map(Number);
+        return h * 60 + m;
+      };
+      const fmt = (mins: number) =>
+        `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
+
+      const entryM = toMin(payload.entry);
+      const exitM = toMin(payload.exit);
+      const bStart = payload.breakStart ? toMin(payload.breakStart) : null;
+      const bEnd = payload.breakEnd ? toMin(payload.breakEnd) : null;
+
+      // alinhar ao bloco de 30 min
+      const startAligned = entryM - (entryM % 30);
+      for (let t = startAligned; t < exitM; t += 30) {
+        const inBreak = bStart !== null && bEnd !== null && t >= bStart && t < bEnd;
+        toInsert.push({
+          schedule_id: schedule.id,
+          employee_id: employeeId,
+          day_of_week: dayOfWeek,
+          slot_time: fmt(t),
+          slot_type: (inBreak ? "interval" : "work") as SlotType,
+          updated_by: user?.id,
+        });
+      }
+    }
+
+    if (toInsert.length > 0) {
+      await supabase
+        .from("schedule_slots")
+        .upsert(toInsert, { onConflict: "schedule_id,employee_id,day_of_week,slot_time" });
+    }
+
+    await load();
+  }
+
   async function publish() {
     if (!schedule) return;
     const {
@@ -220,5 +301,5 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     );
   }
 
-  return { schedule, slots, loading, updateSlot, publish, copyPreviousWeek, getSlot, reload: load };
+  return { schedule, slots, loading, updateSlot, updateDay, publish, copyPreviousWeek, getSlot, reload: load };
 }

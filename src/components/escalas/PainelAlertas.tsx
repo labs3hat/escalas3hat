@@ -84,9 +84,11 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
     return employees.map(emp => {
       let total = 0
       weekDates.forEach(d => {
+        let dayWork = 0
         SLOT_KEYS.forEach(s => {
-          if (getSlot(emp.id, d.getDay(), s) === 'work') total += 0.5
+          if (getSlot(emp.id, d.getDay(), s) === 'work') dayWork += 0.5
         })
+        if (dayWork > 0) total += dayWork - 1 // desconta 1h de intervalo por dia trabalhado
       })
       return { emp, total: Math.round(total * 10) / 10 }
     })
