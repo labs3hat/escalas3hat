@@ -1,1 +1,4 @@
 project_id = "qrujvdsmwgccxkgjznvx"
+
+[functions.sync-sheets-employees]
+verify_jwt = true
