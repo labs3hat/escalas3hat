@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS stores_select_authenticated ON public.stores;
