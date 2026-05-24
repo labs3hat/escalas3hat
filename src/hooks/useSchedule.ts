@@ -301,5 +301,5 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     );
   }
 
-  return { schedule, slots, loading, updateSlot, publish, copyPreviousWeek, getSlot, reload: load };
+  return { schedule, slots, loading, updateSlot, updateDay, publish, copyPreviousWeek, getSlot, reload: load };
 }
