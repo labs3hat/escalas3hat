@@ -41,7 +41,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
   );
 
   const { employees } = useEmployees(selectedStore?.id ?? null);
-  const { schedule, loading, updateSlot, publish, copyPreviousWeek, getSlot, reload } = useSchedule(
+  const { schedule, loading, updateDay, publish, copyPreviousWeek, getSlot, reload } = useSchedule(
     selectedStore?.id ?? null,
     weekStart,
   );
