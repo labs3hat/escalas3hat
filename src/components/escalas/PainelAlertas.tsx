@@ -209,8 +209,8 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
                     style={{ width: `${pct}%`, backgroundColor: over ? '#DC2626' : emp.color }}
                   />
                 </div>
-                <div className={`text-[9px] min-w-[26px] text-right font-medium ${over ? 'text-red-600' : 'text-gray-400'}`}>
-                  {total}h
+                <div className={`text-[9px] min-w-[34px] text-right font-medium ${over ? 'text-red-600' : 'text-gray-400'}`}>
+                  {fmtHours(total)}
                 </div>
               </div>
             )
