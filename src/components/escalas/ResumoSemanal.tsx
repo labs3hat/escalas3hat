@@ -12,6 +12,7 @@ const TODAY = new Date()
 export default function ResumoSemanal({ employees, weekDates, getSlot, store }: Props) {
   function getDayData(emp: Employee, dow: number) {
     const workSlots = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'work')
+    const intervalSlots = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'interval').sort()
     const isFolga = SLOT_KEYS.some(s => getSlot(emp.id, dow, s) === 'day_off') && workSlots.length === 0
     const hasIntConflict = checkIntervalConflict(dow)
 
@@ -31,12 +32,23 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, store }: 
     const xm = exitTotal % 60
     const fmt = (h: number, m: number) => `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
 
+    // Intervalo: início = MIN(interval), fim = MAX(interval) + 30min
+    let intervalLabel: string | null = null
+    if (intervalSlots.length > 0) {
+      const first = intervalSlots[0]
+      const last = intervalSlots[intervalSlots.length - 1]
+      const [lh, lm] = last.split(':').map(Number)
+      const endTotal = lh * 60 + lm + 30
+      intervalLabel = `${first} – ${fmt(Math.floor(endTotal / 60), endTotal % 60)}`
+    }
+
     return {
       type: 'work' as const,
       entry: fmt(eh, em),
       exit: fmt(xh, xm),
       hrs,
-      hasIntervalConflict: SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'interval').some(s => hasIntConflict(s)),
+      intervalLabel,
+      hasIntervalConflict: intervalSlots.some(s => hasIntConflict(s)),
       hasEstoque: emp.responsibilities.includes('estoque') && dow === 1,
       hasMaquina: emp.responsibilities.includes('maquina') && [2, 4, 6].includes(dow),
     }
