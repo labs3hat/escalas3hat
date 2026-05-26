@@ -290,7 +290,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
                 employees={employees}
                 weekDates={weekDates}
                 getSlot={getSlot}
-                updateDay={updateDay}
+                updateDay={updateDayWithAudit}
                 store={selectedStore}
               />
             </div>
