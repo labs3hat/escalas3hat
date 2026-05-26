@@ -126,8 +126,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
 
   return (
     <>
-      <div className="overflow-hidden h-full">
-        <table className="border-collapse w-full h-full" style={{ tableLayout: 'fixed' }}>
+      <div ref={containerRef} className="overflow-hidden h-full">
+        <table className="border-collapse w-full" style={{ tableLayout: 'fixed' }}>
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-white w-10 min-w-[36px] border-b border-r border-gray-200 text-[9px] text-gray-400 font-medium px-1 py-1 text-left">
