@@ -197,7 +197,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
           <tbody>
             {HOUR_KEYS.map((hour) => {
               return (
-                <tr key={hour} style={{ height: `${100 / HOUR_KEYS.length}%` }}>
+                <tr key={hour} style={{ height: rowH }}>
                   <td
                     className="sticky left-0 z-5 bg-white border-r border-t border-gray-200 px-1 text-left align-middle"
                   >
