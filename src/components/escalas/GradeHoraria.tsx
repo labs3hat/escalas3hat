@@ -183,7 +183,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                       const fullOff = isFullDayOff(emp.id, dow)
 
                       const borderLeft = ei === 0 ? '2px solid #888780' : '0.5px solid #E5E5E0'
-                      let style: React.CSSProperties = { backgroundColor: 'white', borderLeft, height: ROW_H }
+                      let style: React.CSSProperties = { backgroundColor: 'white', borderLeft }
 
                       if (slotType === 'work') {
                         style = { ...style, backgroundColor: emp.color }
