@@ -236,15 +236,18 @@ export default function EscalasClient({ profile, initialStores }: Props) {
             </button>
             <button
               onClick={handlePublish}
-              disabled={publishing || schedule?.status === "published" || !freelancerOk}
-              title={!freelancerOk ? `${openCount} vaga(s) freelancer em aberto` : undefined}
-              className="flex items-center gap-1.5 text-sm px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={publishing || schedule?.status === "published"}
+              className={`flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-lg font-medium disabled:cursor-not-allowed ${
+                schedule?.status === "published"
+                  ? "bg-emerald-600 text-white opacity-90"
+                  : "bg-brand-500 hover:bg-brand-600 text-white disabled:opacity-50"
+              }`}
             >
               {schedule?.status === "published" ? <Check size={13} /> : <Send size={13} />}
               {publishing
                 ? "Publicando..."
                 : schedule?.status === "published"
-                  ? "Publicada"
+                  ? "✓ Publicada"
                   : "Publicar escala"}
             </button>
           </div>
