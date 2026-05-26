@@ -190,6 +190,26 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
         </div>
       </div>
 
+      {/* Folgas da semana */}
+      <div className="px-3 py-3 border-t border-gray-100">
+        <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Folgas da semana</div>
+        <div className="flex flex-col gap-1">
+          {folgas.map(({ emp, offDays }) => (
+            <div key={emp.id} className="text-[10px] leading-tight flex justify-between gap-2">
+              <span className="font-semibold truncate" style={{ color: emp.color }}>
+                {emp.name.split(' ')[0].toUpperCase()}
+              </span>
+              <span className="text-gray-500 text-right">
+                {offDays.length === 0
+                  ? 'Trabalhando todos os dias'
+                  : offDays.map(d => DAY_NAMES[d]).join(', ')}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+
       {/* Responsabilidades */}
       {employees.some(e => e.responsibilities.length > 0) && (
         <div className="px-3 py-3 border-t border-gray-100">
