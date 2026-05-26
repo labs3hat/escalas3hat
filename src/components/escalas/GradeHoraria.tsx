@@ -200,7 +200,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                           key={`${di}-${ei}`}
                           onClick={() => setModal({ emp, dow, date: d, initial: buildDayPayload(emp.id, dow) })}
                           style={style}
-                          className="cursor-pointer hover:brightness-95 p-0 border-t border-gray-200 min-h-[28px] md:min-h-[32px]"
+                          className="cursor-pointer hover:brightness-95 p-0 border-t border-gray-200"
                         />
                       )
                     })
