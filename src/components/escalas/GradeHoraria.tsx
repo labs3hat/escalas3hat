@@ -167,10 +167,9 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
           <tbody>
             {HOUR_KEYS.map((hour) => {
               return (
-                <tr key={hour} style={{ height: ROW_H }}>
+                <tr key={hour} style={{ height: `${100 / HOUR_KEYS.length}%` }}>
                   <td
                     className="sticky left-0 z-5 bg-white border-r border-t border-gray-200 px-1 text-left align-middle"
-                    style={{ height: ROW_H }}
                   >
                     <span className="text-[10px] font-semibold text-gray-700">
                       {hour.slice(0, 2)}h
