@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { DAY_NAMES } from '@/types'
 import type { Employee } from '@/types'
@@ -26,16 +26,50 @@ const TYPE_OPTIONS: { value: DayPayload['type']; label: string; cls: string }[] 
   { value: 'empty',   label: 'Vazio',       cls: 'bg-white text-gray-400 border border-gray-200' },
 ]
 
+const toMin = (s: string) => {
+  const [h, m] = s.split(':').map(Number)
+  return h * 60 + m
+}
+const fmt = (mins: number) =>
+  `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+
+// Garante que o intervalo tenha pelo menos 60 min (Fim = Início + 60)
+function enforceOneHour(start: string, end?: string): string {
+  const s = toMin(start)
+  const e = end ? toMin(end) : -1
+  if (e - s < 60) return fmt(s + 60)
+  return end!
+}
+
 export default function SlotModal({ emp, dow, date, initial, onClose, onSave }: Props) {
   const isFc = (initial.entry ?? '') >= '13:00'
+  const defEntry = initial.entry ?? (isFc ? '14:00' : '08:00')
+  const defExit  = initial.exit  ?? (isFc ? '22:20' : '16:20')
+  const defBs    = initial.breakStart ?? (isFc ? '18:00' : '12:00')
+  const defBe    = enforceOneHour(defBs, initial.breakEnd ?? (isFc ? '19:00' : '13:00'))
+
   const [type, setType]             = useState<DayPayload['type']>(initial.type)
-  const [entry, setEntry]           = useState(initial.entry ?? (isFc ? '14:00' : '08:00'))
-  const [exit, setExit]             = useState(initial.exit ?? (isFc ? '22:20' : '16:20'))
-  const [breakStart, setBreakStart] = useState(initial.breakStart ?? (isFc ? '18:30' : '12:00'))
-  const [breakEnd, setBreakEnd]     = useState(initial.breakEnd ?? (isFc ? '19:30' : '13:00'))
+  const [entry, setEntry]           = useState(defEntry)
+  const [exit, setExit]             = useState(defExit)
+  const [breakStart, setBreakStart] = useState(defBs)
+  const [breakEnd, setBreakEnd]     = useState(defBe)
   const [saving, setSaving] = useState(false)
 
+  const breakMin = useMemo(() => toMin(breakEnd) - toMin(breakStart), [breakStart, breakEnd])
+  const breakOk = breakMin >= 60
+
+  const netLabel = useMemo(() => {
+    const dur = toMin(exit) - toMin(entry) - Math.max(0, breakMin)
+    if (!Number.isFinite(dur) || dur <= 0) return '—'
+    const h = Math.floor(dur / 60)
+    const m = dur % 60
+    return `${h}h${String(m).padStart(2, '0')}`
+  }, [entry, exit, breakMin])
+
+  const canSave = type !== 'work' || breakOk
+
   async function handleSave() {
+    if (!canSave) return
     setSaving(true)
     try {
       await onSave(
@@ -81,11 +115,24 @@ export default function SlotModal({ emp, dow, date, initial, onClose, onSave }: 
         </div>
 
         {type === 'work' && (
-          <div className="px-4 py-3 border-b border-gray-100 grid grid-cols-2 gap-3">
-            <Field label="Entrada" value={entry} onChange={setEntry} />
-            <Field label="Saída" value={exit} onChange={setExit} />
-            <Field label="Início intervalo" value={breakStart} onChange={setBreakStart} />
-            <Field label="Fim intervalo" value={breakEnd} onChange={setBreakEnd} />
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Entrada" value={entry} onChange={setEntry} />
+              <Field label="Saída" value={exit} onChange={setExit} />
+              <Field label="Início intervalo" value={breakStart} onChange={setBreakStart} />
+              <Field label="Fim intervalo" value={breakEnd} onChange={setBreakEnd} />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-xs">
+              <span className="text-gray-400 uppercase tracking-wide text-[10px] font-medium">Duração líquida</span>
+              <span className="font-semibold text-gray-800">{netLabel}</span>
+            </div>
+
+            {!breakOk && (
+              <div className="mt-2 text-[11px] text-red-600 font-medium">
+                Intervalo mínimo obrigatório: 1 hora
+              </div>
+            )}
           </div>
         )}
 
@@ -93,7 +140,11 @@ export default function SlotModal({ emp, dow, date, initial, onClose, onSave }: 
           <button onClick={onClose} className="flex-1 py-2 text-sm border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
             Cancelar
           </button>
-          <button onClick={handleSave} disabled={saving} className="flex-1 py-2 text-sm bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium disabled:opacity-60">
+          <button
+            onClick={handleSave}
+            disabled={saving || !canSave}
+            className="flex-1 py-2 text-sm bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+          >
             {saving ? 'Salvando...' : 'Confirmar'}
           </button>
         </div>
