@@ -143,7 +143,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
       {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Page header */}
-        <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-4 flex-shrink-0">
+        <div className="px-6 pt-3 pb-2 flex items-start justify-between gap-4 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">Escalas</h1>
             <p className="text-sm text-gray-500 mt-0.5">Grade semanal por loja</p>
@@ -170,7 +170,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
         </div>
 
         {/* Toolbar card */}
-        <div className="mx-6 mb-3 bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap flex-shrink-0">
+        <div className="mx-6 mb-2 bg-white border border-gray-200 rounded-xl px-4 py-2 flex items-center justify-between gap-3 flex-wrap flex-shrink-0">
           {/* Left: week nav */}
           <div className="flex items-center gap-2">
             <button
@@ -278,7 +278,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden px-6 py-4">
+        <div className="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-2">
           {loading ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               Carregando escala...

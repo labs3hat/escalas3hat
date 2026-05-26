@@ -91,19 +91,24 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
 
   // Altura dinâmica das linhas — calcula a partir do container para caber sem scroll
   const containerRef = useRef<HTMLDivElement>(null)
-  const [rowH, setRowH] = useState(24)
+  const theadRef = useRef<HTMLTableSectionElement>(null)
+  const footerRef = useRef<HTMLTableRowElement>(null)
+  const [rowH, setRowH] = useState(20)
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
     const update = () => {
-      // ~84px de cabeçalho (2 linhas) + ~22px do rodapé "Cob"
-      const available = el.clientHeight - 84 - 22
-      const next = Math.max(16, Math.floor(available / HOUR_KEYS.length))
+      const headerH = theadRef.current?.offsetHeight ?? 0
+      const footerH = footerRef.current?.offsetHeight ?? 0
+      const available = el.clientHeight - headerH - footerH - 6
+      const next = Math.max(12, Math.floor(available / HOUR_KEYS.length))
       setRowH(next)
     }
     update()
     const ro = new ResizeObserver(update)
     ro.observe(el)
+    if (theadRef.current) ro.observe(theadRef.current)
+    if (footerRef.current) ro.observe(footerRef.current)
     return () => ro.disconnect()
   }, [HOUR_KEYS.length])
 
@@ -127,10 +132,10 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
   return (
     <>
       <div ref={containerRef} className="overflow-hidden h-full">
-        <table className="border-collapse w-full" style={{ tableLayout: 'fixed' }}>
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 bg-white w-10 min-w-[36px] border-b border-r border-gray-200 text-[9px] text-gray-400 font-medium px-1 py-1 text-left">
+        <table className="border-collapse w-full h-full" style={{ tableLayout: 'fixed' }}>
+          <thead ref={theadRef}>
+            <tr style={{ height: 34 }}>
+              <th className="sticky left-0 z-10 bg-white w-10 min-w-[36px] h-[34px] border-b border-r border-gray-200 text-[8px] text-gray-400 font-medium px-1 py-0 text-left leading-none">
                 H
               </th>
               {weekDates.map((d, di) => {
@@ -140,18 +145,18 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                   <th
                     key={di}
                     colSpan={employees.length}
-                    className={`border-b border-gray-200 text-center py-0.5 px-0.5 ${
+                    className={`h-[34px] border-b border-gray-200 text-center py-0 px-0.5 leading-none ${
                       isToday ? 'bg-brand-50' : isWknd ? 'bg-gray-100' : di % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                     }`}
                     style={{ borderLeft: '2px solid #888780' }}
                   >
-                    <span className={`text-[9px] font-medium ${isToday ? 'text-brand-600' : 'text-gray-500'}`}>
+                    <span className={`text-[8px] font-medium ${isToday ? 'text-brand-600' : 'text-gray-500'}`}>
                       {DAY_NAMES[d.getDay()]}
                     </span>
-                    <span className={`block text-[10px] font-semibold leading-tight ${isToday ? 'text-brand-700' : 'text-gray-800'}`}>
+                    <span className={`block text-[9px] font-semibold leading-none ${isToday ? 'text-brand-700' : 'text-gray-800'}`}>
                       {d.getDate()}/{String(d.getMonth() + 1).padStart(2, '0')}
                     </span>
-                    <div className="flex items-center justify-center gap-0.5 min-h-[10px]">
+                    <div className="flex items-center justify-center gap-0.5 min-h-[8px] leading-none">
                       {washDays.includes(d.getDay()) && (
                         <span title="Lavagem" className="text-[8px] px-0.5 rounded bg-sky-100 text-sky-700 font-medium">🧺</span>
                       )}
@@ -163,8 +168,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 )
               })}
             </tr>
-            <tr>
-              <th className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 w-10 text-left px-1 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-gray-600">
+            <tr style={{ height: 20 }}>
+              <th className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 w-10 h-5 text-left px-1 py-0 text-[8px] font-semibold uppercase tracking-wide text-gray-600 leading-none">
                 Hr
               </th>
               {weekDates.map((d, di) =>
@@ -173,7 +178,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                   return (
                     <th
                       key={`${di}-${ei}`}
-                      className="border-b border-gray-200 text-center py-0.5 bg-white"
+                      className="h-5 border-b border-gray-200 text-center py-0 bg-white leading-none"
                       style={{
                         width: COL_W,
                         minWidth: COL_W,
@@ -181,11 +186,11 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                         ...(off ? { background: stripePattern(emp.color) } : {}),
                       }}
                     >
-                      <div className="text-[9px] font-bold uppercase tracking-tight truncate leading-tight" style={{ color: emp.color }}>
+                      <div className="text-[8px] font-bold uppercase tracking-tight truncate leading-none" style={{ color: emp.color }}>
                         {emp.name.split(' ')[0].substring(0, 6)}
                       </div>
                       {off && (
-                        <div className="text-[7px] font-bold leading-tight" style={{ color: emp.color }}>FOLGA</div>
+                        <div className="text-[6px] font-bold leading-none" style={{ color: emp.color }}>FOLGA</div>
                       )}
                     </th>
                   )
@@ -199,9 +204,10 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
               return (
                 <tr key={hour} style={{ height: rowH }}>
                   <td
-                    className="sticky left-0 z-5 bg-white border-r border-t border-gray-200 px-1 text-left align-middle"
+                    className="sticky left-0 z-5 bg-white border-r border-t border-gray-200 px-1 text-left align-middle leading-none"
+                    style={{ height: rowH }}
                   >
-                    <span className="text-[10px] font-semibold text-gray-700">
+                    <span className="text-[9px] font-semibold text-gray-700">
                       {hour.slice(0, 2)}h
                     </span>
                   </td>
@@ -229,7 +235,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                         <td
                           key={`${di}-${ei}`}
                           onClick={() => setModal({ emp, dow, date: d, initial: buildDayPayload(emp.id, dow) })}
-                          style={style}
+                          style={{ ...style, height: rowH }}
                           className="cursor-pointer hover:brightness-95 p-0 border-t border-gray-200"
                         />
                       )
@@ -240,7 +246,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
             })}
 
 
-            <tr className="bg-gray-50 border-t border-gray-300">
+            <tr ref={footerRef} className="bg-gray-50 border-t border-gray-300">
               <td className="sticky left-0 bg-gray-50 border-r border-gray-200 px-1 text-[8px] font-medium text-gray-500 py-0.5">
                 Cob
               </td>

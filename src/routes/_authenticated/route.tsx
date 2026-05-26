@@ -98,7 +98,7 @@ function AuthenticatedLayout() {
     <AppCtx.Provider value={ctx}>
       <div className="flex h-screen bg-gray-50 overflow-hidden">
         <Sidebar profile={profile} collapsed={sidebarCollapsed} />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <header className="h-12 bg-white border-b border-gray-200 flex items-center px-3 gap-2 flex-shrink-0">
             <button
               onClick={() => setSidebarCollapsed((c) => !c)}
@@ -109,7 +109,7 @@ function AuthenticatedLayout() {
             </button>
             <span className="text-sm font-semibold text-gray-800">3HAT Escalas</span>
           </header>
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 min-h-0 overflow-auto">
             <Outlet />
           </main>
         </div>
