@@ -94,6 +94,18 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
     })
   }, [employees, weekDates, getSlot])
 
+  const folgas = useMemo(() => {
+    return [...employees]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(emp => {
+        const offDays = weekDates
+          .map(d => d.getDay())
+          .filter(dow => SLOT_KEYS.some(s => getSlot(emp.id, dow, s) === 'day_off'))
+        return { emp, offDays }
+      })
+  }, [employees, weekDates, getSlot])
+
+
   const criticals = alerts.filter(a => a.type === 'critical')
   const warnings = alerts.filter(a => a.type === 'warning')
 
