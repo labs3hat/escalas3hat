@@ -114,6 +114,11 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, store }: 
                         <div className="text-[10px] text-gray-500">
                           {data.entry} – {data.exit} · {data.hrs}
                         </div>
+                        {data.intervalLabel && (
+                          <div className="text-[10px] text-muted-foreground">
+                            Intervalo: {data.intervalLabel}
+                          </div>
+                        )}
                         <div className="flex gap-1 flex-wrap mt-0.5">
                           {data.hasEstoque && <span className="text-[8px] bg-blue-100 text-blue-700 px-1 rounded">Estoque</span>}
                           {data.hasMaquina && <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">Máquina</span>}
