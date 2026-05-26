@@ -46,9 +46,8 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     weekStart,
   );
 
-  // ── NOVO: estado de freelancers ────────────────────────────
-  const { openCount, canPublish: freelancerOk } = useFreelancerSlots(schedule?.id ?? null);
-  // ──────────────────────────────────────────────────────────
+  // Freelancers: contagem informativa (NÃO bloqueia publicação)
+  const { openCount } = useFreelancerSlots(schedule?.id ?? null);
 
   const weekLabel = useMemo(() => {
     const s = weekDates[0],
@@ -56,19 +55,51 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     return `${s.getDate()} – ${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
   }, [weekDates]);
 
-  // ── MODIFICADO: bloquear publicação se há vagas em aberto ──
+  // Publicação sempre permitida; vagas freelancer em aberto viram apenas aviso
   async function handlePublish() {
-    if (!freelancerOk) {
-      toast.error(`Preencha as ${openCount} vaga(s) freelancer antes de publicar.`);
-      setView("freelancers");
-      return;
-    }
     setPublishing(true);
-    await publish();
-    toast.success("Escala publicada!");
-    setPublishing(false);
+    try {
+      await publish();
+      toast.success("Escala publicada com sucesso");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao publicar escala");
+    } finally {
+      setPublishing(false);
+    }
   }
-  // ──────────────────────────────────────────────────────────
+
+  // Edição pós-publicação: pede motivo e registra em schedule_changes
+  async function updateDayWithAudit(
+    employeeId: string,
+    dayOfWeek: number,
+    type: "work" | "day_off" | "empty",
+    payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
+  ) {
+    if (schedule?.status === "published") {
+      const reason = window.prompt("Esta escala está publicada. Informe o motivo da alteração:");
+      if (!reason || !reason.trim()) {
+        toast.error("Motivo obrigatório para editar escala publicada.");
+        return;
+      }
+      await updateDay(employeeId, dayOfWeek, type, payload);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      await supabase.from("schedule_changes").insert({
+        schedule_id: schedule.id,
+        store_id: selectedStore.id,
+        change_type: "shift_change" as any,
+        employee_id: employeeId,
+        day_of_week: dayOfWeek,
+        after_value: (payload ?? { type }) as any,
+        notes: reason.trim(),
+        created_by: user?.id as string,
+      });
+      toast.success("Alteração registrada");
+    } else {
+      await updateDay(employeeId, dayOfWeek, type, payload);
+    }
+  }
 
   async function handleCopy() {
     setCopying(true);
@@ -205,15 +236,18 @@ export default function EscalasClient({ profile, initialStores }: Props) {
             </button>
             <button
               onClick={handlePublish}
-              disabled={publishing || schedule?.status === "published" || !freelancerOk}
-              title={!freelancerOk ? `${openCount} vaga(s) freelancer em aberto` : undefined}
-              className="flex items-center gap-1.5 text-sm px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={publishing || schedule?.status === "published"}
+              className={`flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-lg font-medium disabled:cursor-not-allowed ${
+                schedule?.status === "published"
+                  ? "bg-emerald-600 text-white opacity-90"
+                  : "bg-brand-500 hover:bg-brand-600 text-white disabled:opacity-50"
+              }`}
             >
               {schedule?.status === "published" ? <Check size={13} /> : <Send size={13} />}
               {publishing
                 ? "Publicando..."
                 : schedule?.status === "published"
-                  ? "Publicada"
+                  ? "✓ Publicada"
                   : "Publicar escala"}
             </button>
           </div>
@@ -256,7 +290,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
                 employees={employees}
                 weekDates={weekDates}
                 getSlot={getSlot}
-                updateDay={updateDay}
+                updateDay={updateDayWithAudit}
                 store={selectedStore}
               />
             </div>

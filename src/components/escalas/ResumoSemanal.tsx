@@ -22,17 +22,14 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, store }: 
     const entry = workSlots[0]
     const [eh, em] = entry.split(':').map(Number)
     const entryTotal = eh * 60 + em
-    // Duração bruta por regime: 6x1 = 8h20 (500min), 5x2 = 9h48 (588min)
     const grossMin = emp.work_regime === '5x2' ? 588 : 500
     const exitTotal = entryTotal + grossMin
-    // Líquida = bruta - 60min de intervalo
     const netMin = grossMin - 60
     const hrs = `${Math.floor(netMin / 60)}h${netMin % 60 ? String(netMin % 60).padStart(2,'0') : ''}`
     const xh = Math.floor(exitTotal / 60)
     const xm = exitTotal % 60
     const fmt = (h: number, m: number) => `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
 
-    // Intervalo: início = MIN(interval), fim = MAX(interval) + 30min
     let intervalLabel: string | null = null
     if (intervalSlots.length > 0) {
       const first = intervalSlots[0]
@@ -49,8 +46,6 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, store }: 
       hrs,
       intervalLabel,
       hasIntervalConflict: intervalSlots.some(s => hasIntConflict(s)),
-      hasEstoque: emp.responsibilities.includes('estoque') && dow === 1,
-      hasMaquina: emp.responsibilities.includes('maquina') && [2, 4, 6].includes(dow),
     }
   }
 
@@ -62,103 +57,80 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, store }: 
   }
 
   return (
-    <div className="p-4 overflow-auto">
-      <div className="flex gap-3 min-w-max">
+    <div className="h-full flex flex-col p-2 overflow-hidden">
+      <div className="grid grid-cols-7 gap-1 flex-1 min-h-0">
         {weekDates.map((d, di) => {
           const dow = d.getDay()
           const isToday = d.toDateString() === TODAY.toDateString()
           const isWknd = dow === 0 || dow === 6
           const abCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday?.replace(':','') ?? '10:00') === 'work').length
           const fcCount = employees.filter(e => getSlot(e.id, dow, '22:00') === 'work').length
-          const abOk = abCount >= (store.min_opening_staff ?? 1)
           const fcOk = fcCount >= (store.min_closing_staff ?? 2)
 
           return (
             <div
               key={di}
-              className={`border rounded-xl overflow-hidden w-44 flex-shrink-0 ${
+              className={`border rounded-lg overflow-hidden flex flex-col min-h-0 ${
                 isToday ? 'border-brand-300' : 'border-gray-200'
               }`}
             >
-              {/* Day header */}
-              <div className={`px-3 py-2 border-b ${
+              <div className={`px-1.5 py-1 border-b flex-shrink-0 ${
                 isToday ? 'bg-brand-50 border-brand-200' : isWknd ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-100'
               }`}>
-                <div className={`text-xs font-medium ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>
+                <div className={`text-[10px] font-medium leading-tight ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>
                   {DAY_NAMES[dow]}
                 </div>
-                <div className={`text-base font-semibold ${isToday ? 'text-brand-700' : 'text-gray-800'}`}>
+                <div className={`text-xs font-semibold leading-tight ${isToday ? 'text-brand-700' : 'text-gray-800'}`}>
                   {d.getDate()}/{String(d.getMonth()+1).padStart(2,'0')}
                 </div>
               </div>
 
-              {/* Employees */}
-              {employees.map(emp => {
-                const data = getDayData(emp, dow)
-                return (
-                  <div
-                    key={emp.id}
-                    className={`px-3 py-2 border-b border-gray-100 last:border-0 ${
-                      data.type === 'folga' ? 'bg-gray-50' :
-                      data.type === 'work' && data.hasIntervalConflict ? 'bg-red-50' : ''
-                    }`}
-                  >
-                    <div className="text-xs font-medium truncate" style={{ color: emp.color }}>
-                      {emp.name.split(' ')[0]}
-                    </div>
-                    {data.type === 'folga' && (
-                      <span className="inline-block text-[9px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded mt-0.5">Folga</span>
-                    )}
-                    {data.type === 'work' && (
-                      <>
-                        <div className="text-[10px] text-gray-500">
-                          {data.entry} – {data.exit} · {data.hrs}
-                        </div>
-                        {data.intervalLabel && (
-                          <div className="text-[10px] text-muted-foreground">
-                            Intervalo: {data.intervalLabel}
+              <div className="flex-1 overflow-hidden">
+                {employees.map(emp => {
+                  const data = getDayData(emp, dow)
+                  return (
+                    <div
+                      key={emp.id}
+                      className={`px-1.5 py-1 border-b border-gray-100 last:border-0 ${
+                        data.type === 'folga' ? 'bg-gray-50' :
+                        data.type === 'work' && data.hasIntervalConflict ? 'bg-red-50' : ''
+                      }`}
+                    >
+                      <div className="text-[11px] font-bold truncate leading-tight" style={{ color: emp.color }}>
+                        {emp.name.split(' ')[0]}
+                      </div>
+                      {data.type === 'folga' && (
+                        <span className="inline-block text-[9px] bg-gray-200 text-gray-600 px-1 rounded mt-0.5">Folga</span>
+                      )}
+                      {data.type === 'work' && (
+                        <>
+                          <div className="text-[10px] text-gray-600 leading-tight">
+                            {data.entry}–{data.exit} · {data.hrs}
                           </div>
-                        )}
-                        <div className="flex gap-1 flex-wrap mt-0.5">
-                          {data.hasEstoque && <span className="text-[8px] bg-blue-100 text-blue-700 px-1 rounded">Estoque</span>}
-                          {data.hasMaquina && <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">Máquina</span>}
-                          {data.hasIntervalConflict && <span className="text-[8px] bg-red-100 text-red-700 px-1 rounded">⚠ R16</span>}
-                        </div>
-                      </>
-                    )}
-                    {data.type === 'empty' && (
-                      <div className="text-[10px] text-gray-300">—</div>
-                    )}
-                  </div>
-                )
-              })}
+                          {data.intervalLabel && (
+                            <div className="text-[10px] text-muted-foreground leading-tight">
+                              Int: {data.intervalLabel}
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {data.type === 'empty' && (
+                        <div className="text-[10px] text-gray-300">—</div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
 
-              {/* Footer */}
-              <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100 flex justify-between">
-                <span className="text-[9px] text-gray-400">Ab: {abCount}</span>
+              <div className="px-1.5 py-1 bg-gray-50 border-t border-gray-100 flex justify-between flex-shrink-0">
+                <span className="text-[9px] text-gray-400">Ab:{abCount}</span>
                 <span className={`text-[9px] font-medium ${fcOk ? 'text-brand-600' : 'text-red-600'}`}>
-                  Fc: {fcCount} {fcOk ? '✓' : '⚠'}
+                  Fc:{fcCount}{fcOk ? '✓' : '⚠'}
                 </span>
               </div>
             </div>
           )
         })}
-      </div>
-
-      {/* Legend */}
-      <div className="flex gap-4 mt-4 flex-wrap">
-        {[
-          { color: 'bg-gray-200', label: 'Folga' },
-          { color: 'bg-gray-400', label: 'Intervalo' },
-          { color: 'bg-red-100 border border-red-200', label: 'Conflito R16' },
-          { color: 'bg-blue-100', label: 'Estoque' },
-          { color: 'bg-red-100', label: 'Lavar máquina' },
-        ].map(l => (
-          <div key={l.label} className="flex items-center gap-1.5 text-xs text-gray-500">
-            <div className={`w-3 h-3 rounded ${l.color}`} />
-            {l.label}
-          </div>
-        ))}
       </div>
     </div>
   )

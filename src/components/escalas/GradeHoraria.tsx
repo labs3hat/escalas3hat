@@ -75,9 +75,20 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
   // Compact sizing
   const COL_W = 36   // px — coluna por funcionário
 
-  // Linhas de hora cheia (07h às 22h => 16 linhas representando 07-23)
+  // Linhas de hora cheia — dinâmico: 07h até hora de fechamento da loja
+  function ceilHour(t?: string | null): number {
+    if (!t) return 22
+    const [h, m] = t.split(':').map(Number)
+    return m > 0 ? h + 1 : h
+  }
+  const closeHour = Math.max(
+    ceilHour((store as any).closing_exit_6x1),
+    ceilHour((store as any).closing_exit_5x2),
+  )
+  const endHour = Math.min(23, Math.max(22, closeHour))
   const HOUR_KEYS: string[] = []
-  for (let h = 7; h <= 22; h++) HOUR_KEYS.push(`${String(h).padStart(2, '0')}:00`)
+  for (let h = 7; h <= endHour; h++) HOUR_KEYS.push(`${String(h).padStart(2, '0')}:00`)
+
 
   // Tipo prevalente da hora:
   //   QUALQUER subslot interval -> interval
