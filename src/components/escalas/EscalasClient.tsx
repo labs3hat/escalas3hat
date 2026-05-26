@@ -278,7 +278,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="flex-1 min-h-0 overflow-hidden px-6 py-4">
           {loading ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               Carregando escala...
@@ -302,7 +302,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
               store={selectedStore}
             />
           ) : (
-            <div className="p-4 max-w-lg">
+            <div className="p-4 max-w-lg h-full overflow-auto">
               {schedule?.id ? (
                 <FreelancerSlots scheduleId={schedule.id} />
               ) : (

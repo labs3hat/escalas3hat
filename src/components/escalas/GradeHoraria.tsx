@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
 import SlotModal, { type DayPayload } from './SlotModal'
 
@@ -89,6 +89,25 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
   const HOUR_KEYS: string[] = []
   for (let h = 7; h <= endHour; h++) HOUR_KEYS.push(`${String(h).padStart(2, '0')}:00`)
 
+  // Altura dinâmica das linhas — calcula a partir do container para caber sem scroll
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [rowH, setRowH] = useState(24)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const update = () => {
+      // ~84px de cabeçalho (2 linhas) + ~22px do rodapé "Cob"
+      const available = el.clientHeight - 84 - 22
+      const next = Math.max(16, Math.floor(available / HOUR_KEYS.length))
+      setRowH(next)
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [HOUR_KEYS.length])
+
+
 
   // Tipo prevalente da hora:
   //   QUALQUER subslot interval -> interval
@@ -107,8 +126,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
 
   return (
     <>
-      <div className="overflow-hidden h-full">
-        <table className="border-collapse w-full h-full" style={{ tableLayout: 'fixed' }}>
+      <div ref={containerRef} className="overflow-hidden h-full">
+        <table className="border-collapse w-full" style={{ tableLayout: 'fixed' }}>
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-white w-10 min-w-[36px] border-b border-r border-gray-200 text-[9px] text-gray-400 font-medium px-1 py-1 text-left">
@@ -178,7 +197,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
           <tbody>
             {HOUR_KEYS.map((hour) => {
               return (
-                <tr key={hour} style={{ height: `${100 / HOUR_KEYS.length}%` }}>
+                <tr key={hour} style={{ height: rowH }}>
                   <td
                     className="sticky left-0 z-5 bg-white border-r border-t border-gray-200 px-1 text-left align-middle"
                   >
