@@ -1,5 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
+import { format } from 'date-fns'
 import { AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 import { SLOT_KEYS, DAY_NAMES, type Employee, type Store, type Schedule } from '@/types'
 
 interface Props {
