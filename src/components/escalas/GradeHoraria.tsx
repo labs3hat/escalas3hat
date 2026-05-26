@@ -74,7 +74,21 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
 
   // Compact sizing
   const COL_W = 36   // px — coluna por funcionário
-  const ROW_H = 14   // px — altura de linha de slot
+  const ROW_H = 22   // px — altura de linha de hora
+
+  // Linhas de hora cheia (07h às 22h => 16 linhas representando 07-23)
+  const HOUR_KEYS: string[] = []
+  for (let h = 7; h <= 22; h++) HOUR_KEYS.push(`${String(h).padStart(2, '0')}:00`)
+
+  // Tipo prevalente da hora considerando os dois sub-slots (:00 e :30)
+  function hourType(empId: string, dow: number, hour: string): string {
+    const half = `${hour.slice(0, 2)}:30`
+    const a = getSlot(empId, dow, hour)
+    const b = SLOT_KEYS.includes(half) ? getSlot(empId, dow, half) : ''
+    const pri = (t: string) => (t === 'work' ? 4 : t === 'interval' ? 3 : t === 'day_off' ? 2 : t === 'empty' ? 1 : 0)
+    return pri(a) >= pri(b) ? a : b
+  }
+
 
   return (
     <>
