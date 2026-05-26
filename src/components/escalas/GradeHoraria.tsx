@@ -100,8 +100,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
     const update = () => {
       const headerH = theadRef.current?.offsetHeight ?? 0
       const footerH = footerRef.current?.offsetHeight ?? 0
-      const available = el.clientHeight - headerH - footerH - 4
-      const next = Math.max(14, Math.min(22, Math.floor(available / HOUR_KEYS.length)))
+      const available = el.clientHeight - headerH - footerH - 6
+      const next = Math.max(12, Math.floor(available / HOUR_KEYS.length))
       setRowH(next)
     }
     update()
@@ -145,7 +145,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                   <th
                     key={di}
                     colSpan={employees.length}
-                    className={`border-b border-gray-200 text-center py-0.5 px-0.5 ${
+                    className={`border-b border-gray-200 text-center py-0 px-0.5 ${
                       isToday ? 'bg-brand-50' : isWknd ? 'bg-gray-100' : di % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                     }`}
                     style={{ borderLeft: '2px solid #888780' }}
@@ -156,7 +156,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                     <span className={`block text-[10px] font-semibold leading-tight ${isToday ? 'text-brand-700' : 'text-gray-800'}`}>
                       {d.getDate()}/{String(d.getMonth() + 1).padStart(2, '0')}
                     </span>
-                    <div className="flex items-center justify-center gap-0.5 min-h-[10px]">
+                    <div className="flex items-center justify-center gap-0.5 min-h-[8px] leading-none">
                       {washDays.includes(d.getDay()) && (
                         <span title="Lavagem" className="text-[8px] px-0.5 rounded bg-sky-100 text-sky-700 font-medium">🧺</span>
                       )}
@@ -178,7 +178,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                   return (
                     <th
                       key={`${di}-${ei}`}
-                      className="border-b border-gray-200 text-center py-0.5 bg-white"
+                      className="border-b border-gray-200 text-center py-0 bg-white leading-none"
                       style={{
                         width: COL_W,
                         minWidth: COL_W,
