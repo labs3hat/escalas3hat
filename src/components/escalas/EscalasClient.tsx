@@ -302,7 +302,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
               store={selectedStore}
             />
           ) : (
-            <div className="p-4 max-w-lg">
+            <div className="p-4 max-w-lg h-full overflow-auto">
               {schedule?.id ? (
                 <FreelancerSlots scheduleId={schedule.id} />
               ) : (
