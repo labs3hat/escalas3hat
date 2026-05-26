@@ -161,25 +161,22 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
           </thead>
 
           <tbody>
-            {SLOT_KEYS.map((slot) => {
-              const onHour = isOnHour(slot)
+            {HOUR_KEYS.map((hour) => {
               return (
-                <tr key={slot} style={{ height: ROW_H }}>
+                <tr key={hour} style={{ height: ROW_H }}>
                   <td
-                    className={`sticky left-0 z-5 bg-white border-r border-gray-200 px-1 text-left align-middle ${
-                      onHour ? 'border-t border-gray-200' : 'border-t border-gray-50'
-                    }`}
+                    className="sticky left-0 z-5 bg-white border-r border-t border-gray-200 px-1 text-left align-middle"
                     style={{ height: ROW_H }}
                   >
-                    <span className={`text-[9px] ${onHour ? 'font-semibold text-gray-700' : 'text-gray-300'}`}>
-                      {onHour ? slot.slice(0, 2) : ''}
+                    <span className="text-[10px] font-semibold text-gray-700">
+                      {hour.slice(0, 2)}h
                     </span>
                   </td>
 
                   {weekDates.map((d, di) => {
                     const dow = d.getDay()
                     return employees.map((emp, ei) => {
-                      const slotType = getSlot(emp.id, dow, slot)
+                      const slotType = hourType(emp.id, dow, hour)
                       const fullOff = isFullDayOff(emp.id, dow)
 
                       const borderLeft = ei === 0 ? '2px solid #888780' : '0.5px solid #E5E5E0'
@@ -200,9 +197,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                           key={`${di}-${ei}`}
                           onClick={() => setModal({ emp, dow, date: d, initial: buildDayPayload(emp.id, dow) })}
                           style={style}
-                          className={`cursor-pointer hover:brightness-95 p-0 ${
-                            onHour ? 'border-t border-gray-200' : 'border-t border-gray-50'
-                          }`}
+                          className="cursor-pointer hover:brightness-95 p-0 border-t border-gray-200 min-h-[28px] md:min-h-[32px]"
                         />
                       )
                     })
@@ -210,6 +205,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 </tr>
               )
             })}
+
 
             <tr className="bg-gray-50 border-t border-gray-300">
               <td className="sticky left-0 bg-gray-50 border-r border-gray-200 px-1 text-[8px] font-medium text-gray-500 py-0.5">
