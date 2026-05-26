@@ -666,6 +666,7 @@ export type Database = {
           store_id: string
           sundays_off: number
           updated_at: string
+          week_start: string | null
         }
         Insert: {
           created_at?: string
@@ -675,6 +676,7 @@ export type Database = {
           store_id: string
           sundays_off?: number
           updated_at?: string
+          week_start?: string | null
         }
         Update: {
           created_at?: string
@@ -684,6 +686,7 @@ export type Database = {
           store_id?: string
           sundays_off?: number
           updated_at?: string
+          week_start?: string | null
         }
         Relationships: [
           {
