@@ -80,13 +80,18 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
   const HOUR_KEYS: string[] = []
   for (let h = 7; h <= 22; h++) HOUR_KEYS.push(`${String(h).padStart(2, '0')}:00`)
 
-  // Tipo prevalente da hora considerando os dois sub-slots (:00 e :30)
+  // Tipo prevalente da hora:
+  //   QUALQUER subslot interval -> interval
+  //   senão QUALQUER work -> work
+  //   senão day_off / empty
   function hourType(empId: string, dow: number, hour: string): string {
     const half = `${hour.slice(0, 2)}:30`
     const a = getSlot(empId, dow, hour)
-    const b = SLOT_KEYS.includes(half) ? getSlot(empId, dow, half) : ''
-    const pri = (t: string) => (t === 'work' ? 4 : t === 'interval' ? 3 : t === 'day_off' ? 2 : t === 'empty' ? 1 : 0)
-    return pri(a) >= pri(b) ? a : b
+    const b = SLOT_KEYS.includes(half) ? getSlot(empId, dow, half) : a
+    if (a === 'interval' || b === 'interval') return 'interval'
+    if (a === 'work' || b === 'work') return 'work'
+    if (a === 'day_off' || b === 'day_off') return 'day_off'
+    return 'empty'
   }
 
 
