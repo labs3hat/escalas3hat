@@ -74,7 +74,6 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
 
   // Compact sizing
   const COL_W = 36   // px — coluna por funcionário
-  const ROW_H = 32   // px — altura de linha de hora (mín. 28 mobile / 32 desktop)
 
   // Linhas de hora cheia (07h às 22h => 16 linhas representando 07-23)
   const HOUR_KEYS: string[] = []
