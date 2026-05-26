@@ -74,26 +74,30 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
 
   // Compact sizing
   const COL_W = 36   // px — coluna por funcionário
-  const ROW_H = 32   // px — altura de linha de hora (mín. 28 mobile / 32 desktop)
 
   // Linhas de hora cheia (07h às 22h => 16 linhas representando 07-23)
   const HOUR_KEYS: string[] = []
   for (let h = 7; h <= 22; h++) HOUR_KEYS.push(`${String(h).padStart(2, '0')}:00`)
 
-  // Tipo prevalente da hora considerando os dois sub-slots (:00 e :30)
+  // Tipo prevalente da hora:
+  //   QUALQUER subslot interval -> interval
+  //   senão QUALQUER work -> work
+  //   senão day_off / empty
   function hourType(empId: string, dow: number, hour: string): string {
     const half = `${hour.slice(0, 2)}:30`
     const a = getSlot(empId, dow, hour)
-    const b = SLOT_KEYS.includes(half) ? getSlot(empId, dow, half) : ''
-    const pri = (t: string) => (t === 'work' ? 4 : t === 'interval' ? 3 : t === 'day_off' ? 2 : t === 'empty' ? 1 : 0)
-    return pri(a) >= pri(b) ? a : b
+    const b = SLOT_KEYS.includes(half) ? getSlot(empId, dow, half) : a
+    if (a === 'interval' || b === 'interval') return 'interval'
+    if (a === 'work' || b === 'work') return 'work'
+    if (a === 'day_off' || b === 'day_off') return 'day_off'
+    return 'empty'
   }
 
 
   return (
     <>
-      <div className="overflow-auto h-full">
-        <table className="border-collapse w-full" style={{ tableLayout: 'fixed' }}>
+      <div className="overflow-hidden h-full">
+        <table className="border-collapse w-full h-full" style={{ tableLayout: 'fixed' }}>
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-white w-10 min-w-[36px] border-b border-r border-gray-200 text-[9px] text-gray-400 font-medium px-1 py-1 text-left">
@@ -163,10 +167,9 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
           <tbody>
             {HOUR_KEYS.map((hour) => {
               return (
-                <tr key={hour} style={{ height: ROW_H }}>
+                <tr key={hour} style={{ height: `${100 / HOUR_KEYS.length}%` }}>
                   <td
                     className="sticky left-0 z-5 bg-white border-r border-t border-gray-200 px-1 text-left align-middle"
-                    style={{ height: ROW_H }}
                   >
                     <span className="text-[10px] font-semibold text-gray-700">
                       {hour.slice(0, 2)}h
@@ -180,7 +183,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                       const fullOff = isFullDayOff(emp.id, dow)
 
                       const borderLeft = ei === 0 ? '2px solid #888780' : '0.5px solid #E5E5E0'
-                      let style: React.CSSProperties = { backgroundColor: 'white', borderLeft, height: ROW_H }
+                      let style: React.CSSProperties = { backgroundColor: 'white', borderLeft }
 
                       if (slotType === 'work') {
                         style = { ...style, backgroundColor: emp.color }
@@ -197,7 +200,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                           key={`${di}-${ei}`}
                           onClick={() => setModal({ emp, dow, date: d, initial: buildDayPayload(emp.id, dow) })}
                           style={style}
-                          className="cursor-pointer hover:brightness-95 p-0 border-t border-gray-200 min-h-[28px] md:min-h-[32px]"
+                          className="cursor-pointer hover:brightness-95 p-0 border-t border-gray-200"
                         />
                       )
                     })

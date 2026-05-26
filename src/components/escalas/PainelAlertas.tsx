@@ -1,5 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
+import { format } from 'date-fns'
 import { AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 import { SLOT_KEYS, DAY_NAMES, type Employee, type Store, type Schedule } from '@/types'
 
 interface Props {
@@ -80,19 +82,45 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
     return al
   }, [employees, weekDates, getSlot, store])
 
-  const weekHours = useMemo(() => {
-    return employees.map(emp => {
-      let total = 0
-      weekDates.forEach(d => {
-        let dayWork = 0
-        SLOT_KEYS.forEach(s => {
-          if (getSlot(emp.id, d.getDay(), s) === 'work') dayWork += 0.5
-        })
-        if (dayWork > 0) total += dayWork - 1 // desconta 1h de intervalo por dia trabalhado
+  // Banco de horas — lê de hours_bank (não recalcula)
+  const [bankHours, setBankHours] = useState<Record<string, number>>({})
+  const weekKey = weekDates[0] ? format(weekDates[0], 'yyyy-MM-dd') : null
+  const empIdsKey = employees.map(e => e.id).join(',')
+  useEffect(() => {
+    if (!store?.id || !weekKey || employees.length === 0) {
+      setBankHours({})
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const { data } = await supabase
+        .from('hours_bank')
+        .select('employee_id, scheduled_hours')
+        .eq('store_id', store.id)
+        .eq('week_start', weekKey)
+        .in('employee_id', employees.map(e => e.id))
+      if (cancelled) return
+      const map: Record<string, number> = {}
+      ;(data ?? []).forEach((r: { employee_id: string; scheduled_hours: number | string }) => {
+        map[r.employee_id] = Number(r.scheduled_hours) || 0
       })
-      return { emp, total: Math.round(total * 10) / 10 }
-    })
-  }, [employees, weekDates, getSlot])
+      setBankHours(map)
+    })()
+    return () => { cancelled = true }
+    // schedule?.id muda quando a escala é regerada/recarregada
+  }, [store?.id, weekKey, empIdsKey, schedule?.id])
+
+  function fmtHours(h: number): string {
+    const totalMin = Math.round(h * 60)
+    const hh = Math.floor(totalMin / 60)
+    const mm = totalMin % 60
+    return mm === 0 ? `${hh}h` : `${hh}h${String(mm).padStart(2, '0')}`
+  }
+
+  const weekHours = useMemo(
+    () => employees.map(emp => ({ emp, total: bankHours[emp.id] ?? 0 })),
+    [employees, bankHours],
+  )
 
   const folgas = useMemo(() => {
     return [...employees]
@@ -181,8 +209,8 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
                     style={{ width: `${pct}%`, backgroundColor: over ? '#DC2626' : emp.color }}
                   />
                 </div>
-                <div className={`text-[9px] min-w-[26px] text-right font-medium ${over ? 'text-red-600' : 'text-gray-400'}`}>
-                  {total}h
+                <div className={`text-[9px] min-w-[34px] text-right font-medium ${over ? 'text-red-600' : 'text-gray-400'}`}>
+                  {fmtHours(total)}
                 </div>
               </div>
             )
