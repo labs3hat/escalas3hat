@@ -1,11 +1,33 @@
 import { useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
+import { useProfile } from '@/hooks/useProfile'
 import type { Store } from '@/types'
 
 const DAY_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+const ADMIN_ROLES = ['regional', 'rh', 'diretoria']
 
 export default function ConfigLojaTab({ store }: { store: Store }) {
+  const { profile } = useProfile()
+  const canSync = profile && ADMIN_ROLES.includes(profile.role)
+  const [syncing, setSyncing] = useState(false)
+
+  async function handleSyncStores() {
+    setSyncing(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-sheets-stores')
+      if (error) throw error
+      const c = data?.created ?? 0
+      const u = data?.updated ?? 0
+      toast.success(`${u} lojas atualizadas, ${c} criadas`)
+    } catch (e: any) {
+      toast.error(`Erro ao sincronizar lojas: ${e?.message ?? 'desconhecido'}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const [lavarDays, setLavarDays] = useState<number[]>(store.machine_wash_days ?? [2,4,6])
   const [estoqueDays, setEstoqueDays] = useState<number[]>(store.stock_count_days ?? [1])
   const [openWeekday, setOpenWeekday] = useState(store.opening_time_weekday ?? '10:00')
@@ -35,7 +57,16 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
 
   return (
     <div className="p-5 max-w-lg">
-      <div className="text-sm font-medium text-gray-700 mb-5">Configurações — {store.name}</div>
+      <div className="flex items-center justify-between mb-5">
+        <div className="text-sm font-medium text-gray-700">Configurações — {store.name}</div>
+        {canSync && (
+          <button onClick={handleSyncStores} disabled={syncing}
+            className="flex items-center gap-1.5 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg font-medium disabled:opacity-50">
+            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar Lojas'}
+          </button>
+        )}
+      </div>
 
       {/* Horários de abertura */}
       <div className="mb-6">
