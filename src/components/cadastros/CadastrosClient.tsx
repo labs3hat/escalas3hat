@@ -1,23 +1,31 @@
 import { useState } from 'react'
-import { Users, Clock, Settings } from 'lucide-react'
+import { Users, Clock, Settings, GitCompare } from 'lucide-react'
 import type { Profile, Store } from '@/types'
 import FuncionariosTab from './FuncionariosTab'
 import TurnosTab from './TurnosTab'
 import ConfigLojaTab from './ConfigLojaTab'
+import ConsistenciaTab from './ConsistenciaTab'
 
 interface Props { profile: Profile | null; initialStores: Store[] }
 
-const TABS = [
+const ADMIN_ROLES = ['regional', 'rh', 'diretoria']
+
+const BASE_TABS = [
   { id: 'funcionarios', label: 'Funcionários', icon: Users },
   { id: 'turnos',       label: 'Turnos',       icon: Clock },
   { id: 'config',       label: 'Config. loja',  icon: Settings },
 ]
+const ADMIN_TAB = { id: 'consistencia', label: 'Consistência', icon: GitCompare }
+
 
 export default function CadastrosClient({ profile, initialStores }: Props) {
   const [tab, setTab] = useState('funcionarios')
   const [selectedStore, setSelectedStore] = useState<Store>(initialStores[0])
+  const isAdmin = profile && ADMIN_ROLES.includes(profile.role)
+  const TABS = isAdmin ? [...BASE_TABS, ADMIN_TAB] : BASE_TABS
 
   if (!selectedStore) return (
+
     <div className="flex items-center justify-center h-full text-gray-400 text-sm">
       Nenhuma loja disponível
     </div>
@@ -61,7 +69,9 @@ export default function CadastrosClient({ profile, initialStores }: Props) {
         {tab === 'funcionarios' && <FuncionariosTab store={selectedStore} />}
         {tab === 'turnos'       && <TurnosTab store={selectedStore} />}
         {tab === 'config'       && <ConfigLojaTab store={selectedStore} />}
+        {tab === 'consistencia' && isAdmin && <ConsistenciaTab />}
       </div>
     </div>
   )
 }
+
