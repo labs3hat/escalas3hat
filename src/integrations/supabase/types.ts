@@ -24,6 +24,7 @@ export type Database = {
           id: string
           name: string
           notes: string
+          preferred_day_off: number | null
           preferred_shift: string | null
           responsibilities: string[]
           role: string
@@ -39,6 +40,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string
+          preferred_day_off?: number | null
           preferred_shift?: string | null
           responsibilities?: string[]
           role?: string
@@ -54,6 +56,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string
+          preferred_day_off?: number | null
           preferred_shift?: string | null
           responsibilities?: string[]
           role?: string
@@ -566,6 +569,9 @@ export type Database = {
           closing_entry_6x1: string
           closing_exit_5x2: string
           closing_exit_6x1: string
+          closing_time_saturday: string | null
+          closing_time_sunday: string | null
+          closing_time_weekday: string | null
           code: string
           created_at: string
           display_order: number | null
@@ -590,6 +596,8 @@ export type Database = {
           shopping: string
           stock_count_days: number[]
           type: Database["public"]["Enums"]["store_type"]
+          weekly_hours_5x2: number | null
+          weekly_hours_6x1: number | null
         }
         Insert: {
           active?: boolean
@@ -598,6 +606,9 @@ export type Database = {
           closing_entry_6x1?: string
           closing_exit_5x2?: string
           closing_exit_6x1?: string
+          closing_time_saturday?: string | null
+          closing_time_sunday?: string | null
+          closing_time_weekday?: string | null
           code: string
           created_at?: string
           display_order?: number | null
@@ -622,6 +633,8 @@ export type Database = {
           shopping: string
           stock_count_days?: number[]
           type: Database["public"]["Enums"]["store_type"]
+          weekly_hours_5x2?: number | null
+          weekly_hours_6x1?: number | null
         }
         Update: {
           active?: boolean
@@ -630,6 +643,9 @@ export type Database = {
           closing_entry_6x1?: string
           closing_exit_5x2?: string
           closing_exit_6x1?: string
+          closing_time_saturday?: string | null
+          closing_time_sunday?: string | null
+          closing_time_weekday?: string | null
           code?: string
           created_at?: string
           display_order?: number | null
@@ -654,6 +670,8 @@ export type Database = {
           shopping?: string
           stock_count_days?: number[]
           type?: Database["public"]["Enums"]["store_type"]
+          weekly_hours_5x2?: number | null
+          weekly_hours_6x1?: number | null
         }
         Relationships: []
       }
