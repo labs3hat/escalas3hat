@@ -34,7 +34,9 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     
     const countMap: Record<string, number> = {}
     counts?.forEach(c => {
-      countMap[c.employee_id] = (countMap[c.employee_id] || 0) + 1
+      if (c.employee_id) {
+        countMap[c.employee_id] = (countMap[c.employee_id] || 0) + 1
+      }
     })
     setPendingCounts(countMap)
     
