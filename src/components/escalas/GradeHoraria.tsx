@@ -11,6 +11,7 @@ interface Props {
     dayOfWeek: number,
     type: 'work' | 'day_off' | 'empty',
     payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
+    reason?: string
   ) => Promise<void>
   store: Store
   isPublished: boolean
@@ -286,6 +287,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
           dow={modal.dow}
           date={modal.date}
           initial={modal.initial}
+          isPublished={isPublished}
           onClose={() => setModal(null)}
           onSave={async (payload) => {
             await updateDay(
@@ -295,6 +297,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
               payload.type === 'work'
                 ? { entry: payload.entry!, exit: payload.exit!, breakStart: payload.breakStart, breakEnd: payload.breakEnd }
                 : undefined,
+              payload.reason,
             )
             setModal(null)
           }}
