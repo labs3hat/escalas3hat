@@ -28,24 +28,31 @@ type Row = string[];
 
 function parseTime(value: string): string | null {
   const raw = (value ?? "").trim();
-  if (!raw) return null;
+  if (!raw || raw === "-" || raw.toLowerCase() === "n/a") return null;
+  
   // Already HH:MM or HH:MM:SS
   if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(raw)) {
-    const [h, m] = raw.split(":");
-    return `${h.padStart(2, "0")}:${m}`;
+    const parts = raw.split(":");
+    const h = parts[0].padStart(2, "0");
+    const m = parts[1].padStart(2, "0");
+    return `${h}:${m}`;
   }
-  // Excel decimal fraction of a day
+  
+  // Excel decimal fraction of a day (e.g. 0.4166 for 10:00)
   const num = Number(raw.replace(",", "."));
-  if (!isFinite(num)) return null;
-  const totalMin = Math.round(num * 24 * 60);
-  const h = Math.floor(totalMin / 60) % 24;
-  const m = totalMin % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  if (!isNaN(num) && isFinite(num) && num >= 0 && num < 1) {
+    const totalMin = Math.round(num * 24 * 60);
+    const h = Math.floor(totalMin / 60) % 24;
+    const m = totalMin % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+  
+  return null;
 }
 
 function parseDays(value: string): number[] {
   const raw = (value ?? "").trim();
-  if (!raw) return [];
+  if (!raw || raw === "-" || raw.toLowerCase() === "n/a") return [];
   return raw
     .split(/[,;/\s]+/)
     .map((p) => p.trim().toLowerCase().replace(/\./g, ""))
@@ -58,12 +65,14 @@ function parseDays(value: string): number[] {
 }
 
 function parseInt0(value: string, fallback = 0): number {
-  const n = parseInt((value ?? "").toString().replace(",", "."), 10);
+  if (!value || value === "-" || value.toLowerCase() === "n/a") return fallback;
+  const n = parseInt(value.toString().replace(",", "."), 10);
   return isFinite(n) ? n : fallback;
 }
 
 function parseNum(value: string, fallback = 0): number {
-  const n = Number((value ?? "").toString().replace(",", "."));
+  if (!value || value === "-" || value.toLowerCase() === "n/a") return fallback;
+  const n = Number(value.toString().replace(",", "."));
   return isFinite(n) ? n : fallback;
 }
 
@@ -122,21 +131,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: existing } = await admin.from("stores").select("id, code");
-    const codeToId = new Map<string, string>();
-    for (const s of existing ?? []) {
-      codeToId.set((s.code as string).toUpperCase(), s.id as string);
-    }
-
     const rows = await fetchSheetRows();
-    let created = 0, updated = 0, skipped = 0;
+    const payloads: any[] = [];
+    let skipped = 0;
 
     for (const row of rows) {
       const code = (row[0] ?? "").trim().toUpperCase();
       const name = (row[1] ?? "").trim();
       if (!code || !name) { skipped++; continue; }
 
-      const payload: Record<string, unknown> = {
+      const payload = {
         code,
         name,
         type: (row[2] ?? "").trim() || "shopping",
@@ -163,21 +167,27 @@ Deno.serve(async (req) => {
         weekly_hours_5x2: parseNum(row[23], 44),
         active: true,
       };
+      
+      payloads.push(payload);
+    }
 
-      const existingId = codeToId.get(code);
-      if (existingId) {
-        const { error } = await admin.from("stores").update(payload).eq("id", existingId);
-        if (error) throw new Error(`Update ${code}: ${error.message}`);
-        updated++;
-      } else {
-        const { error } = await admin.from("stores").insert(payload);
-        if (error) throw new Error(`Insert ${code}: ${error.message}`);
-        created++;
+    if (payloads.length > 0) {
+      // Use upsert with onConflict on 'code'
+      const { error: upsertError } = await admin
+        .from("stores")
+        .upsert(payloads, { onConflict: "code" });
+      
+      if (upsertError) {
+        throw new Error(`Upsert error: ${upsertError.message}`);
       }
     }
 
     return new Response(
-      JSON.stringify({ created, updated, skipped }),
+      JSON.stringify({ 
+        success: true, 
+        total: payloads.length,
+        skipped 
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
