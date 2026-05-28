@@ -13,6 +13,7 @@ interface Props {
     payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
   ) => Promise<void>
   store: Store
+  isPublished: boolean
 }
 
 const TODAY = new Date()
@@ -24,7 +25,7 @@ function hex2rgba(hex: string, alpha = 0.15) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function GradeHoraria({ employees, weekDates, getSlot, updateDay, store }: Props) {
+export default function GradeHoraria({ employees, weekDates, getSlot, updateDay, store, isPublished }: Props) {
   const [modal, setModal] = useState<{
     emp: Employee; dow: number; date: Date; initial: DayPayload
   } | null>(null)
