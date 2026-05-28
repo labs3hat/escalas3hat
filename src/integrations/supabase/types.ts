@@ -264,69 +264,74 @@ export type Database = {
       }
       schedule_changes: {
         Row: {
-          after_value: Json | null
-          before_value: Json | null
-          change_type: Database["public"]["Enums"]["change_type"]
-          created_at: string
-          created_by: string
-          day_of_week: number | null
+          changed_at: string | null
+          changed_by: string | null
+          ciencia_at: string | null
+          ciencia_funcionario: boolean | null
+          day_of_week: number
           employee_id: string | null
-          employee_id_2: string | null
           id: string
-          notes: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          schedule_id: string
-          status: string
-          store_id: string
+          new_break_start: string | null
+          new_entry_time: string | null
+          new_exit_time: string | null
+          new_slot_type: string | null
+          old_break_start: string | null
+          old_entry_time: string | null
+          old_exit_time: string | null
+          old_slot_type: string | null
+          reason: string
+          schedule_id: string | null
+          status: string | null
+          store_id: string | null
         }
         Insert: {
-          after_value?: Json | null
-          before_value?: Json | null
-          change_type: Database["public"]["Enums"]["change_type"]
-          created_at?: string
-          created_by: string
-          day_of_week?: number | null
+          changed_at?: string | null
+          changed_by?: string | null
+          ciencia_at?: string | null
+          ciencia_funcionario?: boolean | null
+          day_of_week: number
           employee_id?: string | null
-          employee_id_2?: string | null
           id?: string
-          notes?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          schedule_id: string
-          status?: string
-          store_id: string
+          new_break_start?: string | null
+          new_entry_time?: string | null
+          new_exit_time?: string | null
+          new_slot_type?: string | null
+          old_break_start?: string | null
+          old_entry_time?: string | null
+          old_exit_time?: string | null
+          old_slot_type?: string | null
+          reason: string
+          schedule_id?: string | null
+          status?: string | null
+          store_id?: string | null
         }
         Update: {
-          after_value?: Json | null
-          before_value?: Json | null
-          change_type?: Database["public"]["Enums"]["change_type"]
-          created_at?: string
-          created_by?: string
-          day_of_week?: number | null
+          changed_at?: string | null
+          changed_by?: string | null
+          ciencia_at?: string | null
+          ciencia_funcionario?: boolean | null
+          day_of_week?: number
           employee_id?: string | null
-          employee_id_2?: string | null
           id?: string
-          notes?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          schedule_id?: string
-          status?: string
-          store_id?: string
+          new_break_start?: string | null
+          new_entry_time?: string | null
+          new_exit_time?: string | null
+          new_slot_type?: string | null
+          old_break_start?: string | null
+          old_entry_time?: string | null
+          old_exit_time?: string | null
+          old_slot_type?: string | null
+          reason?: string
+          schedule_id?: string | null
+          status?: string | null
+          store_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "schedule_changes_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "schedule_changes_changed_by_fkey"
+            columns: ["changed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "schedule_changes_employee_id_2_fkey"
-            columns: ["employee_id_2"]
-            isOneToOne: false
-            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
           {
@@ -334,13 +339,6 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "schedule_changes_resolved_by_fkey"
-            columns: ["resolved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
