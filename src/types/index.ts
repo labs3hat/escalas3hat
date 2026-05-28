@@ -78,20 +78,24 @@ export interface ScheduleSlot {
 
 export interface ScheduleChange {
   id: string
-  schedule_id: string
+  schedule_id: string | null
+  employee_id: string
   store_id: string
-  change_type: ChangeType
-  employee_id: string | null
-  employee_id_2: string | null
-  day_of_week: number | null
-  before_value: Record<string, unknown> | null
-  after_value: Record<string, unknown> | null
-  notes: string | null
+  day_of_week: number
+  changed_by: string | null
+  changed_at: string
+  reason: string
+  old_entry_time: string | null
+  new_entry_time: string | null
+  old_exit_time: string | null
+  new_exit_time: string | null
+  old_break_start: string | null
+  new_break_start: string | null
+  old_slot_type: string | null
+  new_slot_type: string | null
+  ciencia_funcionario: boolean
+  ciencia_at: string | null
   status: string
-  resolved_by: string | null
-  resolved_at: string | null
-  created_by: string
-  created_at: string
 }
 
 export interface ShiftTemplate {

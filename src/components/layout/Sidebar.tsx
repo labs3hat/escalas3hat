@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Calendar, RefreshCw, Clock, Users, Map, LogOut, Settings, Timer } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import type { Profile } from '@/types'
 
@@ -24,6 +25,47 @@ interface Props {
 export default function Sidebar({ profile, collapsed }: Props) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    if (!profile) return
+    loadPendingCount()
+
+    // Realtime listener for changes
+    const channel = supabase
+      .channel('sidebar-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_changes' }, () => {
+        loadPendingCount()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [profile])
+
+  async function loadPendingCount() {
+    if (!profile) return
+    // Simple count of pending changes where employee name matches profile name
+    // In a real app we'd have a stronger link
+    const { count } = await supabase
+      .from('schedule_changes')
+      .select('*', { count: 'exact', head: true })
+      .eq('ciencia_funcionario', false)
+      .filter('employee_id', 'in', 
+        supabase.from('employees').select('id').eq('name', profile.name)
+      )
+    
+    // The above subquery might not work directly in JS client as I expect.
+    // Better: first get employee ids for this name.
+    const { data: emps } = await supabase.from('employees').select('id').eq('name', profile.name)
+    if (emps && emps.length > 0) {
+      const { count: c } = await supabase
+        .from('schedule_changes')
+        .select('*', { count: 'exact', head: true })
+        .eq('ciencia_funcionario', false)
+        .in('employee_id', emps.map(e => e.id))
+      setPendingCount(c || 0)
+    }
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -73,8 +115,24 @@ export default function Sidebar({ profile, collapsed }: Props) {
                   : 'text-gray-400 border-transparent hover:bg-gray-800 hover:text-white'
               }`}
             >
-              <Icon size={16} className="flex-shrink-0" />
-              {!collapsed && <span className="truncate">{label}</span>}
+              <div className="relative">
+                <Icon size={16} className="flex-shrink-0" />
+                {label === 'Alterações' && pendingCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded-full ring-1 ring-gray-900">
+                    {pendingCount}
+                  </span>
+                )}
+              </div>
+              {!collapsed && (
+                <div className="flex-1 flex items-center justify-between min-w-0">
+                  <span className="truncate">{label}</span>
+                  {label === 'Alterações' && pendingCount > 0 && !collapsed && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {pendingCount}
+                    </span>
+                  )}
+                </div>
+              )}
             </Link>
           )
         })}

@@ -16,8 +16,9 @@ interface Props {
   dow: number
   date: Date
   initial: DayPayload
+  isPublished: boolean
   onClose: () => void
-  onSave: (data: DayPayload) => Promise<void>
+  onSave: (data: DayPayload & { reason?: string }) => Promise<void>
 }
 
 const TYPE_OPTIONS: { value: DayPayload['type']; label: string; cls: string }[] = [
@@ -41,7 +42,7 @@ function enforceOneHour(start: string, end?: string): string {
   return end!
 }
 
-export default function SlotModal({ emp, dow, date, initial, onClose, onSave }: Props) {
+export default function SlotModal({ emp, dow, date, initial, isPublished, onClose, onSave }: Props) {
   const isFc = (initial.entry ?? '') >= '13:00'
   const defEntry = initial.entry ?? (isFc ? '14:00' : '08:00')
   const defExit  = initial.exit  ?? (isFc ? '22:20' : '16:20')
@@ -53,6 +54,7 @@ export default function SlotModal({ emp, dow, date, initial, onClose, onSave }: 
   const [exit, setExit]             = useState(defExit)
   const [breakStart, setBreakStart] = useState(defBs)
   const [breakEnd, setBreakEnd]     = useState(defBe)
+  const [reason, setReason]         = useState('')
   const [saving, setSaving] = useState(false)
 
   const breakMin = useMemo(() => toMin(breakEnd) - toMin(breakStart), [breakStart, breakEnd])
@@ -66,17 +68,18 @@ export default function SlotModal({ emp, dow, date, initial, onClose, onSave }: 
     return `${h}h${String(m).padStart(2, '0')}`
   }, [entry, exit, breakMin])
 
-  const canSave = type !== 'work' || breakOk
+  const canSave = (type !== 'work' || breakOk) && (!isPublished || reason.trim().length >= 10)
 
   async function handleSave() {
     if (!canSave) return
     setSaving(true)
     try {
-      await onSave(
-        type === 'work'
+      await onSave({
+        ...(type === 'work'
           ? { type, entry, exit, breakStart, breakEnd }
-          : { type },
-      )
+          : { type }),
+        reason: isPublished ? reason.trim() : undefined,
+      })
     } finally {
       setSaving(false)
     }
@@ -132,6 +135,21 @@ export default function SlotModal({ emp, dow, date, initial, onClose, onSave }: 
               <div className="mt-2 text-[11px] text-red-600 font-medium">
                 Intervalo mínimo obrigatório: 1 hora
               </div>
+            )}
+          </div>
+        )}
+
+        {isPublished && (
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-2">Motivo da alteração (obrigatório)</div>
+            <textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="Ex: funcionário solicitou troca, cobertura de falta..."
+              className="w-full text-sm border border-gray-200 rounded-lg p-2 h-20 focus:outline-none focus:border-brand-400"
+            />
+            {reason.trim().length > 0 && reason.trim().length < 10 && (
+              <div className="text-[10px] text-amber-600 font-medium mt-1">Mínimo 10 caracteres</div>
             )}
           </div>
         )}

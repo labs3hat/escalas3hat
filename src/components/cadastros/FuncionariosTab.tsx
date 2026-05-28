@@ -15,13 +15,31 @@ export default function FuncionariosTab({ store }: { store: Store }) {
   const [editing, setEditing] = useState<Employee | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({})
 
   useEffect(() => { load() }, [store.id])
 
   async function load() {
+    setLoading(true)
     const { data } = await supabase.from('employees').select('*')
       .eq('store_id', store.id).order('name')
     setEmployees(data ?? [])
+    
+    // Load pending changes counts
+    const { data: counts } = await supabase
+      .from('schedule_changes')
+      .select('employee_id')
+      .eq('store_id', store.id)
+      .eq('ciencia_funcionario', false)
+    
+    const countMap: Record<string, number> = {}
+    counts?.forEach(c => {
+      if (c.employee_id) {
+        countMap[c.employee_id] = (countMap[c.employee_id] || 0) + 1
+      }
+    })
+    setPendingCounts(countMap)
+    
     setLoading(false)
   }
 
@@ -199,6 +217,11 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                   {emp.responsibilities.includes('estoque') && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 rounded">Estoque</span>}
                   {emp.responsibilities.includes('maquina') && <span className="text-xs bg-red-50 text-red-600 px-1.5 rounded">Máquina</span>}
                 </div>
+                {pendingCounts[emp.id] > 0 && (
+                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1 border border-amber-200">
+                    {pendingCounts[emp.id]} alteraç{pendingCounts[emp.id] > 1 ? 'ões' : 'ão'} pendente{pendingCounts[emp.id] > 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={e => { e.stopPropagation(); setEditing(emp); setShowForm(true) }}
