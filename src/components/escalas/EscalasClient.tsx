@@ -74,28 +74,52 @@ export default function EscalasClient({ profile, initialStores }: Props) {
     dayOfWeek: number,
     type: "work" | "day_off" | "empty",
     payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
+    reason?: string
   ) {
     if (schedule?.status === "published") {
-      const reason = window.prompt("Esta escala está publicada. Informe o motivo da alteração:");
-      if (!reason || !reason.trim()) {
-        toast.error("Motivo obrigatório para editar escala publicada.");
+      if (!reason || reason.trim().length < 10) {
+        toast.error("Motivo obrigatório (mín. 10 caracteres) para editar escala publicada.");
         return;
       }
+
+      // Calculate old values
+      const workSlots = SLOT_KEYS.filter(s => getSlot(employeeId, dayOfWeek, s) === 'work');
+      const intervalSlots = SLOT_KEYS.filter(s => getSlot(employeeId, dayOfWeek, s) === 'interval');
+      const offSlot = SLOT_KEYS.some(s => getSlot(employeeId, dayOfWeek, s) === 'day_off');
+      
+      let oldType: "work" | "day_off" | "empty" = offSlot ? 'day_off' : (workSlots.length > 0 ? 'work' : 'empty');
+      let oldEntry: string | null = workSlots.length > 0 ? workSlots[0] : null;
+      let oldExit: string | null = null;
+      if (workSlots.length > 0) {
+        const last = workSlots[workSlots.length - 1];
+        const [h, m] = last.split(':').map(Number);
+        const tot = h * 60 + m + 30;
+        oldExit = `${String(Math.floor(tot / 60)).padStart(2, '0')}:${String(tot % 60).padStart(2, '0')}`;
+      }
+      let oldBreak: string | null = intervalSlots.length > 0 ? intervalSlots[0] : null;
+
       await updateDay(employeeId, dayOfWeek, type, payload);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
       await supabase.from("schedule_changes").insert({
         schedule_id: schedule.id,
         store_id: selectedStore.id,
-        change_type: "shift_change" as any,
         employee_id: employeeId,
         day_of_week: dayOfWeek,
-        after_value: (payload ?? { type }) as any,
-        notes: reason.trim(),
-        created_by: user?.id as string,
+        reason: reason.trim(),
+        changed_by: user?.id,
+        old_slot_type: oldType,
+        new_slot_type: type,
+        old_entry_time: oldEntry,
+        new_entry_time: payload?.entry || null,
+        old_exit_time: oldExit,
+        new_exit_time: payload?.exit || null,
+        old_break_start: oldBreak,
+        new_break_start: payload?.breakStart || null,
       });
-      toast.success("Alteração registrada");
+      
+      toast.success("Alteração registrada com sucesso");
     } else {
       await updateDay(employeeId, dayOfWeek, type, payload);
     }
@@ -292,6 +316,7 @@ export default function EscalasClient({ profile, initialStores }: Props) {
                 getSlot={getSlot}
                 updateDay={updateDayWithAudit}
                 store={selectedStore}
+                isPublished={schedule?.status === "published"}
               />
             </div>
           ) : view === "resumo" ? (
