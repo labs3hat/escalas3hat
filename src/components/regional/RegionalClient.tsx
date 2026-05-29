@@ -1,205 +1,353 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '@/integrations/supabase/client'
-import { format, startOfWeek } from 'date-fns'
-import { AlertCircle, AlertTriangle, CheckCircle, ChevronRight, X } from 'lucide-react'
-import type { Store, Schedule } from '@/types'
+import { useState, useMemo, useEffect } from "react";
+import { addDays, startOfWeek, format, subWeeks, addWeeks, isToday } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { ChevronLeft, ChevronRight, Wand2, AlertTriangle, UserPlus, Info, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
+import type { Store, Schedule, RuleViolation } from "@/types";
+import { MONTHS, DAY_NAMES } from "@/types";
 
-interface StoreStatus {
-  store: Store
-  schedule: Schedule | null
-  pct: number
+interface StoreData {
+  store: Store;
+  schedule: Schedule | null;
+  counts: Record<number, number>; // day_of_week -> count
+  violations: number;
+  freelancers: number;
 }
 
 export default function RegionalClient({ stores }: { stores: Store[] }) {
-  const [statuses, setStatuses] = useState<StoreStatus[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'todas' | 'curitiba' | 'maringa' | 'alertas'>('todas')
-  const [selected, setSelected] = useState<Store | null>(null)
+  const navigate = useNavigate();
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<StoreData[]>([]);
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<Record<string, 'pending' | 'loading' | 'done' | 'error'>>({});
 
-  const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const weekStart = useMemo(() => {
+    const base = startOfWeek(new Date(), { weekStartsOn: 1 });
+    return weekOffset >= 0 ? addWeeks(base, weekOffset) : subWeeks(base, Math.abs(weekOffset));
+  }, [weekOffset]);
 
-  useEffect(() => { load() }, [])
+  const weekDates = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  );
 
-  async function load() {
-    const results: StoreStatus[] = await Promise.all(
-      stores.map(async store => {
-        const { data: sched } = await supabase
-          .from('schedules').select('*')
-          .eq('store_id', store.id).eq('week_start', weekStart).single()
+  const weekLabel = useMemo(() => {
+    const s = weekDates[0],
+      e = weekDates[6];
+    return `${s.getDate()} – ${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
+  }, [weekDates]);
 
-        let pct = 0
+  useEffect(() => {
+    void loadData();
+  }, [weekStart, stores]);
+
+  async function loadData() {
+    setLoading(true);
+    const dateStr = format(weekStart, 'yyyy-MM-dd');
+
+    try {
+      // 1. Fetch schedules for the week
+      const { data: schedules } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('week_start', dateStr);
+
+      const scheduleIds = schedules?.map(s => s.id) || [];
+
+      // 2. Fetch counts of working employees
+      let counts: any[] = [];
+      if (scheduleIds.length > 0) {
+        const { data: slotCounts } = await supabase
+          .from('schedule_slots')
+          .select('schedule_id, day_of_week, employee_id')
+          .in('schedule_id', scheduleIds)
+          .eq('slot_type', 'work');
+
+        // Manual aggregation since Supabase client doesn't support GROUP BY easily in select
+        const agg: Record<string, Record<number, Set<string>>> = {};
+        slotCounts?.forEach(s => {
+          if (!agg[s.schedule_id]) agg[s.schedule_id] = {};
+          if (!agg[s.schedule_id][s.day_of_week]) agg[s.schedule_id][s.day_of_week] = new Set();
+          agg[s.schedule_id][s.day_of_week].add(s.employee_id);
+        });
+
+        Object.entries(agg).forEach(([sid, days]) => {
+          Object.entries(days).forEach(([day, emps]) => {
+            counts.push({ schedule_id: sid, day_of_week: parseInt(day), count: emps.size });
+          });
+        });
+      }
+
+      // 3. Fetch violations
+      const { data: violations } = await supabase
+        .from('rule_violations')
+        .select('schedule_id, id')
+        .in('schedule_id', scheduleIds)
+        .eq('resolved', false);
+
+      // 4. Fetch freelancer slots
+      const { data: freelancers } = await supabase
+        .from('freelancer_slots')
+        .select('schedule_id, id')
+        .in('schedule_id', scheduleIds)
+        .or('filled_by.is.null,filled_by.eq.""');
+
+      // Assemble data
+      const results: StoreData[] = stores.map(store => {
+        const sched = schedules?.find(s => s.store_id === store.id) || null;
+        const storeCounts: Record<number, number> = {};
         if (sched) {
-          const { count: total } = await supabase
-            .from('employees').select('*', { count: 'exact', head: true })
-            .eq('store_id', store.id).eq('active', true)
-          const { count: slotted } = await supabase
-            .from('schedule_slots').select('*', { count: 'exact', head: true })
-            .eq('schedule_id', sched.id).eq('slot_type', 'work')
-          pct = total ? Math.min(100, Math.round((slotted ?? 0) / ((total ?? 1) * 29 * 5) * 100 * 3)) : 0
+          counts.filter(c => c.schedule_id === sched.id).forEach(c => {
+            storeCounts[c.day_of_week] = c.count;
+          });
         }
 
-        return { store, schedule: sched, pct }
-      })
-    )
-    setStatuses(results)
-    setLoading(false)
+        return {
+          store,
+          schedule: sched,
+          counts: storeCounts,
+          violations: violations?.filter(v => v.schedule_id === sched?.id).length || 0,
+          freelancers: freelancers?.filter(f => f.schedule_id === sched?.id).length || 0
+        };
+      });
+
+      setData(results);
+    } catch (error) {
+      console.error('Error loading regional data:', error);
+      toast.error('Erro ao carregar dados regionais');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const filtered = statuses.filter(s => {
-    if (filter === 'curitiba') return s.store.region === 'curitiba'
-    if (filter === 'maringa') return s.store.region === 'maringa'
-    if (filter === 'alertas') return s.pct < 80 || !s.schedule
-    return true
-  })
+  async function handleGenerateAll() {
+    const targets = data.filter(d => !d.schedule || d.schedule.status === 'draft');
+    if (targets.length === 0) {
+      toast.info('Nenhuma loja pendente de geração');
+      return;
+    }
 
-  const published = statuses.filter(s => s.schedule?.status === 'published').length
-  const sem_escala = statuses.filter(s => !s.schedule).length
-  const criticos = statuses.filter(s => s.pct < 50).length
+    if (!confirm(`Deseja gerar escalas para ${targets.length} lojas?`)) return;
 
-  function getStatus(s: StoreStatus) {
-    if (!s.schedule) return 'sem_escala'
-    if (s.pct >= 90 && s.schedule.status === 'published') return 'ok'
-    if (s.pct >= 60) return 'atencao'
-    return 'critico'
+    setGeneratingAll(true);
+    const progress: Record<string, any> = {};
+    targets.forEach(t => progress[t.store.id] = 'loading');
+    setGenerationProgress(progress);
+
+    for (const item of targets) {
+      try {
+        const { error } = await supabase.rpc('generate_base_schedule', {
+          p_store_id: item.store.id,
+          p_week_start: format(weekStart, 'yyyy-MM-dd')
+        });
+
+        if (error) throw error;
+        setGenerationProgress(prev => ({ ...prev, [item.store.id]: 'done' }));
+      } catch (err) {
+        console.error(`Error generating for ${item.store.name}:`, err);
+        setGenerationProgress(prev => ({ ...prev, [item.store.id]: 'error' }));
+      }
+    }
+
+    toast.success('Processo de geração concluído');
+    setGeneratingAll(false);
+    void loadData();
   }
 
-  const STATUS_CONFIG = {
-    ok:        { label: 'Publicada', color: 'text-brand-600', bg: 'bg-brand-50', bar: '#1D9E75', border: 'border-l-brand-500' },
-    atencao:   { label: 'Atenção',   color: 'text-amber-600', bg: 'bg-amber-50', bar: '#BA7517', border: 'border-l-amber-500' },
-    critico:   { label: 'Crítico',   color: 'text-red-600',   bg: 'bg-red-50',   bar: '#DC2626', border: 'border-l-red-500' },
-    sem_escala:{ label: 'Sem escala',color: 'text-gray-500',  bg: 'bg-gray-50',  bar: '#D3D1C7', border: 'border-l-gray-300' },
+  function getCellColor(count: number, store: Store, dayIndex: number) {
+    // 0 is Sunday, 1-5 is Mon-Fri, 6 is Saturday
+    // But weekDates start with Monday (index 0 in weekDates is day_of_week 1)
+    const date = weekDates[dayIndex];
+    const dayOfWeek = date.getDay(); // 0-6 (0=Sun)
+    
+    let min = store.min_weekday_staff;
+    if (dayOfWeek === 0) min = store.min_sunday_staff;
+    if (dayOfWeek === 6) min = store.min_weekend_staff;
+
+    if (count >= min) return 'bg-green-50 text-green-700 border-green-100';
+    if (count === min - 1) return 'bg-amber-50 text-amber-700 border-amber-100';
+    return 'bg-red-50 text-red-700 border-red-100';
   }
+
+  const navigateToStore = (storeId: string) => {
+    // Navigate with store selection and week start
+    // Using simple search params or state
+    navigate({ 
+      to: '/escalas', 
+      search: { storeId, week: format(weekStart, 'yyyy-MM-dd') } 
+    });
+  };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-gray-50">
       {/* Topbar */}
-      <div className="px-5 py-3 border-b border-gray-200 bg-white flex items-center gap-3 flex-wrap">
-        <h1 className="text-sm font-semibold text-gray-800">Visão Regional</h1>
-        <span className="text-xs text-gray-400">{stores.length} lojas · semana {weekStart}</span>
+      <div className="px-5 py-4 bg-white border-b border-gray-200 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-bold text-gray-900">Visão Regional</h1>
+          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setWeekOffset(prev => prev - 1)}
+              className="p-1.5 hover:bg-white rounded-md transition-colors"
+            >
+              <ChevronLeft size={18} className="text-gray-600" />
+            </button>
+            <div className="px-3 text-sm font-medium text-gray-700 min-w-[180px] text-center">
+              {weekLabel}
+            </div>
+            <button
+              onClick={() => setWeekOffset(prev => prev + 1)}
+              className="p-1.5 hover:bg-white rounded-md transition-colors"
+            >
+              <ChevronRight size={18} className="text-gray-600" />
+            </button>
+          </div>
+          <button
+            onClick={() => setWeekOffset(0)}
+            className="text-xs font-medium text-brand-600 hover:text-brand-700"
+          >
+            Hoje
+          </button>
+        </div>
+
+        <button
+          onClick={handleGenerateAll}
+          disabled={generatingAll || loading}
+          className="flex items-center gap-2 bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition-all shadow-sm"
+        >
+          {generatingAll ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+          {generatingAll ? 'Gerando...' : 'Gerar todas'}
+        </button>
       </div>
 
       <div className="flex-1 overflow-auto p-5">
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-3 mb-5">
-          {[
-            { label: 'Publicadas', value: published, color: 'text-brand-600' },
-            { label: 'Sem escala', value: sem_escala, color: 'text-gray-500' },
-            { label: 'Críticos', value: criticos, color: 'text-red-600' },
-            { label: 'Total lojas', value: stores.length, color: 'text-gray-800' },
-          ].map(s => (
-            <div key={s.label} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-              <div className="text-xs text-gray-400 mb-1">{s.label}</div>
-              <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-            </div>
-          ))}
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-20">Loja</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                {weekDates.map((date, i) => (
+                  <th key={i} className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center ${isToday(date) ? 'bg-brand-50 text-brand-700' : ''}`}>
+                    {DAY_NAMES[(i + 1) % 7]}
+                    <div className="text-[10px] opacity-60 font-normal">
+                      {format(date, 'dd/MM')}
+                    </div>
+                  </th>
+                ))}
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Alertas</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">FL</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={11} className="px-4 py-12 text-center text-sm text-gray-400">
+                    <Loader2 className="animate-spin mx-auto mb-2 text-brand-500" size={24} />
+                    Carregando dados das lojas...
+                  </td>
+                </tr>
+              ) : data.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="px-4 py-12 text-center text-sm text-gray-400">
+                    Nenhuma loja encontrada
+                  </td>
+                </tr>
+              ) : (
+                data.map((item) => (
+                  <tr key={item.store.id} className="hover:bg-gray-50 transition-colors group">
+                    <td 
+                      className="px-4 py-3 sticky left-0 bg-white group-hover:bg-gray-50 z-10 cursor-pointer"
+                      onClick={() => navigateToStore(item.store.id)}
+                    >
+                      <div className="text-sm font-semibold text-gray-900">{item.store.name}</div>
+                      <div className="text-[10px] text-gray-400 truncate max-w-[150px]">{item.store.shopping}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {generationProgress[item.store.id] === 'loading' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-blue-50 text-blue-600 border border-blue-100">
+                          <Loader2 size={10} className="animate-spin" />
+                          Gerando
+                        </span>
+                      ) : !item.schedule ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-red-50 text-red-600 border border-red-100">
+                          Sem Escala
+                        </span>
+                      ) : item.schedule.status === 'published' ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-green-50 text-green-600 border border-green-100">
+                          Publicada
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-gray-50 text-gray-500 border border-gray-100">
+                          Rascunho
+                        </span>
+                      )}
+                    </td>
+                    {weekDates.map((_, i) => {
+                      // day_of_week in DB is 0-6 (0=Sun)
+                      // weekDates[0] is Monday (day_of_week 1)
+                      const day_of_week = (i + 1) % 7;
+                      const count = item.counts[day_of_week] || 0;
+                      return (
+                        <td 
+                          key={i} 
+                          className="px-2 py-3 text-center cursor-pointer"
+                          onClick={() => navigateToStore(item.store.id)}
+                        >
+                          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold border ${getCellColor(count, item.store, i)}`}>
+                            {count}
+                          </div>
+                        </td>
+                      );
+                    })}
+                    <td className="px-4 py-3 text-center">
+                      {item.violations > 0 ? (
+                        <div className="inline-flex items-center gap-1 text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md border border-red-100">
+                          <AlertTriangle size={14} />
+                          <span className="text-sm">{item.violations}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {item.freelancers > 0 ? (
+                        <div className="inline-flex items-center gap-1 text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
+                          <UserPlus size={14} />
+                          <span className="text-sm">{item.freelancers}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-
-        {/* Filters */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {[
-            { id: 'todas', label: 'Todas' },
-            { id: 'curitiba', label: 'Curitiba' },
-            { id: 'maringa', label: 'Maringá' },
-            { id: 'alertas', label: 'Com alertas' },
-          ].map(f => (
-            <button key={f.id} onClick={() => setFilter(f.id as any)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                filter === f.id
-                  ? 'bg-brand-500 border-brand-500 text-white'
-                  : 'border-gray-200 text-gray-500 hover:border-brand-300'
-              }`}>
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <div className="text-sm text-gray-400">Carregando...</div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {filtered.map(s => {
-              const st = getStatus(s)
-              const cfg = STATUS_CONFIG[st]
-              return (
-                <div key={s.store.id}
-                  onClick={() => setSelected(selected?.id === s.store.id ? null : s.store)}
-                  className={`bg-white border border-gray-200 border-l-4 ${cfg.border} rounded-xl overflow-hidden cursor-pointer hover:shadow-sm transition-shadow`}>
-                  <div className="px-4 py-3 border-b border-gray-100 flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-gray-900">{s.store.name}</div>
-                      <div className="text-xs text-gray-400 truncate">{s.store.shopping} · {s.store.city}</div>
-                    </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.bg} ${cfg.color}`}>
-                      {cfg.label}
-                    </span>
-                  </div>
-                  <div className="px-4 py-3">
-                    <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-gray-500">Escala completa</span>
-                      <span className="font-semibold" style={{ color: cfg.bar }}>{s.pct}%</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${s.pct}%`, backgroundColor: cfg.bar }} />
-                    </div>
-                    <div className="flex justify-between mt-2 text-xs text-gray-400">
-                      <span>{s.store.type === 'quiosque' ? 'Quiosque' : 'Loja'}</span>
-                      <span className="capitalize">{s.store.region === 'curitiba' ? 'Curitiba' : 'Maringá'}</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+        
+        <div className="mt-6 flex items-center gap-6 text-[11px] text-gray-500 bg-white p-4 rounded-xl border border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-50 border border-green-100 rounded"></div>
+            <span>Atende o mínimo</span>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-amber-50 border border-amber-100 rounded"></div>
+            <span>1 abaixo do mínimo</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-50 border border-red-100 rounded"></div>
+            <span>2+ abaixo do mínimo</span>
+          </div>
+          <div className="ml-auto flex items-center gap-1 text-gray-400">
+            <Info size={14} />
+            <span>Mínimos: Seg-Sex ({data[0]?.store?.min_weekday_staff || '?'}), Sáb ({data[0]?.store?.min_weekend_staff || '?'}), Dom ({data[0]?.store?.min_sunday_staff || '?'})</span>
+          </div>
+        </div>
       </div>
-
-      {/* Side panel */}
-      {selected && (
-        <div className="fixed inset-y-0 right-0 w-72 bg-white border-l border-gray-200 shadow-xl z-40 flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold text-gray-900">{selected.name}</div>
-              <div className="text-xs text-gray-400">{selected.shopping}</div>
-            </div>
-            <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
-              <X size={18} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-auto p-4">
-            {(() => {
-              const s = statuses.find(s => s.store.id === selected.id)
-              if (!s) return null
-              const st = getStatus(s)
-              const cfg = STATUS_CONFIG[st]
-              return (
-                <div className="flex flex-col gap-3">
-                  <div className={`${cfg.bg} rounded-lg px-3 py-2`}>
-                    <div className={`text-sm font-medium ${cfg.color}`}>{cfg.label}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">Completude: {s.pct}%</div>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <div className="flex justify-between py-1.5 border-b border-gray-100">
-                      <span>Tipo</span><span className="font-medium capitalize">{selected.type}</span>
-                    </div>
-                    <div className="flex justify-between py-1.5 border-b border-gray-100">
-                      <span>Praça</span><span className="font-medium">{selected.region === 'curitiba' ? 'Curitiba' : 'Maringá'}</span>
-                    </div>
-                    <div className="flex justify-between py-1.5 border-b border-gray-100">
-                      <span>Publicada</span>
-                      <span className={`font-medium ${s.schedule?.status === 'published' ? 'text-brand-600' : 'text-amber-600'}`}>
-                        {s.schedule?.status === 'published' ? 'Sim' : 'Não'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between py-1.5">
-                      <span>Abertura</span><span className="font-medium">{selected.opening_time_weekday}</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-        </div>
-      )}
     </div>
-  )
+  );
 }
