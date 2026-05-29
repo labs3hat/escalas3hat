@@ -54,6 +54,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   const [copying, setCopying] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [monthlyOpen, setMonthlyOpen] = useState(false);
 
   // Update selected store if initialStoreId changes (navigation)
   useEffect(() => {
