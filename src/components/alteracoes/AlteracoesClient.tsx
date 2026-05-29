@@ -31,6 +31,18 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
     load()
   }, [selectedStoreId, selectedEmployeeId, weekOffset, cienciaFilter])
 
+  useEffect(() => {
+    // Real-time subscription to refresh when science is confirmed or new changes added
+    const channel = supabase
+      .channel('alteracoes-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_changes' }, () => {
+        load()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [selectedStoreId, selectedEmployeeId, weekOffset, cienciaFilter])
+
   async function loadEmployees() {
     let query = supabase.from('employees').select('id, name').eq('active', true)
     if (selectedStoreId !== 'all') {
