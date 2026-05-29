@@ -47,7 +47,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
   async function handleDelete(id: string) {
     if (!confirm('Desativar este funcionário?')) return
     await supabase.from('employees').update({ active: false }).eq('id', id)
-    setEmployees(prev => prev.filter(e => e.id !== id))
+    load()
     toast.success('Funcionário desativado')
   }
 
