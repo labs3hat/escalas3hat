@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Schedule, ScheduleSlot, SlotType } from "@/types";
 
@@ -12,6 +13,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const weekKey = format(weekStart, "yyyy-MM-dd");
+  const loadSeq = useRef(0);
 
   const load = useCallback(
     async (forceScheduleId?: string) => {
@@ -19,6 +21,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         setLoading(false);
         return;
       }
+      const seq = ++loadSeq.current;
       setLoading(true);
 
       let sched: Schedule | null = null;
@@ -57,6 +60,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         sched = newSched;
       }
 
+      if (seq !== loadSeq.current) return; // ignora reload obsoleto (corrida com realtime)
       setSchedule(sched);
 
       if (sched) {
@@ -64,6 +68,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
           .from("schedule_slots")
           .select("*")
           .eq("schedule_id", sched.id);
+        if (seq !== loadSeq.current) return;
         setSlots(((slotData ?? []) as ScheduleSlot[]).map(normalizeSlot));
       } else {
         setSlots([]);
@@ -166,12 +171,16 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     } = await supabase.auth.getUser();
 
     // remover todos os slots desse funcionário nesse dia
-    await supabase
+    const { error: delErr } = await supabase
       .from("schedule_slots")
       .delete()
       .eq("schedule_id", schedule.id)
       .eq("employee_id", employeeId)
       .eq("day_of_week", dayOfWeek);
+    if (delErr) {
+      toast.error("Não foi possível remover os horários antigos: " + delErr.message);
+      throw delErr;
+    }
 
     const toInsert: Array<{
       schedule_id: string;
@@ -220,13 +229,18 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     }
 
     if (toInsert.length > 0) {
-      await supabase
+      const { error: upErr } = await supabase
         .from("schedule_slots")
         .upsert(toInsert, { onConflict: "schedule_id,employee_id,day_of_week,slot_time" });
+      if (upErr) {
+        toast.error("Não foi possível salvar os novos horários: " + upErr.message);
+        throw upErr;
+      }
     }
 
     await load();
   }
+
 
   async function publish() {
     if (!schedule) return;
