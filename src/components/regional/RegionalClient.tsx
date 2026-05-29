@@ -169,22 +169,19 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
       </div>
 
       <div className="flex-1 overflow-auto p-5">
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-20">Loja</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap sticky left-0 top-0 bg-gray-50 z-30">Loja</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap sticky top-0 bg-gray-50 z-20">Status</th>
                 {weekDates.map((date, i) => (
-                  <th key={i} className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center ${isToday(date) ? 'bg-brand-50 text-brand-700' : ''}`}>
-                    {DAY_NAMES[(i + 1) % 7]}
-                    <div className="text-[10px] opacity-60 font-normal">
-                      {format(date, 'dd/MM')}
-                    </div>
+                  <th key={i} className={`px-3 py-3 text-xs font-semibold uppercase tracking-wider text-center whitespace-nowrap sticky top-0 z-20 ${isToday(date) ? 'bg-brand-50 text-brand-700' : 'bg-gray-50 text-gray-500'}`}>
+                    {DAY_NAMES[(i + 1) % 7]} {format(date, 'dd/MM')}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Alertas</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">FL</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap sticky top-0 bg-gray-50 z-20">Alertas</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center whitespace-nowrap sticky top-0 bg-gray-50 z-20">FL</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
