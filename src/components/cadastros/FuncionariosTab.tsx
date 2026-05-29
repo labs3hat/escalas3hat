@@ -10,6 +10,7 @@ const DAY_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
 
 export default function FuncionariosTab({ store }: { store: Store }) {
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [showInactive, setShowInactive] = useState(false)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [editing, setEditing] = useState<Employee | null>(null)
