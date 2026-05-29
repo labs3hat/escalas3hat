@@ -205,26 +205,31 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
 
   async function handleGenerate() {
     if (!selectedStore) return;
+    const currentStore = selectedStore;
     setGenerating(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const weekKey = format(weekStart, "yyyy-MM-dd");
-    const { data, error } = await supabase.rpc("generate_base_schedule", {
-      p_store_id: selectedStore.id,
-      p_week_start: weekKey,
-      p_created_by: user?.id,
-    });
-    const result = data as { success?: boolean; error?: string; slots_created?: number } | null;
-    if (error || result?.success === false) {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const weekKey = format(weekStart, "yyyy-MM-dd");
+      const { data, error } = await supabase.rpc("generate_base_schedule", {
+        p_store_id: currentStore.id,
+        p_week_start: weekKey,
+        p_created_by: user?.id,
+      });
+      const result = data as { success?: boolean; error?: string; slots_created?: number } | null;
+      if (error || result?.success === false) {
+        toast.error((error?.message ?? result?.error) || "Erro ao gerar escala");
+        return;
+      }
+      setSelectedStore(currentStore);
+      syncSearch(currentStore.id, weekStart);
+      toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
+      await reload();
+      setRefreshKey((k) => k + 1);
+    } finally {
       setGenerating(false);
-      toast.error((error?.message ?? result?.error) || "Erro ao gerar escala");
-      return;
     }
-    toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
-    await reload();
-    setRefreshKey((k) => k + 1);
-    setGenerating(false);
   }
 
   if (!selectedStore) {
