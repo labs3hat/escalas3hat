@@ -84,7 +84,7 @@ export default function GerarEscalaMensalModal({
   async function startGeneration() {
     // Verifica se já existem escalas geradas no mês
     const weeksFirst = format(startOfWeek(monthFirst, { weekStartsOn: 1 }), "yyyy-MM-dd");
-    const weeksLast = format(endOfWeek(endOfMonth(monthDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
+    const weeksLast = format(endOfWeek(endOfMonth(monthFirst), { weekStartsOn: 1 }), "yyyy-MM-dd");
     const { data: existing } = await supabase
       .from("schedules")
       .select("id")
