@@ -101,6 +101,24 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
     }
   }
 
+  // Ordena por horário de entrada do dia: quem entra antes aparece primeiro.
+  // Folga/sem escala vão para o final.
+  function entryRank(emp: Employee, dow: number): number {
+    const workSlots = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'work').sort()
+    if (workSlots.length === 0) return Number.MAX_SAFE_INTEGER
+    const [h, m] = workSlots[0].split(':').map(Number)
+    return h * 60 + m
+  }
+
+  function sortedDayEmployees(dow: number): Employee[] {
+    return [...employees].sort((a, b) => {
+      const ra = entryRank(a, dow)
+      const rb = entryRank(b, dow)
+      if (ra !== rb) return ra - rb
+      return a.name.localeCompare(b.name)
+    })
+  }
+
   return (
     <div className="h-full flex flex-col p-2 overflow-hidden">
       <div className="grid grid-cols-7 gap-1 flex-1 min-h-0">
