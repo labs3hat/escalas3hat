@@ -22,12 +22,18 @@ interface Props {
   initialWeek?: string;
 }
 
+const STORE_SELECTION_KEY = "escalas:selectedStoreId";
+
+function getSavedStoreId() {
+  if (typeof window === "undefined") return undefined;
+  return window.localStorage.getItem(STORE_SELECTION_KEY) ?? undefined;
+}
+
 export default function EscalasClient({ profile, initialStores, initialStoreId, initialWeek }: Props) {
   const navigate = useNavigate();
   const [selectedStore, setSelectedStore] = useState<Store>(() => {
-    if (initialStoreId) {
-      return initialStores.find(s => s.id === initialStoreId) || initialStores[0];
-    }
+    const preferredStoreId = initialStoreId ?? getSavedStoreId();
+    if (preferredStoreId) return initialStores.find(s => s.id === preferredStoreId) || initialStores[0];
     return initialStores[0];
   });
 
@@ -55,6 +61,11 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
       if (store) setSelectedStore(store);
     }
   }, [initialStoreId, initialStores]);
+
+  useEffect(() => {
+    if (!selectedStore?.id || typeof window === "undefined") return;
+    window.localStorage.setItem(STORE_SELECTION_KEY, selectedStore.id);
+  }, [selectedStore?.id]);
 
   // Update week offset if initialWeek changes (navigation)
   useEffect(() => {
