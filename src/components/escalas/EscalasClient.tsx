@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { addDays, startOfWeek, format, subWeeks, addWeeks, differenceInWeeks, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Profile, Store } from "@/types";
@@ -14,6 +14,7 @@ import ResumoSemanal from "./ResumoSemanal";
 import PainelAlertas from "./PainelAlertas";
 import { useFreelancerSlots } from "./FreelancerSlots";
 import FreelancerSlots from "./FreelancerSlots";
+import GerarEscalaMensalModal from "./GerarEscalaMensalModal";
 
 interface Props {
   profile: Profile | null;
@@ -53,6 +54,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   const [copying, setCopying] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [monthlyOpen, setMonthlyOpen] = useState(false);
 
   // Update selected store if initialStoreId changes (navigation)
   useEffect(() => {
@@ -329,6 +331,13 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
               {copying ? "Copiando..." : "Copiar semana anterior"}
             </button>
             <button
+              onClick={() => setMonthlyOpen(true)}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-brand-200 rounded-lg text-brand-700 bg-brand-50 hover:bg-brand-100 disabled:opacity-50"
+            >
+              <CalendarDays size={13} />
+              Gerar Escala Mensal
+            </button>
+            <button
               onClick={handleGenerate}
               disabled={generating}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
@@ -428,6 +437,22 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         store={selectedStore}
         schedule={schedule}
       />
+
+      {monthlyOpen && (
+        <GerarEscalaMensalModal
+          open={monthlyOpen}
+          onClose={() => setMonthlyOpen(false)}
+          store={selectedStore}
+          employees={employees}
+          monthDate={weekStart}
+          onGenerated={async () => {
+            setSelectedStore(selectedStore);
+            syncSearch(selectedStore.id, weekStart);
+            await reload();
+            setRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
