@@ -47,7 +47,7 @@ export default function GerarEscalaMensalModal({
     setLoadingExisting(true);
     setConfirming(false);
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("monthly_sunday_off")
         .select("employee_id, sunday_date")
         .eq("store_id", store.id)
@@ -106,7 +106,7 @@ export default function GerarEscalaMensalModal({
         .filter((e) => assignments[e.id])
         .map((e) => ({ employee_id: e.id, sunday_date: assignments[e.id] }));
 
-      const { data, error } = await supabase.rpc("generate_monthly_schedule", {
+      const { data, error } = await (supabase as any).rpc("generate_monthly_schedule", {
         p_store_id: store.id,
         p_month_start: format(monthFirst, "yyyy-MM-dd"),
         p_assignments: payload,
