@@ -150,22 +150,30 @@ export default function GerarEscalaMensalModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900 leading-tight">Gerar Escala Mensal</h2>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1.5">
                 <button
                   type="button"
                   onClick={() => setSelectedMonth((m) => addMonths(startOfMonth(m), -1))}
-                  className="p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                   aria-label="Mês anterior"
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <span className="text-sm font-medium text-gray-700 capitalize min-w-[140px] text-center">
-                  {monthLabel}
-                </span>
+                <select
+                  value={monthYear}
+                  onChange={(e) => setSelectedMonth(new Date(e.target.value + "-01T00:00:00"))}
+                  className="text-sm font-medium border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-800 capitalize focus:outline-none focus:border-brand-400"
+                >
+                  {monthOptions.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   onClick={() => setSelectedMonth((m) => addMonths(startOfMonth(m), 1))}
-                  className="p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                   aria-label="Próximo mês"
                 >
                   <ChevronRight size={16} />
