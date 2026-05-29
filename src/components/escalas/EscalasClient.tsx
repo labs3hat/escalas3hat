@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { addDays, startOfWeek, format, subWeeks, addWeeks, differenceInWeeks, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Profile, Store } from "@/types";
@@ -14,6 +14,7 @@ import ResumoSemanal from "./ResumoSemanal";
 import PainelAlertas from "./PainelAlertas";
 import { useFreelancerSlots } from "./FreelancerSlots";
 import FreelancerSlots from "./FreelancerSlots";
+import GerarEscalaMensalModal from "./GerarEscalaMensalModal";
 
 interface Props {
   profile: Profile | null;
