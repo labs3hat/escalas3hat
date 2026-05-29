@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client'
 import RegionalClient from '@/components/regional/RegionalClient'
 import type { Profile, Store } from '@/types'
 
-export const Route = createFileRoute('/_authenticated/regional')({
+export const Route = createFileRoute('/_authenticated/visao-regional')({
   component: RegionalPage,
 })
 

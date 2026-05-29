@@ -12,8 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthenticatedVisaoRegionalRouteImport } from './routes/_authenticated/visao-regional'
 import { Route as AuthenticatedTurnosRouteImport } from './routes/_authenticated/turnos'
-import { Route as AuthenticatedRegionalRouteImport } from './routes/_authenticated/regional'
 import { Route as AuthenticatedHorasRouteImport } from './routes/_authenticated/horas'
 import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
 import { Route as AuthenticatedConfigLojaRouteImport } from './routes/_authenticated/config-loja'
@@ -34,14 +34,15 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedVisaoRegionalRoute =
+  AuthenticatedVisaoRegionalRouteImport.update({
+    id: '/visao-regional',
+    path: '/visao-regional',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTurnosRoute = AuthenticatedTurnosRouteImport.update({
   id: '/turnos',
   path: '/turnos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedRegionalRoute = AuthenticatedRegionalRouteImport.update({
-  id: '/regional',
-  path: '/regional',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHorasRoute = AuthenticatedHorasRouteImport.update({
@@ -77,8 +78,8 @@ export interface FileRoutesByFullPath {
   '/config-loja': typeof AuthenticatedConfigLojaRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/horas': typeof AuthenticatedHorasRoute
-  '/regional': typeof AuthenticatedRegionalRoute
   '/turnos': typeof AuthenticatedTurnosRoute
+  '/visao-regional': typeof AuthenticatedVisaoRegionalRoute
   '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRoutesByTo {
@@ -88,8 +89,8 @@ export interface FileRoutesByTo {
   '/config-loja': typeof AuthenticatedConfigLojaRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/horas': typeof AuthenticatedHorasRoute
-  '/regional': typeof AuthenticatedRegionalRoute
   '/turnos': typeof AuthenticatedTurnosRoute
+  '/visao-regional': typeof AuthenticatedVisaoRegionalRoute
   '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRoutesById {
@@ -101,8 +102,8 @@ export interface FileRoutesById {
   '/_authenticated/config-loja': typeof AuthenticatedConfigLojaRoute
   '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
   '/_authenticated/horas': typeof AuthenticatedHorasRoute
-  '/_authenticated/regional': typeof AuthenticatedRegionalRoute
   '/_authenticated/turnos': typeof AuthenticatedTurnosRoute
+  '/_authenticated/visao-regional': typeof AuthenticatedVisaoRegionalRoute
   '/auth/login': typeof AuthLoginRoute
 }
 export interface FileRouteTypes {
@@ -114,8 +115,8 @@ export interface FileRouteTypes {
     | '/config-loja'
     | '/escalas'
     | '/horas'
-    | '/regional'
     | '/turnos'
+    | '/visao-regional'
     | '/auth/login'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -125,8 +126,8 @@ export interface FileRouteTypes {
     | '/config-loja'
     | '/escalas'
     | '/horas'
-    | '/regional'
     | '/turnos'
+    | '/visao-regional'
     | '/auth/login'
   id:
     | '__root__'
@@ -137,8 +138,8 @@ export interface FileRouteTypes {
     | '/_authenticated/config-loja'
     | '/_authenticated/escalas'
     | '/_authenticated/horas'
-    | '/_authenticated/regional'
     | '/_authenticated/turnos'
+    | '/_authenticated/visao-regional'
     | '/auth/login'
   fileRoutesById: FileRoutesById
 }
@@ -171,18 +172,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/visao-regional': {
+      id: '/_authenticated/visao-regional'
+      path: '/visao-regional'
+      fullPath: '/visao-regional'
+      preLoaderRoute: typeof AuthenticatedVisaoRegionalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/turnos': {
       id: '/_authenticated/turnos'
       path: '/turnos'
       fullPath: '/turnos'
       preLoaderRoute: typeof AuthenticatedTurnosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/regional': {
-      id: '/_authenticated/regional'
-      path: '/regional'
-      fullPath: '/regional'
-      preLoaderRoute: typeof AuthenticatedRegionalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/horas': {
@@ -229,8 +230,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfigLojaRoute: typeof AuthenticatedConfigLojaRoute
   AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
   AuthenticatedHorasRoute: typeof AuthenticatedHorasRoute
-  AuthenticatedRegionalRoute: typeof AuthenticatedRegionalRoute
   AuthenticatedTurnosRoute: typeof AuthenticatedTurnosRoute
+  AuthenticatedVisaoRegionalRoute: typeof AuthenticatedVisaoRegionalRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -239,8 +240,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfigLojaRoute: AuthenticatedConfigLojaRoute,
   AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
   AuthenticatedHorasRoute: AuthenticatedHorasRoute,
-  AuthenticatedRegionalRoute: AuthenticatedRegionalRoute,
   AuthenticatedTurnosRoute: AuthenticatedTurnosRoute,
+  AuthenticatedVisaoRegionalRoute: AuthenticatedVisaoRegionalRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -254,3 +255,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
