@@ -51,7 +51,7 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
     try {
       // Server-side aggregation avoids the 1000-row limit that caused most
       // stores to show 0 employees per day.
-      const { data: overview, error } = await supabase.rpc('get_regional_overview', {
+      const { data: overview, error } = await (supabase.rpc as any)('get_regional_overview', {
         p_week_start: dateStr,
       });
 
