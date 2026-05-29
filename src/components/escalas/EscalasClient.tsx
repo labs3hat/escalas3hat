@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { addDays, startOfWeek, format, subWeeks, addWeeks, differenceInWeeks, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,11 +22,18 @@ interface Props {
   initialWeek?: string;
 }
 
+const STORE_SELECTION_KEY = "escalas:selectedStoreId";
+
+function getSavedStoreId() {
+  if (typeof window === "undefined") return undefined;
+  return window.localStorage.getItem(STORE_SELECTION_KEY) ?? undefined;
+}
+
 export default function EscalasClient({ profile, initialStores, initialStoreId, initialWeek }: Props) {
+  const navigate = useNavigate();
   const [selectedStore, setSelectedStore] = useState<Store>(() => {
-    if (initialStoreId) {
-      return initialStores.find(s => s.id === initialStoreId) || initialStores[0];
-    }
+    const preferredStoreId = initialStoreId ?? getSavedStoreId();
+    if (preferredStoreId) return initialStores.find(s => s.id === preferredStoreId) || initialStores[0];
     return initialStores[0];
   });
 
@@ -54,6 +62,11 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     }
   }, [initialStoreId, initialStores]);
 
+  useEffect(() => {
+    if (!selectedStore?.id || typeof window === "undefined") return;
+    window.localStorage.setItem(STORE_SELECTION_KEY, selectedStore.id);
+  }, [selectedStore?.id]);
+
   // Update week offset if initialWeek changes (navigation)
   useEffect(() => {
     if (initialWeek) {
@@ -75,6 +88,22 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart],
   );
+
+  const syncSearch = (storeId: string, week: Date) => {
+    void navigate({
+      to: "/escalas",
+      replace: true,
+      search: { storeId, week: format(week, "yyyy-MM-dd") },
+    });
+  };
+
+  useEffect(() => {
+    if (!selectedStore?.id) return;
+    const weekKey = format(weekStart, "yyyy-MM-dd");
+    if (initialStoreId !== selectedStore.id || initialWeek !== weekKey) {
+      syncSearch(selectedStore.id, weekStart);
+    }
+  }, [selectedStore?.id, weekStart, initialStoreId, initialWeek]);
 
   const { employees } = useEmployees(selectedStore?.id ?? null);
   const { schedule, loading, updateDay, publish, copyPreviousWeek, getSlot, reload } = useSchedule(
@@ -176,26 +205,31 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
 
   async function handleGenerate() {
     if (!selectedStore) return;
+    const currentStore = selectedStore;
     setGenerating(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const weekKey = format(weekStart, "yyyy-MM-dd");
-    const { data, error } = await supabase.rpc("generate_base_schedule", {
-      p_store_id: selectedStore.id,
-      p_week_start: weekKey,
-      p_created_by: user?.id,
-    });
-    const result = data as { success?: boolean; error?: string; slots_created?: number } | null;
-    if (error || result?.success === false) {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const weekKey = format(weekStart, "yyyy-MM-dd");
+      const { data, error } = await supabase.rpc("generate_base_schedule", {
+        p_store_id: currentStore.id,
+        p_week_start: weekKey,
+        p_created_by: user?.id,
+      });
+      const result = data as { success?: boolean; error?: string; slots_created?: number } | null;
+      if (error || result?.success === false) {
+        toast.error((error?.message ?? result?.error) || "Erro ao gerar escala");
+        return;
+      }
+      setSelectedStore(currentStore);
+      syncSearch(currentStore.id, weekStart);
+      toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
+      await reload();
+      setRefreshKey((k) => k + 1);
+    } finally {
       setGenerating(false);
-      toast.error((error?.message ?? result?.error) || "Erro ao gerar escala");
-      return;
     }
-    toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
-    await reload();
-    setRefreshKey((k) => k + 1);
-    setGenerating(false);
   }
 
   if (!selectedStore) {
