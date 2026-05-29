@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { addDays, startOfWeek, format, subWeeks, addWeeks, differenceInWeeks, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function EscalasClient({ profile, initialStores, initialStoreId, initialWeek }: Props) {
+  const navigate = useNavigate();
   const [selectedStore, setSelectedStore] = useState<Store>(() => {
     if (initialStoreId) {
       return initialStores.find(s => s.id === initialStoreId) || initialStores[0];
@@ -75,6 +77,22 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart],
   );
+
+  const syncSearch = (storeId: string, week: Date) => {
+    void navigate({
+      to: "/escalas",
+      replace: true,
+      search: { storeId, week: format(week, "yyyy-MM-dd") },
+    });
+  };
+
+  useEffect(() => {
+    if (!selectedStore?.id) return;
+    const weekKey = format(weekStart, "yyyy-MM-dd");
+    if (initialStoreId !== selectedStore.id || initialWeek !== weekKey) {
+      syncSearch(selectedStore.id, weekStart);
+    }
+  }, [selectedStore?.id, weekStart, initialStoreId, initialWeek]);
 
   const { employees } = useEmployees(selectedStore?.id ?? null);
   const { schedule, loading, updateDay, publish, copyPreviousWeek, getSlot, reload } = useSchedule(
