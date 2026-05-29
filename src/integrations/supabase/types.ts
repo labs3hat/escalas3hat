@@ -734,6 +734,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_regional_overview: {
+        Args: { p_store_ids?: string[]; p_week_start: string }
+        Returns: Json
+      }
       is_admin: { Args: never; Returns: boolean }
       my_store_ids: { Args: never; Returns: string[] }
     }
