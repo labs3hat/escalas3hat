@@ -178,6 +178,29 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
           )
         })}
       </div>
+
+      {modal && (
+        <SlotModal
+          emp={modal.emp}
+          dow={modal.dow}
+          date={modal.date}
+          initial={modal.initial}
+          isPublished={isPublished}
+          onClose={() => setModal(null)}
+          onSave={async (payload) => {
+            await updateDay(
+              modal.emp.id,
+              modal.dow,
+              payload.type,
+              payload.type === 'work'
+                ? { entry: payload.entry!, exit: payload.exit!, breakStart: payload.breakStart, breakEnd: payload.breakEnd }
+                : undefined,
+              payload.reason,
+            )
+            setModal(null)
+          }}
+        />
+      )}
     </div>
   )
 }
