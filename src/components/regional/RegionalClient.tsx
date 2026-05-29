@@ -1,26 +1,34 @@
 import { useState, useMemo, useEffect } from "react";
 import { addDays, startOfWeek, format, subWeeks, addWeeks, isToday } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Wand2, AlertTriangle, UserPlus, Info, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import type { Store, Schedule, RuleViolation } from "@/types";
+import type { Store } from "@/types";
 import { MONTHS, DAY_NAMES } from "@/types";
 
-interface StoreData {
-  store: Store;
-  schedule: Schedule | null;
-  counts: Record<number, number>; // day_of_week -> count
-  violations: number;
+type ScheduleStatusRpc = "published" | "draft" | "no_schedule";
+
+interface OverviewRow {
+  store_id: string;
+  store_code: string;
+  store_name: string;
+  shopping: string;
+  status: ScheduleStatusRpc;
+  days: Record<string, number>; // '0'(dom) .. '6'(sáb) -> count
+  min_weekday: number;
+  min_weekend: number;
+  min_sunday: number;
+  alertas: number;
   freelancers: number;
+  schedule_id: string | null;
 }
 
 export default function RegionalClient({ stores }: { stores: Store[] }) {
   const navigate = useNavigate();
   const [weekOffset, setWeekOffset] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<StoreData[]>([]);
+  const [data, setData] = useState<OverviewRow[]>([]);
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<Record<string, 'pending' | 'loading' | 'done' | 'error'>>({});
 
@@ -42,64 +50,23 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
 
   useEffect(() => {
     void loadData();
-  }, [weekStart, stores]);
+  }, [weekStart]);
 
   async function loadData() {
     setLoading(true);
+    // week_start is always the Monday of the displayed week, format YYYY-MM-DD.
     const dateStr = format(weekStart, 'yyyy-MM-dd');
 
     try {
-      // Server-side aggregation avoids the 1000-row limit that caused most
-      // stores to show 0 employees per day.
+      // get_regional_overview returns a single JSON array, already aggregated
+      // with everything the screen needs (days, status, alertas, freelancers).
       const { data: overview, error } = await (supabase.rpc as any)('get_regional_overview', {
         p_week_start: dateStr,
       });
 
       if (error) throw error;
 
-      // Group RPC rows by store
-      type OverviewRow = {
-        store_id: string;
-        schedule_id: string;
-        schedule_status: string;
-        day_of_week: number;
-        employee_count: number;
-        violation_count: number;
-        freelancer_count: number;
-      };
-      const byStore: Record<string, OverviewRow[]> = {};
-      (overview as OverviewRow[] | null)?.forEach(row => {
-        if (!byStore[row.store_id]) byStore[row.store_id] = [];
-        byStore[row.store_id].push(row);
-      });
-
-      const results: StoreData[] = stores.map(store => {
-        const rows = byStore[store.id] || [];
-        const storeCounts: Record<number, number> = {};
-        rows.forEach(r => {
-          storeCounts[r.day_of_week] = r.employee_count;
-        });
-
-        const first = rows[0];
-        const schedule: Schedule | null = first
-          ? ({
-              id: first.schedule_id,
-              store_id: store.id,
-              week_start: dateStr,
-              status: first.schedule_status,
-            } as unknown as Schedule)
-          : null;
-
-        return {
-          store,
-          schedule,
-          counts: storeCounts,
-          violations: first?.violation_count || 0,
-          freelancers: first?.freelancer_count || 0,
-        };
-      });
-
-      setData(results);
+      setData((overview as OverviewRow[] | null) ?? []);
     } catch (error) {
       console.error('Error loading regional data:', error);
       toast.error('Erro ao carregar dados regionais');
@@ -109,7 +76,7 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
   }
 
   async function handleGenerateAll() {
-    const targets = data.filter(d => !d.schedule || d.schedule.status === 'draft');
+    const targets = data.filter(d => d.status === 'no_schedule' || d.status === 'draft');
     if (targets.length === 0) {
       toast.info('Nenhuma loja pendente de geração');
       return;
@@ -119,21 +86,21 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
 
     setGeneratingAll(true);
     const progress: Record<string, any> = {};
-    targets.forEach(t => progress[t.store.id] = 'loading');
+    targets.forEach(t => progress[t.store_id] = 'loading');
     setGenerationProgress(progress);
 
     for (const item of targets) {
       try {
         const { error } = await supabase.rpc('generate_base_schedule', {
-          p_store_id: item.store.id,
+          p_store_id: item.store_id,
           p_week_start: format(weekStart, 'yyyy-MM-dd')
         });
 
         if (error) throw error;
-        setGenerationProgress(prev => ({ ...prev, [item.store.id]: 'done' }));
+        setGenerationProgress(prev => ({ ...prev, [item.store_id]: 'done' }));
       } catch (err) {
-        console.error(`Error generating for ${item.store.name}:`, err);
-        setGenerationProgress(prev => ({ ...prev, [item.store.id]: 'error' }));
+        console.error(`Error generating for ${item.store_name}:`, err);
+        setGenerationProgress(prev => ({ ...prev, [item.store_id]: 'error' }));
       }
     }
 
@@ -142,15 +109,11 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
     void loadData();
   }
 
-  function getCellColor(count: number, store: Store, dayIndex: number) {
-    // 0 is Sunday, 1-5 is Mon-Fri, 6 is Saturday
-    // But weekDates start with Monday (index 0 in weekDates is day_of_week 1)
-    const date = weekDates[dayIndex];
-    const dayOfWeek = date.getDay(); // 0-6 (0=Sun)
-    
-    let min = store.min_weekday_staff;
-    if (dayOfWeek === 0) min = store.min_sunday_staff;
-    if (dayOfWeek === 6) min = store.min_weekend_staff;
+  function getCellColor(count: number, row: OverviewRow, dayOfWeek: number) {
+    // dayOfWeek: 0 = Sunday, 1-5 = Mon-Fri, 6 = Saturday
+    let min = row.min_weekday;
+    if (dayOfWeek === 0) min = row.min_sunday;
+    if (dayOfWeek === 6) min = row.min_weekend;
 
     if (count >= min) return 'bg-green-50 text-green-700 border-green-100';
     if (count === min - 1) return 'bg-amber-50 text-amber-700 border-amber-100';
@@ -158,11 +121,9 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
   }
 
   const navigateToStore = (storeId: string) => {
-    // Navigate with store selection and week start
-    // Using simple search params or state
-    navigate({ 
-      to: '/escalas', 
-      search: { storeId, week: format(weekStart, 'yyyy-MM-dd') } 
+    navigate({
+      to: '/escalas',
+      search: { storeId, week: format(weekStart, 'yyyy-MM-dd') }
     });
   };
 
@@ -242,25 +203,25 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
                 </tr>
               ) : (
                 data.map((item) => (
-                  <tr key={item.store.id} className="hover:bg-gray-50 transition-colors group">
-                    <td 
+                  <tr key={item.store_id} className="hover:bg-gray-50 transition-colors group">
+                    <td
                       className="px-4 py-3 sticky left-0 bg-white group-hover:bg-gray-50 z-10 cursor-pointer"
-                      onClick={() => navigateToStore(item.store.id)}
+                      onClick={() => navigateToStore(item.store_id)}
                     >
-                      <div className="text-sm font-semibold text-gray-900">{item.store.name}</div>
-                      <div className="text-[10px] text-gray-400 truncate max-w-[150px]">{item.store.shopping}</div>
+                      <div className="text-sm font-semibold text-gray-900">{item.store_name}</div>
+                      <div className="text-[10px] text-gray-400 truncate max-w-[150px]">{item.shopping}</div>
                     </td>
                     <td className="px-4 py-3">
-                      {generationProgress[item.store.id] === 'loading' ? (
+                      {generationProgress[item.store_id] === 'loading' ? (
                         <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-blue-50 text-blue-600 border border-blue-100">
                           <Loader2 size={10} className="animate-spin" />
                           Gerando
                         </span>
-                      ) : !item.schedule ? (
+                      ) : item.status === 'no_schedule' ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-red-50 text-red-600 border border-red-100">
                           Sem Escala
                         </span>
-                      ) : item.schedule.status === 'published' ? (
+                      ) : item.status === 'published' ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-green-50 text-green-600 border border-green-100">
                           Publicada
                         </span>
@@ -271,27 +232,26 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
                       )}
                     </td>
                     {weekDates.map((_, i) => {
-                      // day_of_week in DB is 0-6 (0=Sun)
-                      // weekDates[0] is Monday (day_of_week 1)
+                      // weekDates[0] is Monday; day_of_week 0-6 with 0=Sun
                       const day_of_week = (i + 1) % 7;
-                      const count = item.counts[day_of_week] || 0;
+                      const count = item.days?.[String(day_of_week)] ?? 0;
                       return (
-                        <td 
-                          key={i} 
+                        <td
+                          key={i}
                           className="px-2 py-3 text-center cursor-pointer"
-                          onClick={() => navigateToStore(item.store.id)}
+                          onClick={() => navigateToStore(item.store_id)}
                         >
-                          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold border ${getCellColor(count, item.store, i)}`}>
+                          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold border ${getCellColor(count, item, day_of_week)}`}>
                             {count}
                           </div>
                         </td>
                       );
                     })}
                     <td className="px-4 py-3 text-center">
-                      {item.violations > 0 ? (
+                      {item.alertas > 0 ? (
                         <div className="inline-flex items-center gap-1 text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md border border-red-100">
                           <AlertTriangle size={14} />
-                          <span className="text-sm">{item.violations}</span>
+                          <span className="text-sm">{item.alertas}</span>
                         </div>
                       ) : (
                         <span className="text-gray-300">—</span>
@@ -313,7 +273,7 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
             </tbody>
           </table>
         </div>
-        
+
         <div className="mt-6 flex items-center gap-6 text-[11px] text-gray-500 bg-white p-4 rounded-xl border border-gray-200">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-50 border border-green-100 rounded"></div>
@@ -329,7 +289,7 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
           </div>
           <div className="ml-auto flex items-center gap-1 text-gray-400">
             <Info size={14} />
-            <span>Mínimos: Seg-Sex ({data[0]?.store?.min_weekday_staff || '?'}), Sáb ({data[0]?.store?.min_weekend_staff || '?'}), Dom ({data[0]?.store?.min_sunday_staff || '?'})</span>
+            <span>Mínimos: Seg-Sex ({data[0]?.min_weekday ?? '?'}), Sáb ({data[0]?.min_weekend ?? '?'}), Dom ({data[0]?.min_sunday ?? '?'})</span>
           </div>
         </div>
       </div>
