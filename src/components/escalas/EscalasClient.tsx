@@ -193,7 +193,9 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
       return;
     }
     toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
-    window.location.reload();
+    await reload();
+    setRefreshKey((k) => k + 1);
+    setGenerating(false);
   }
 
   if (!selectedStore) {
