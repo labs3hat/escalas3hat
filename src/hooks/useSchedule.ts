@@ -229,13 +229,18 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     }
 
     if (toInsert.length > 0) {
-      await supabase
+      const { error: upErr } = await supabase
         .from("schedule_slots")
         .upsert(toInsert, { onConflict: "schedule_id,employee_id,day_of_week,slot_time" });
+      if (upErr) {
+        toast.error("Não foi possível salvar os novos horários: " + upErr.message);
+        throw upErr;
+      }
     }
 
     await load();
   }
+
 
   async function publish() {
     if (!schedule) return;
