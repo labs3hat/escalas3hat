@@ -437,6 +437,22 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         store={selectedStore}
         schedule={schedule}
       />
+
+      {monthlyOpen && (
+        <GerarEscalaMensalModal
+          open={monthlyOpen}
+          onClose={() => setMonthlyOpen(false)}
+          store={selectedStore}
+          employees={employees}
+          monthDate={weekStart}
+          onGenerated={async () => {
+            setSelectedStore(selectedStore);
+            syncSearch(selectedStore.id, weekStart);
+            await reload();
+            setRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
