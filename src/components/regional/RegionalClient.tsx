@@ -49,68 +49,53 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
     const dateStr = format(weekStart, 'yyyy-MM-dd');
 
     try {
-      // 1. Fetch schedules for the week
-      const { data: schedules } = await supabase
-        .from('schedules')
-        .select('*')
-        .eq('week_start', dateStr);
+      // Server-side aggregation avoids the 1000-row limit that caused most
+      // stores to show 0 employees per day.
+      const { data: overview, error } = await supabase.rpc('get_regional_overview', {
+        p_week_start: dateStr,
+      });
 
-      const scheduleIds = schedules?.map(s => s.id) || [];
+      if (error) throw error;
 
-      // 2. Fetch counts of working employees
-      let counts: any[] = [];
-      if (scheduleIds.length > 0) {
-        const { data: slotCounts } = await supabase
-          .from('schedule_slots')
-          .select('schedule_id, day_of_week, employee_id')
-          .in('schedule_id', scheduleIds)
-          .eq('slot_type', 'work');
+      // Group RPC rows by store
+      type OverviewRow = {
+        store_id: string;
+        schedule_id: string;
+        schedule_status: string;
+        day_of_week: number;
+        employee_count: number;
+        violation_count: number;
+        freelancer_count: number;
+      };
+      const byStore: Record<string, OverviewRow[]> = {};
+      (overview as OverviewRow[] | null)?.forEach(row => {
+        if (!byStore[row.store_id]) byStore[row.store_id] = [];
+        byStore[row.store_id].push(row);
+      });
 
-        // Manual aggregation since Supabase client doesn't support GROUP BY easily in select
-        const agg: Record<string, Record<number, Set<string>>> = {};
-        slotCounts?.forEach(s => {
-          if (!agg[s.schedule_id]) agg[s.schedule_id] = {};
-          if (!agg[s.schedule_id][s.day_of_week]) agg[s.schedule_id][s.day_of_week] = new Set();
-          agg[s.schedule_id][s.day_of_week].add(s.employee_id);
-        });
-
-        Object.entries(agg).forEach(([sid, days]) => {
-          Object.entries(days).forEach(([day, emps]) => {
-            counts.push({ schedule_id: sid, day_of_week: parseInt(day), count: emps.size });
-          });
-        });
-      }
-
-      // 3. Fetch violations
-      const { data: violations } = await supabase
-        .from('rule_violations')
-        .select('schedule_id, id')
-        .in('schedule_id', scheduleIds)
-        .eq('resolved', false);
-
-      // 4. Fetch freelancer slots
-      const { data: freelancers } = await supabase
-        .from('freelancer_slots')
-        .select('schedule_id, id')
-        .in('schedule_id', scheduleIds)
-        .or('filled_by.is.null,filled_by.eq.""');
-
-      // Assemble data
       const results: StoreData[] = stores.map(store => {
-        const sched = schedules?.find(s => s.store_id === store.id) || null;
+        const rows = byStore[store.id] || [];
         const storeCounts: Record<number, number> = {};
-        if (sched) {
-          counts.filter(c => c.schedule_id === sched.id).forEach(c => {
-            storeCounts[c.day_of_week] = c.count;
-          });
-        }
+        rows.forEach(r => {
+          storeCounts[r.day_of_week] = r.employee_count;
+        });
+
+        const first = rows[0];
+        const schedule: Schedule | null = first
+          ? ({
+              id: first.schedule_id,
+              store_id: store.id,
+              week_start: dateStr,
+              status: first.schedule_status,
+            } as unknown as Schedule)
+          : null;
 
         return {
           store,
-          schedule: sched,
+          schedule,
           counts: storeCounts,
-          violations: violations?.filter(v => v.schedule_id === sched?.id).length || 0,
-          freelancers: freelancers?.filter(f => f.schedule_id === sched?.id).length || 0
+          violations: first?.violation_count || 0,
+          freelancers: first?.freelancer_count || 0,
         };
       });
 
