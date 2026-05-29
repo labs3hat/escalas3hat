@@ -44,26 +44,24 @@ export default function Sidebar({ profile, collapsed }: Props) {
 
   async function loadPendingCount() {
     if (!profile) return
-    // Simple count of pending changes where employee name matches profile name
-    // In a real app we'd have a stronger link
-    const { count } = await supabase
-      .from('schedule_changes')
-      .select('*', { count: 'exact', head: true })
-      .eq('ciencia_funcionario', false)
-      .filter('employee_id', 'in', 
-        supabase.from('employees').select('id').eq('name', profile.name)
-      )
     
-    // The above subquery might not work directly in JS client as I expect.
-    // Better: first get employee ids for this name.
-    const { data: emps } = await supabase.from('employees').select('id').eq('name', profile.name)
+    // Attempt to find associated employee(s) by name or email
+    // This is a heuristic until we have a direct link in the DB
+    const { data: emps } = await supabase
+      .from('employees')
+      .select('id')
+      .ilike('name', `%${profile.name}%`)
+    
     if (emps && emps.length > 0) {
-      const { count: c } = await supabase
+      const { count } = await supabase
         .from('schedule_changes')
         .select('*', { count: 'exact', head: true })
         .eq('ciencia_funcionario', false)
         .in('employee_id', emps.map(e => e.id))
-      setPendingCount(c || 0)
+      
+      setPendingCount(count || 0)
+    } else {
+      setPendingCount(0)
     }
   }
 
