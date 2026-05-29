@@ -27,9 +27,6 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
     loadEmployees()
   }, [selectedStoreId])
 
-  useEffect(() => {
-    load()
-  }, [selectedStoreId, selectedEmployeeId, weekOffset, cienciaFilter])
 
   useEffect(() => {
     load()
