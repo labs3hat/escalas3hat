@@ -60,6 +60,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         sched = newSched;
       }
 
+      if (seq !== loadSeq.current) return; // ignora reload obsoleto (corrida com realtime)
       setSchedule(sched);
 
       if (sched) {
@@ -67,6 +68,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
           .from("schedule_slots")
           .select("*")
           .eq("schedule_id", sched.id);
+        if (seq !== loadSeq.current) return;
         setSlots(((slotData ?? []) as ScheduleSlot[]).map(normalizeSlot));
       } else {
         setSlots([]);
