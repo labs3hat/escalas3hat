@@ -56,5 +56,12 @@ function EscalasPage() {
     )
   }
 
-  return <EscalasClient profile={profile} initialStores={stores} />
+  return (
+    <EscalasClient 
+      profile={profile} 
+      initialStores={stores} 
+      initialStoreId={storeId} 
+      initialWeek={week} 
+    />
+  )
 }
