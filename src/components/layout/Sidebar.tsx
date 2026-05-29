@@ -14,7 +14,7 @@ const navItems = [
 ] as const
 
 const regionalItems = [
-  { href: '/regional', label: 'Visão Regional', icon: Map },
+  { href: '/visao-regional', label: 'Visão Regional', icon: Map },
 ] as const
 
 interface Props {
