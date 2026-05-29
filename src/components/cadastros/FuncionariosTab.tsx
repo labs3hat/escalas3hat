@@ -232,11 +232,11 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                 </div>
                 <div className="flex gap-2 mt-0.5 flex-wrap">
                   <span className="text-xs text-gray-400">{emp.role}</span>
-                  <span className={`text-xs font-medium px-1.5 rounded ${emp.work_regime === '5x2' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                  <span className={`text-xs font-medium px-1.5 rounded ${!emp.active ? 'bg-gray-100 text-gray-400' : emp.work_regime === '5x2' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                     {REGIME_LABELS[emp.work_regime]}
                   </span>
-                  {emp.responsibilities.includes('estoque') && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 rounded">Estoque</span>}
-                  {emp.responsibilities.includes('maquina') && <span className="text-xs bg-red-50 text-red-600 px-1.5 rounded">Máquina</span>}
+                  {emp.responsibilities.includes('estoque') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>Estoque</span>}
+                  {emp.responsibilities.includes('maquina') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>Máquina</span>}
                 </div>
                 {pendingCounts[emp.id] > 0 && (
                   <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1 border border-amber-200">
