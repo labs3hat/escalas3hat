@@ -331,6 +331,13 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
               {copying ? "Copiando..." : "Copiar semana anterior"}
             </button>
             <button
+              onClick={() => setMonthlyOpen(true)}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-brand-200 rounded-lg text-brand-700 bg-brand-50 hover:bg-brand-100 disabled:opacity-50"
+            >
+              <CalendarDays size={13} />
+              Gerar Escala Mensal
+            </button>
+            <button
               onClick={handleGenerate}
               disabled={generating}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
