@@ -25,7 +25,11 @@ function RegionalPage() {
     const p = prof as unknown as Profile | null
     setProfile(p)
 
-    if (!p || !['regional', 'diretoria', 'rh'].includes(p.role)) {
+    if (!p) {
+      throw redirect({ to: '/auth' })
+    }
+
+    if (p.role === 'gerente') {
       throw redirect({ to: '/escalas' })
     }
 
