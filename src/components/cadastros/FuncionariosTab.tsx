@@ -105,9 +105,22 @@ export default function FuncionariosTab({ store }: { store: Store }) {
   return (
     <div className="p-5">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-medium text-gray-700">
-          {employees.length} funcionário{employees.length !== 1 ? 's' : ''} cadastrado{employees.length !== 1 ? 's' : ''}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-gray-700">
+            {employees.filter(e => showInactive || e.active).length} funcionário{employees.filter(e => showInactive || e.active).length !== 1 ? 's' : ''}
+          </span>
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input 
+              type="checkbox" 
+              checked={showInactive} 
+              onChange={e => setShowInactive(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+            />
+            <span className="text-[11px] font-medium text-gray-500 group-hover:text-gray-700 transition-colors">
+              Mostrar inativos
+            </span>
+          </label>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={handleSync} disabled={syncing}
             className="flex items-center gap-1.5 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg font-medium disabled:opacity-50">
