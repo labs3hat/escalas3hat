@@ -13,6 +13,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const weekKey = format(weekStart, "yyyy-MM-dd");
+  const loadSeq = useRef(0);
 
   const load = useCallback(
     async (forceScheduleId?: string) => {
@@ -20,6 +21,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         setLoading(false);
         return;
       }
+      const seq = ++loadSeq.current;
       setLoading(true);
 
       let sched: Schedule | null = null;
