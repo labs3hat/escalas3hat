@@ -178,6 +178,42 @@ export type Database = {
           },
         ]
       }
+      monthly_sunday_off: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          locked: boolean
+          month_year: string
+          store_id: string
+          sunday_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          locked?: boolean
+          month_year: string
+          store_id: string
+          sunday_date: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          locked?: boolean
+          month_year?: string
+          store_id?: string
+          sunday_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -731,6 +767,15 @@ export type Database = {
           p_created_by?: string
           p_store_id: string
           p_week_start: string
+        }
+        Returns: Json
+      }
+      generate_monthly_schedule: {
+        Args: {
+          p_assignments?: Json
+          p_created_by?: string
+          p_month_start: string
+          p_store_id: string
         }
         Returns: Json
       }
