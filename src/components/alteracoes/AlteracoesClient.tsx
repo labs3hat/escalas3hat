@@ -113,7 +113,7 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <h1 className="text-xl font-bold text-gray-900">Alterações</h1>
-        <p className="text-sm text-gray-500">Histórico de edições em escalas publicadas</p>
+        <p className="text-sm text-gray-500">Histórico de edições em escalas publicadas — o funcionário confirma a ciência da alteração (apenas registro, sem aprovação)</p>
       </div>
 
       {/* Filters */}
