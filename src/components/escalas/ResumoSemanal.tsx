@@ -1,15 +1,60 @@
+import { useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
+import SlotModal, { type DayPayload } from './SlotModal'
 
 interface Props {
   employees: Employee[]
   weekDates: Date[]
   getSlot: (empId: string, dow: number, slot: string) => string
+  updateDay: (
+    employeeId: string,
+    dayOfWeek: number,
+    type: 'work' | 'day_off' | 'empty',
+    payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
+    reason?: string
+  ) => Promise<void>
   store: Store
+  isPublished: boolean
 }
 
 const TODAY = new Date()
 
-export default function ResumoSemanal({ employees, weekDates, getSlot, store }: Props) {
+export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay, store, isPublished }: Props) {
+  const [modal, setModal] = useState<{
+    emp: Employee; dow: number; date: Date; initial: DayPayload
+  } | null>(null)
+
+  function buildDayPayload(emp: Employee, dow: number): DayPayload {
+    const work = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'work')
+    const intv = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'interval')
+    const off  = SLOT_KEYS.some(s => getSlot(emp.id, dow, s) === 'day_off')
+    if (work.length === 0 && intv.length === 0) {
+      return { type: off ? 'day_off' : 'empty' }
+    }
+    const all = [...work, ...intv].sort()
+    const toMin = (s: string) => {
+      const [h, m] = s.split(':').map(Number)
+      return h * 60 + m
+    }
+    const fmt = (mins: number) =>
+      `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+    const entry = all[0]
+    const bruta = emp.work_regime === '5x2' ? 588 : 500
+    const exit = fmt(toMin(entry) + bruta)
+    const fmtAdd30 = (s: string) => {
+      const [h, m] = s.split(':').map(Number)
+      const tot = h * 60 + m + 30
+      return `${String(Math.floor(tot / 60)).padStart(2, '0')}:${String(tot % 60).padStart(2, '0')}`
+    }
+    return {
+      type: 'work',
+      entry,
+      exit,
+      breakStart: intv[0],
+      breakEnd: intv.length > 0 ? fmtAdd30(intv[intv.length - 1]) : undefined,
+    }
+  }
+
   function getDayData(emp: Employee, dow: number) {
     const workSlots = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'work')
     const intervalSlots = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'interval').sort()
