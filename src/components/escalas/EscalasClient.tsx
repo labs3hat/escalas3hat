@@ -91,10 +91,16 @@ export default function EscalasClient({ profile, initialStores }: Props) {
       let oldEntry: string | null = workSlots.length > 0 ? workSlots[0] : null;
       let oldExit: string | null = null;
       if (workSlots.length > 0) {
-        const last = workSlots[workSlots.length - 1];
-        const [h, m] = last.split(':').map(Number);
-        const tot = h * 60 + m + 30;
-        oldExit = `${String(Math.floor(tot / 60)).padStart(2, '0')}:${String(tot % 60).padStart(2, '0')}`;
+        const emp = employees.find(e => e.id === employeeId);
+        const toMin = (s: string) => {
+          const [h, m] = s.split(':').map(Number);
+          return h * 60 + m;
+        };
+        const fmt = (mins: number) =>
+          `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+        
+        const bruta = emp?.work_regime === '5x2' ? 588 : 500;
+        oldExit = oldEntry ? fmt(toMin(oldEntry) + bruta) : null;
       }
       let oldBreak: string | null = intervalSlots.length > 0 ? intervalSlots[0] : null;
 
