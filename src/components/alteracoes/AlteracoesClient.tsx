@@ -166,13 +166,13 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {changes.map(c => {
-                  const dayName = DAY_NAMES_FULL[c.day_of_week]
+                  const dayName = DAY_NAMES_FULL[c.day_of_week] || 'N/A'
                   const changeDesc = c.new_slot_type === 'day_off' 
                     ? 'Folga' 
-                    : `${c.new_entry_time} - ${c.new_exit_time}`
+                    : c.new_entry_time ? `${c.new_entry_time} - ${c.new_exit_time}` : 'Alteração'
                   const oldDesc = c.old_slot_type === 'day_off'
                     ? 'Folga'
-                    : c.old_entry_time ? `${c.old_entry_time} - ${c.old_exit_time}` : 'Vazio'
+                    : c.old_entry_time ? `${c.old_entry_time} - ${c.old_exit_time}` : 'Original'
                   
                   return (
                     <tr key={c.id} className="hover:bg-gray-50 transition-colors">
