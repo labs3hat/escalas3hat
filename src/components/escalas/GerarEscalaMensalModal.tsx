@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { startOfMonth, endOfMonth, eachDayOfInterval, format, startOfWeek, endOfWeek } from "date-fns";
+import { startOfMonth, endOfMonth, eachDayOfInterval, format, startOfWeek, endOfWeek, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Shuffle, X, Loader2 } from "lucide-react";
+import { CalendarDays, Shuffle, X, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Employee, Store } from "@/types";
@@ -27,8 +27,14 @@ export default function GerarEscalaMensalModal({
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<Date>(() => startOfMonth(monthDate));
 
-  const monthFirst = useMemo(() => startOfMonth(monthDate), [monthDate]);
+  // Reinicia o mês selecionado ao reabrir o modal
+  useEffect(() => {
+    if (open) setSelectedMonth(startOfMonth(monthDate));
+  }, [open, monthDate]);
+
+  const monthFirst = useMemo(() => startOfMonth(selectedMonth), [selectedMonth]);
   const monthYear = useMemo(() => format(monthFirst, "yyyy-MM"), [monthFirst]);
   const monthLabel = useMemo(
     () => format(monthFirst, "MMMM 'de' yyyy", { locale: ptBR }),
@@ -36,10 +42,10 @@ export default function GerarEscalaMensalModal({
   );
 
   const sundays = useMemo(() => {
-    return eachDayOfInterval({ start: startOfMonth(monthDate), end: endOfMonth(monthDate) })
+    return eachDayOfInterval({ start: startOfMonth(monthFirst), end: endOfMonth(monthFirst) })
       .filter((d) => d.getDay() === 0)
       .map((d) => format(d, "yyyy-MM-dd"));
-  }, [monthDate]);
+  }, [monthFirst]);
 
   // Carregar definições já existentes do mês (pré-preenche)
   useEffect(() => {
@@ -78,7 +84,7 @@ export default function GerarEscalaMensalModal({
   async function startGeneration() {
     // Verifica se já existem escalas geradas no mês
     const weeksFirst = format(startOfWeek(monthFirst, { weekStartsOn: 1 }), "yyyy-MM-dd");
-    const weeksLast = format(endOfWeek(endOfMonth(monthDate), { weekStartsOn: 1 }), "yyyy-MM-dd");
+    const weeksLast = format(endOfWeek(endOfMonth(monthFirst), { weekStartsOn: 1 }), "yyyy-MM-dd");
     const { data: existing } = await supabase
       .from("schedules")
       .select("id")
@@ -144,9 +150,28 @@ export default function GerarEscalaMensalModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900 leading-tight">Gerar Escala Mensal</h2>
-              <p className="text-sm text-gray-500 capitalize">
-                {monthLabel} · {store.code}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMonth((m) => addMonths(startOfMonth(m), -1))}
+                  className="p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  aria-label="Mês anterior"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-medium text-gray-700 capitalize min-w-[140px] text-center">
+                  {monthLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMonth((m) => addMonths(startOfMonth(m), 1))}
+                  className="p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  aria-label="Próximo mês"
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <span className="text-sm text-gray-400">· {store.code}</span>
+              </div>
             </div>
           </div>
           <button
