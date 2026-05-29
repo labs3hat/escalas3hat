@@ -183,8 +183,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 )
               })}
             </tr>
-            <tr style={{ height: 20 }}>
-              <th className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 w-10 h-5 text-left px-1 py-0 text-[8px] font-semibold uppercase tracking-wide text-gray-600 leading-none">
+            <tr style={{ height: 58 }}>
+              <th className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 w-10 h-[58px] text-left px-1 py-0 text-[8px] font-semibold uppercase tracking-wide text-gray-600 leading-none align-bottom">
                 Hr
               </th>
               {weekDates.map((d, di) =>
@@ -193,7 +193,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                   return (
                     <th
                       key={`${di}-${ei}`}
-                      className="h-5 border-b border-gray-200 text-center py-0 bg-white leading-none"
+                      className="h-[58px] border-b border-gray-200 text-center py-0.5 bg-white leading-none align-bottom"
+                      title={emp.name}
                       style={{
                         width: COL_W,
                         minWidth: COL_W,
@@ -201,18 +202,28 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                         ...(off ? { background: stripePattern(emp.color) } : {}),
                       }}
                     >
-                      <div className="text-[8px] font-bold uppercase tracking-tight truncate leading-none" style={{ color: emp.color }}>
-                        {emp.name.split(' ')[0].substring(0, 6)}
+                      <div className="flex flex-col items-center justify-end h-full gap-0.5">
+                        <div
+                          className="text-[9px] font-bold uppercase tracking-tight leading-none whitespace-nowrap"
+                          style={{
+                            color: emp.color,
+                            writingMode: 'vertical-rl',
+                            transform: 'rotate(180deg)',
+                          }}
+                        >
+                          {emp.name.split(' ')[0]}
+                        </div>
+                        {off && (
+                          <div className="text-[6px] font-bold leading-none" style={{ color: emp.color }}>F</div>
+                        )}
                       </div>
-                      {off && (
-                        <div className="text-[6px] font-bold leading-none" style={{ color: emp.color }}>FOLGA</div>
-                      )}
                     </th>
                   )
                 }),
               )}
             </tr>
           </thead>
+
 
           <tbody>
             {HOUR_KEYS.map((hour) => {
