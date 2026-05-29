@@ -366,7 +366,9 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
               employees={employees}
               weekDates={weekDates}
               getSlot={getSlot}
+              updateDay={updateDayWithAudit}
               store={selectedStore}
+              isPublished={schedule?.status === "published"}
             />
           ) : (
             <div className="p-4 max-w-lg h-full overflow-auto">
