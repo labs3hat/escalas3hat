@@ -32,6 +32,8 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
   }, [selectedStoreId, selectedEmployeeId, weekOffset, cienciaFilter])
 
   useEffect(() => {
+    load()
+    
     // Real-time subscription to refresh when science is confirmed or new changes added
     const channel = supabase
       .channel('alteracoes-changes')
@@ -41,16 +43,7 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, []) // Subscribe once, it will call load() which uses latest state via closure (or re-run if needed)
-
-  // Actually, load() uses selectedStoreId etc. If we want load() to have latest values,
-  // we might need to use refs or ensure load is stable. 
-  // In React, load() inside useEffect will use values from the render it was created in.
-  // Better to put it in the existing useEffect or use a ref.
-  
-  // Re-thinking: the existing useEffect [selectedStoreId, selectedEmployeeId, weekOffset, cienciaFilter] 
-  // already calls load().
-  // If we want real-time, we can just add the subscription there or in a separate one.
+  }, [selectedStoreId, selectedEmployeeId, weekOffset, cienciaFilter])
 
 
   async function loadEmployees() {
