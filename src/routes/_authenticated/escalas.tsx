@@ -3,12 +3,20 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import EscalasClient from '@/components/escalas/EscalasClient'
 import type { Profile, Store } from '@/types'
+import { z } from 'zod'
+
+const searchSchema = z.object({
+  storeId: z.string().optional(),
+  week: z.string().optional(),
+})
 
 export const Route = createFileRoute('/_authenticated/escalas')({
+  validateSearch: (search) => searchSchema.parse(search),
   component: EscalasPage,
 })
 
 function EscalasPage() {
+  const { storeId, week } = Route.useSearch()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
