@@ -136,7 +136,8 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
                   return (
                     <div
                       key={emp.id}
-                      className={`px-1.5 py-1 border-b border-gray-100 last:border-0 ${
+                      onClick={() => setModal({ emp, dow, date: d, initial: buildDayPayload(emp, dow) })}
+                      className={`px-1.5 py-1 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-brand-50/60 ${
                         data.type === 'folga' ? 'bg-gray-50' :
                         data.type === 'work' && data.hasIntervalConflict ? 'bg-red-50' : ''
                       }`}
