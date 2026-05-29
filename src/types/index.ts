@@ -96,8 +96,6 @@ export interface ScheduleChange {
   new_break_start: string | null
   old_slot_type: string | null
   new_slot_type: string | null
-  ciencia_funcionario: boolean
-  ciencia_at: string | null
   status: string
 }
 
