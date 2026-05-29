@@ -27,8 +27,14 @@ export default function GerarEscalaMensalModal({
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<Date>(() => startOfMonth(monthDate));
 
-  const monthFirst = useMemo(() => startOfMonth(monthDate), [monthDate]);
+  // Reinicia o mês selecionado ao reabrir o modal
+  useEffect(() => {
+    if (open) setSelectedMonth(startOfMonth(monthDate));
+  }, [open, monthDate]);
+
+  const monthFirst = useMemo(() => startOfMonth(selectedMonth), [selectedMonth]);
   const monthYear = useMemo(() => format(monthFirst, "yyyy-MM"), [monthFirst]);
   const monthLabel = useMemo(
     () => format(monthFirst, "MMMM 'de' yyyy", { locale: ptBR }),
@@ -36,10 +42,10 @@ export default function GerarEscalaMensalModal({
   );
 
   const sundays = useMemo(() => {
-    return eachDayOfInterval({ start: startOfMonth(monthDate), end: endOfMonth(monthDate) })
+    return eachDayOfInterval({ start: startOfMonth(monthFirst), end: endOfMonth(monthFirst) })
       .filter((d) => d.getDay() === 0)
       .map((d) => format(d, "yyyy-MM-dd"));
-  }, [monthDate]);
+  }, [monthFirst]);
 
   // Carregar definições já existentes do mês (pré-preenche)
   useEffect(() => {
