@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { addDays, startOfWeek, format, subWeeks, addWeeks } from "date-fns";
+import { useState, useMemo, useEffect } from "react";
+import { addDays, startOfWeek, format, subWeeks, addWeeks, differenceInWeeks, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,24 +11,60 @@ import { useSchedule } from "@/hooks/useSchedule";
 import GradeHoraria from "./GradeHoraria";
 import ResumoSemanal from "./ResumoSemanal";
 import PainelAlertas from "./PainelAlertas";
-// ── NOVO ──────────────────────────────────────────────────────
 import { useFreelancerSlots } from "./FreelancerSlots";
 import FreelancerSlots from "./FreelancerSlots";
-// ──────────────────────────────────────────────────────────────
 
 interface Props {
   profile: Profile | null;
   initialStores: Store[];
+  initialStoreId?: string;
+  initialWeek?: string;
 }
 
-export default function EscalasClient({ profile, initialStores }: Props) {
-  const [selectedStore, setSelectedStore] = useState<Store>(initialStores[0]);
-  const [weekOffset, setWeekOffset] = useState(0);
+export default function EscalasClient({ profile, initialStores, initialStoreId, initialWeek }: Props) {
+  const [selectedStore, setSelectedStore] = useState<Store>(() => {
+    if (initialStoreId) {
+      return initialStores.find(s => s.id === initialStoreId) || initialStores[0];
+    }
+    return initialStores[0];
+  });
+
+  const [weekOffset, setWeekOffset] = useState(() => {
+    if (!initialWeek) return 0;
+    try {
+      const target = parseISO(initialWeek);
+      const base = startOfWeek(new Date(), { weekStartsOn: 1 });
+      return differenceInWeeks(target, base);
+    } catch (e) {
+      return 0;
+    }
+  });
+
   const [view, setView] = useState<"grade" | "resumo" | "freelancers">("grade");
   const [publishing, setPublishing] = useState(false);
   const [copying, setCopying] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Update selected store if initialStoreId changes (navigation)
+  useEffect(() => {
+    if (initialStoreId) {
+      const store = initialStores.find(s => s.id === initialStoreId);
+      if (store) setSelectedStore(store);
+    }
+  }, [initialStoreId, initialStores]);
+
+  // Update week offset if initialWeek changes (navigation)
+  useEffect(() => {
+    if (initialWeek) {
+      try {
+        const target = parseISO(initialWeek);
+        const base = startOfWeek(new Date(), { weekStartsOn: 1 });
+        setWeekOffset(differenceInWeeks(target, base));
+      } catch (e) {}
+    }
+  }, [initialWeek]);
+
 
   const weekStart = useMemo(() => {
     const base = startOfWeek(new Date(), { weekStartsOn: 1 });
