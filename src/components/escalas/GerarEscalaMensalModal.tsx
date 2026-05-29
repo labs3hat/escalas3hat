@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { startOfMonth, endOfMonth, eachDayOfInterval, format, startOfWeek, endOfWeek } from "date-fns";
+import { startOfMonth, endOfMonth, eachDayOfInterval, format, startOfWeek, endOfWeek, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Shuffle, X, Loader2 } from "lucide-react";
+import { CalendarDays, Shuffle, X, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Employee, Store } from "@/types";
