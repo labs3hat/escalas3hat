@@ -41,27 +41,33 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
 
   async function load() {
     setLoading(true)
-    let query = supabase
-      .from('schedule_changes')
-      .select('*, profiles(name), employees(name), stores(name)')
-      .order('changed_at', { ascending: false })
+    try {
+      let query = supabase
+        .from('schedule_changes')
+        .select('*, profiles(name), employees(name), stores(name)')
+        .order('changed_at', { ascending: false })
 
-    if (selectedStoreId !== 'all') {
-      query = query.eq('store_id', selectedStoreId)
-    }
-    if (selectedEmployeeId !== 'all') {
-      query = query.eq('employee_id', selectedEmployeeId)
-    }
+      if (selectedStoreId !== 'all') {
+        query = query.eq('store_id', selectedStoreId)
+      }
+      if (selectedEmployeeId !== 'all') {
+        query = query.eq('employee_id', selectedEmployeeId)
+      }
 
-    // Filter by week - this is tricky with SQL only if we want exactly the week of weekStart
-    // But since the user wants standard week filter, we can filter by changed_at if they mean when it was changed,
-    // OR filter by the schedule's week if that's what they mean. 
-    // "Filtro por semana (padrão: semana atual)" usually refers to the occurrence of the change or the schedule date.
-    // I'll filter by changed_at for now as it's a log.
-    
-    const { data } = await query.limit(100)
-    setChanges((data ?? []) as any)
-    setLoading(false)
+      const { data, error } = await query.limit(100)
+      
+      if (error) {
+        console.error('Error loading schedule changes:', error)
+        toast.error('Erro ao carregar alterações: ' + error.message)
+      } else {
+        setChanges((data ?? []) as any)
+      }
+    } catch (err: any) {
+      console.error('Unexpected error loading schedule changes:', err)
+      toast.error('Erro inesperado ao carregar alterações')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleConfirmCiencia(id: string) {
@@ -135,11 +141,14 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
 
       <div className="flex-1 overflow-auto p-6">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-gray-400">Carregando...</div>
+          <div className="flex flex-col items-center justify-center h-64 text-gray-400 bg-white rounded-xl border border-gray-200">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-4"></div>
+            <p>Carregando alterações...</p>
+          </div>
         ) : changes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
             <History size={48} className="mb-4 opacity-20" />
-            <p>Nenhuma alteração encontrada para os filtros selecionados</p>
+            <p>Nenhuma alteração registrada para os filtros selecionados</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
@@ -157,13 +166,13 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {changes.map(c => {
-                  const dayName = DAY_NAMES_FULL[c.day_of_week]
+                  const dayName = DAY_NAMES_FULL[c.day_of_week] || 'N/A'
                   const changeDesc = c.new_slot_type === 'day_off' 
                     ? 'Folga' 
-                    : `${c.new_entry_time} - ${c.new_exit_time}`
+                    : c.new_entry_time ? `${c.new_entry_time} - ${c.new_exit_time}` : 'Alteração'
                   const oldDesc = c.old_slot_type === 'day_off'
                     ? 'Folga'
-                    : c.old_entry_time ? `${c.old_entry_time} - ${c.old_exit_time}` : 'Vazio'
+                    : c.old_entry_time ? `${c.old_entry_time} - ${c.old_exit_time}` : 'Original'
                   
                   return (
                     <tr key={c.id} className="hover:bg-gray-50 transition-colors">
