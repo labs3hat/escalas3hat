@@ -41,6 +41,18 @@ export default function GerarEscalaMensalModal({
     [monthFirst],
   );
 
+  // Opções de mês: 1 mês anterior + 12 meses à frente a partir de hoje
+  const monthOptions = useMemo(() => {
+    const base = startOfMonth(new Date());
+    return Array.from({ length: 14 }, (_, i) => {
+      const d = addMonths(base, i - 1);
+      return {
+        value: format(d, "yyyy-MM"),
+        label: format(d, "MMMM 'de' yyyy", { locale: ptBR }),
+      };
+    });
+  }, []);
+
   const sundays = useMemo(() => {
     return eachDayOfInterval({ start: startOfMonth(monthFirst), end: endOfMonth(monthFirst) })
       .filter((d) => d.getDay() === 0)
