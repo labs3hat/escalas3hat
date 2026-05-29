@@ -10,6 +10,7 @@ const DAY_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
 
 export default function FuncionariosTab({ store }: { store: Store }) {
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [showInactive, setShowInactive] = useState(false)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [editing, setEditing] = useState<Employee | null>(null)
@@ -46,7 +47,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
   async function handleDelete(id: string) {
     if (!confirm('Desativar este funcionário?')) return
     await supabase.from('employees').update({ active: false }).eq('id', id)
-    setEmployees(prev => prev.filter(e => e.id !== id))
+    load()
     toast.success('Funcionário desativado')
   }
 
@@ -104,9 +105,22 @@ export default function FuncionariosTab({ store }: { store: Store }) {
   return (
     <div className="p-5">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-medium text-gray-700">
-          {employees.length} funcionário{employees.length !== 1 ? 's' : ''} cadastrado{employees.length !== 1 ? 's' : ''}
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-gray-700">
+            {employees.filter(e => showInactive || e.active).length} funcionário{employees.filter(e => showInactive || e.active).length !== 1 ? 's' : ''}
+          </span>
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input 
+              type="checkbox" 
+              checked={showInactive} 
+              onChange={e => setShowInactive(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+            />
+            <span className="text-[11px] font-medium text-gray-500 group-hover:text-gray-700 transition-colors">
+              Mostrar inativos
+            </span>
+          </label>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={handleSync} disabled={syncing}
             className="flex items-center gap-1.5 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg font-medium disabled:opacity-50">
@@ -199,23 +213,30 @@ export default function FuncionariosTab({ store }: { store: Store }) {
 
       {/* List */}
       <div className="flex flex-col gap-2">
-        {employees.map(emp => (
-          <div key={emp.id} className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50"
+        {employees.filter(e => showInactive || e.active).map(emp => (
+          <div key={emp.id} className={`border rounded-xl overflow-hidden ${emp.active ? 'border-gray-200' : 'border-gray-100 bg-gray-50/30'}`}>
+            <div className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${emp.active ? 'hover:bg-gray-50' : 'opacity-70 hover:bg-gray-100/50'}`}
               onClick={() => setExpanded(expanded === emp.id ? null : emp.id)}>
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
-                style={{ backgroundColor: emp.color }}>
+                style={{ backgroundColor: emp.active ? emp.color : '#9CA3AF' }}>
                 {emp.name.split(' ').slice(0,2).map(w=>w[0]).join('')}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900">{emp.name}</div>
+                <div className={`text-sm font-medium flex items-center gap-2 ${emp.active ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {emp.name}
+                  {!emp.active && (
+                    <span className="text-[9px] uppercase font-bold bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded leading-none">
+                      Inativo
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-2 mt-0.5 flex-wrap">
                   <span className="text-xs text-gray-400">{emp.role}</span>
-                  <span className={`text-xs font-medium px-1.5 rounded ${emp.work_regime === '5x2' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                  <span className={`text-xs font-medium px-1.5 rounded ${!emp.active ? 'bg-gray-100 text-gray-400' : emp.work_regime === '5x2' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                     {REGIME_LABELS[emp.work_regime]}
                   </span>
-                  {emp.responsibilities.includes('estoque') && <span className="text-xs bg-blue-50 text-blue-600 px-1.5 rounded">Estoque</span>}
-                  {emp.responsibilities.includes('maquina') && <span className="text-xs bg-red-50 text-red-600 px-1.5 rounded">Máquina</span>}
+                  {emp.responsibilities.includes('estoque') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>Estoque</span>}
+                  {emp.responsibilities.includes('maquina') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>Máquina</span>}
                 </div>
                 {pendingCounts[emp.id] > 0 && (
                   <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1 border border-amber-200">
@@ -224,14 +245,18 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={e => { e.stopPropagation(); setEditing(emp); setShowForm(true) }}
-                  className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg">
-                  <Edit size={14} />
-                </button>
-                <button onClick={e => { e.stopPropagation(); handleDelete(emp.id) }}
-                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                  <Trash2 size={14} />
-                </button>
+                {emp.active && (
+                  <>
+                    <button onClick={e => { e.stopPropagation(); setEditing(emp); setShowForm(true) }}
+                      className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg">
+                      <Edit size={14} />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); handleDelete(emp.id) }}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
                 {expanded === emp.id ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
               </div>
             </div>
