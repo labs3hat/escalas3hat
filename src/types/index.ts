@@ -25,6 +25,9 @@ export interface Store {
   closing_exit_6x1: string
   min_opening_staff: number
   min_closing_staff: number
+  min_weekday_staff: number
+  min_weekend_staff: number
+  min_sunday_staff: number
   min_sunday_off_per_month: number
   active: boolean
   created_at: string
