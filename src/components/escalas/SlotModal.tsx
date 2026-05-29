@@ -34,20 +34,24 @@ const toMin = (s: string) => {
 const fmt = (mins: number) =>
   `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
 
-// Garante que o intervalo tenha pelo menos 60 min (Fim = Início + 60)
-function enforceOneHour(start: string, end?: string): string {
-  const s = toMin(start)
-  const e = end ? toMin(end) : -1
-  if (e - s < 60) return fmt(s + 60)
-  return end!
+// Helpers para jornada bruta e líquida baseada no regime
+const getRegimeDurations = (regime: string) => {
+  if (regime === '5x2') return { bruta: 588, liquida: 528 } // 9h48 e 8h48
+  return { bruta: 500, liquida: 440 } // 6x1: 8h20 e 7h20
 }
 
 export default function SlotModal({ emp, dow, date, initial, isPublished, onClose, onSave }: Props) {
   const isFc = (initial.entry ?? '') >= '13:00'
   const defEntry = initial.entry ?? (isFc ? '14:00' : '08:00')
-  const defExit  = initial.exit  ?? (isFc ? '22:20' : '16:20')
-  const defBs    = initial.breakStart ?? (isFc ? '18:00' : '12:00')
-  const defBe    = enforceOneHour(defBs, initial.breakEnd ?? (isFc ? '19:00' : '13:00'))
+  const { bruta } = getRegimeDurations(emp.work_regime)
+  
+  // Se não tem saída inicial, calcula baseado na entrada + jornada bruta
+  const calculatedExit = fmt(toMin(defEntry) + bruta)
+  const defExit = initial.exit ?? calculatedExit
+  
+  const defBs = initial.breakStart ?? (isFc ? '18:00' : '12:00')
+  // Intervalo é sempre de 1 hora
+  const defBe = fmt(toMin(defBs) + 60)
 
   const [type, setType]             = useState<DayPayload['type']>(initial.type)
   const [entry, setEntry]           = useState(defEntry)
@@ -55,7 +59,10 @@ export default function SlotModal({ emp, dow, date, initial, isPublished, onClos
   const [breakStart, setBreakStart] = useState(defBs)
   const [breakEnd, setBreakEnd]     = useState(defBe)
   const [reason, setReason]         = useState('')
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving]         = useState(false)
+  
+  // Flag para saber se o usuário alterou a saída manualmente
+  const [isManualExit, setIsManualExit] = useState(!!initial.exit)
 
   const breakMin = useMemo(() => toMin(breakEnd) - toMin(breakStart), [breakStart, breakEnd])
   const breakOk = breakMin >= 60
@@ -69,6 +76,21 @@ export default function SlotModal({ emp, dow, date, initial, isPublished, onClos
   }, [entry, exit, breakMin])
 
   const canSave = (type !== 'work' || breakOk) && (!isPublished || reason.trim().length >= 10)
+
+  // Auto-ajuste de saída ao mudar entrada
+  const handleEntryChange = (newEntry: string) => {
+    setEntry(newEntry)
+    if (!isManualExit) {
+      const { bruta } = getRegimeDurations(emp.work_regime)
+      setExit(fmt(toMin(newEntry) + bruta))
+    }
+  }
+
+  // Auto-ajuste de fim de intervalo ao mudar início
+  const handleBreakStartChange = (newStart: string) => {
+    setBreakStart(newStart)
+    setBreakEnd(fmt(toMin(newStart) + 60))
+  }
 
   async function handleSave() {
     if (!canSave) return
@@ -120,9 +142,9 @@ export default function SlotModal({ emp, dow, date, initial, isPublished, onClos
         {type === 'work' && (
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Entrada" value={entry} onChange={setEntry} />
-              <Field label="Saída" value={exit} onChange={setExit} />
-              <Field label="Início intervalo" value={breakStart} onChange={setBreakStart} />
+              <Field label="Entrada" value={entry} onChange={handleEntryChange} />
+              <Field label="Saída" value={exit} onChange={(v) => { setExit(v); setIsManualExit(true); }} />
+              <Field label="Início intervalo" value={breakStart} onChange={handleBreakStartChange} />
               <Field label="Fim intervalo" value={breakEnd} onChange={setBreakEnd} />
             </div>
 
