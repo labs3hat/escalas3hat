@@ -149,7 +149,7 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
               </div>
 
               <div className="flex-1 overflow-hidden">
-                {employees.map(emp => {
+                {sortedDayEmployees(dow).map(emp => {
                   const data = getDayData(emp, dow)
                   return (
                     <div
