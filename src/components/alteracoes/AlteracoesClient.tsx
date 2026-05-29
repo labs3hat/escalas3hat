@@ -15,6 +15,7 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
   const [weekOffset, setWeekOffset] = useState(0)
   const [changes, setChanges] = useState<ScheduleChange[]>([])
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([])
+  const [cienciaFilter, setCienciaFilter] = useState<'all' | 'pending' | 'confirmed'>('all')
   const [loading, setLoading] = useState(true)
 
   const weekStart = useMemo(() => {
@@ -28,7 +29,7 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
 
   useEffect(() => {
     load()
-  }, [selectedStoreId, selectedEmployeeId, weekOffset])
+  }, [selectedStoreId, selectedEmployeeId, weekOffset, cienciaFilter])
 
   async function loadEmployees() {
     let query = supabase.from('employees').select('id, name').eq('active', true)
@@ -52,6 +53,12 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
       }
       if (selectedEmployeeId !== 'all') {
         query = query.eq('employee_id', selectedEmployeeId)
+      }
+
+      if (cienciaFilter === 'pending') {
+        query = query.eq('ciencia_funcionario', false)
+      } else if (cienciaFilter === 'confirmed') {
+        query = query.eq('ciencia_funcionario', true)
       }
 
       const { data, error } = await query.limit(100)
@@ -137,6 +144,18 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
             {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
         </div>
+        <div className="flex items-center gap-2">
+          <Check size={16} className="text-gray-400" />
+          <select 
+            value={cienciaFilter}
+            onChange={e => setCienciaFilter(e.target.value as any)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-brand-400"
+          >
+            <option value="all">Todas as alterações</option>
+            <option value="pending">Pendentes de ciência</option>
+            <option value="confirmed">Ciência confirmada</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto p-6">
@@ -201,22 +220,28 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
                       </td>
                       <td className="px-4 py-4">
                         {c.ciencia_funcionario ? (
-                          <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold">
-                            <Check size={14} /> Confirmada
-                            {c.ciencia_at && <span className="font-normal text-gray-400 italic">({format(new Date(c.ciencia_at), "dd/MM")})</span>}
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full w-fit">
+                              <Check size={14} /> Ciente
+                            </div>
+                            {c.ciencia_at && (
+                              <div className="text-[10px] text-gray-400 italic pl-1">
+                                {format(new Date(c.ciencia_at), "dd/MM 'às' HH:mm")}
+                              </div>
+                            )}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 text-amber-600 text-xs font-bold">
+                          <div className="flex flex-col gap-2">
+                            <span className="flex items-center gap-1.5 text-amber-600 text-xs font-bold bg-amber-50 px-2 py-1 rounded-full w-fit">
                               <Clock size={14} /> Pendente
                             </span>
-                            {/* Assuming if profile name matches employee name, they can confirm */}
-                            {profile?.name === (c as any).employees?.name && (
+                            {/* Comparison by name - identifying the employee by profile name */}
+                            {profile?.name?.toLowerCase() === (c as any).employees?.name?.toLowerCase() && (
                               <button 
                                 onClick={() => handleConfirmCiencia(c.id)}
-                                className="px-2 py-1 bg-brand-500 text-white rounded text-[10px] font-bold hover:bg-brand-600"
+                                className="w-full px-2 py-1.5 bg-brand-500 text-white rounded-lg text-[10px] font-bold hover:bg-brand-600 shadow-sm transition-all active:scale-95"
                               >
-                                Confirmar
+                                Confirmar ciência
                               </button>
                             )}
                           </div>
