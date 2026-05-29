@@ -150,9 +150,28 @@ export default function GerarEscalaMensalModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900 leading-tight">Gerar Escala Mensal</h2>
-              <p className="text-sm text-gray-500 capitalize">
-                {monthLabel} · {store.code}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMonth((m) => addMonths(startOfMonth(m), -1))}
+                  className="p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  aria-label="Mês anterior"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-medium text-gray-700 capitalize min-w-[140px] text-center">
+                  {monthLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMonth((m) => addMonths(startOfMonth(m), 1))}
+                  className="p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  aria-label="Próximo mês"
+                >
+                  <ChevronRight size={16} />
+                </button>
+                <span className="text-sm text-gray-400">· {store.code}</span>
+              </div>
             </div>
           </div>
           <button
