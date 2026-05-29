@@ -68,9 +68,19 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     }
   }
 
+  // sugere uma cor ainda não utilizada (ou a menos usada) na loja
+  function suggestColor(): string {
+    const used = employees.map(e => e.color)
+    const free = EMPLOYEE_COLORS.find(c => !used.includes(c))
+    if (free) return free
+    const counts = EMPLOYEE_COLORS.map(c => ({ c, n: used.filter(u => u === c).length }))
+    counts.sort((a, b) => a.n - b.n)
+    return counts[0]?.c ?? EMPLOYEE_COLORS[0]
+  }
+
   const form = editing ?? {
     name: '', role: 'Atendente', work_regime: '6x1' as const,
-    fixed_day_off: null, responsibilities: [] as string[], color: EMPLOYEE_COLORS[0], notes: '', active: true
+    fixed_day_off: null, responsibilities: [] as string[], color: suggestColor(), notes: '', active: true
   }
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
