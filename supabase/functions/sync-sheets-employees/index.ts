@@ -39,7 +39,7 @@ function parseFolga(value: string): number | null {
 function parseShifts(value: string): { preferred: string | null; allowed: string[] } {
   const raw = (value ?? "").trim().toLowerCase();
   const all = ["abertura", "intermediario", "fechamento"];
-  if (!raw || raw === "todos" || raw === "não" || raw === "nao") return { preferred: null, allowed: all };
+  if (!raw || raw === "todos" || raw === "não" || raw === "nao" || raw === "flutuante") return { preferred: null, allowed: all };
   
   if (raw === "abertura") return { preferred: "abertura", allowed: ["abertura"] };
   if (raw === "fechamento") return { preferred: "fechamento", allowed: ["fechamento"] };

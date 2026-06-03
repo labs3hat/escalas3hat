@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     const estoqueText = employee.responsibilities?.includes('estoque') ? "S" : "N";
     const maquinaText = employee.responsibilities?.includes('maquina') ? "S" : "N";
     
-    let shiftText = "Não"; 
+    let shiftText = "Todos"; 
     if (employee.preferred_shift === "abertura") shiftText = "Abertura";
     else if (employee.preferred_shift === "intermediario" || employee.preferred_shift === "intermediário") shiftText = "Intermediário";
     else if (employee.preferred_shift === "fechamento") shiftText = "Fechamento";
