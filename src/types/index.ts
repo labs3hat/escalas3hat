@@ -42,6 +42,7 @@ export interface Employee {
   role: string
   work_regime: WorkRegime
   fixed_day_off: number | null
+  preferred_day_off: number | null
   responsibilities: string[]
   color: string
   notes: string
