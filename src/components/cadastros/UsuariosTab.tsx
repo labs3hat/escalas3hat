@@ -43,21 +43,34 @@ export default function UsuariosTab() {
 
     setSaving(true)
     try {
-      // In a real scenario, we'd use an edge function to create the user in Auth
-      // and then the trigger would create the profile.
-      // For now, since we want to allow the admin to just "add" someone,
-      // we'll advise them that they need to invite the user or we'd need an Edge Function.
-      
-      toast.info('Para cadastrar novos usuários com acesso ao sistema, é necessário usar o convite por e-mail no painel do Supabase ou configurar uma Função de Borda (Edge Function) administrativa.')
-      
+      // Usando o método de cadastro (signUp) do Supabase. 
+      // Se o domínio de e-mail estiver configurado, ele enviará um e-mail de confirmação.
+      // Se não estiver, ele criará o usuário (mas ele precisará confirmar o e-mail se a config do Supabase exigir).
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: 'ChangeMe123!', // Senha temporária padrão
+        options: {
+          data: {
+            name,
+            role,
+            store_ids: selectedStores
+          }
+        }
+      })
+
+      if (authError) throw authError
+
+      toast.success(`Usuário ${email} convidado com sucesso! Instrua-o a verificar o e-mail (ou use "Esqueci minha senha" se o e-mail de confirmação não chegar).`)
+      load()
+      setShowForm(false)
     } catch (error: any) {
-      toast.error(error.message)
+      toast.error(`Erro ao cadastrar: ${error.message}`)
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) return <div className="p-5 flex justify-center"><Loader2 className="animate-spin text-brand-500" /></div>
+  if (loading) return <div className="p-5 flex justify-center h-64 items-center"><Loader2 className="animate-spin text-brand-500" /></div>
 
   return (
     <div className="p-5">
@@ -66,14 +79,71 @@ export default function UsuariosTab() {
           <h2 className="text-sm font-semibold text-gray-800">Usuários do Sistema</h2>
           <p className="text-xs text-gray-500 mt-0.5">Gerencie quem pode acessar o painel administrativo.</p>
         </div>
-        <button 
-          onClick={() => load()}
-          className="p-2 text-gray-400 hover:text-brand-600 transition-colors"
-          title="Recarregar"
-        >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => load()}
+            className="p-2 text-gray-400 hover:text-brand-600 transition-colors"
+            title="Recarregar"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button 
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-1.5 text-sm bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg font-medium"
+          >
+            <Plus size={14} /> Novo usuário
+          </button>
+        </div>
       </div>
+
+      {showForm && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-800 mb-3">Cadastrar Novo Usuário</h3>
+          <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Nome Completo</label>
+              <input name="name" required placeholder="Ex: João Silva"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">E-mail</label>
+              <input name="email" type="email" required placeholder="joao@exemplo.com"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Função</label>
+              <select name="role" required className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+                <option value="gerente">Gerente (Acesso por loja)</option>
+                <option value="regional">Regional (Todas as lojas)</option>
+                <option value="rh">RH (Todas as lojas)</option>
+                <option value="diretoria">Diretoria (Todas as lojas)</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Lojas vinculadas (apenas para Gerentes)</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 border border-gray-200 rounded-lg p-3 bg-white max-h-40 overflow-y-auto">
+                {stores.map(s => (
+                  <label key={s.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input type="checkbox" name={`store_${s.id}`} className="rounded border-gray-300 text-brand-500 focus:ring-brand-500" />
+                    <span className="truncate" title={s.name}>{s.code} - {s.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="sm:col-span-2 flex justify-end gap-2 mt-2">
+              <button type="button" onClick={() => setShowForm(false)}
+                className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+              <button type="submit" disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Cadastrar e Enviar Convite
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <table className="w-full text-sm">
