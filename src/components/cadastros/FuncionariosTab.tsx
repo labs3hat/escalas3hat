@@ -312,7 +312,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                   </span>
                   {emp.fixed_day_off !== null && (
                     <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
-                      Folga: {DAY_NAMES[emp.fixed_day_off]}
+                      Folga: {DAY_OPTIONS.find(o => o.value === emp.fixed_day_off)?.label || 'Não'}
                     </span>
                   )}
                   {emp.preferred_day_off !== null && (
