@@ -83,13 +83,30 @@ Deno.serve(async (req) => {
 
     // 4. Prepare row data (Columns D to H)
     // D:Folga fixa, E:Estoque, F:Máquina, G:Turno, H:Restrição (Preferência)
-    const dayNames = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    const dayNamesAbbr = ["Não", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    // Since dayNamesAbbr[0] is "Não", and fixed_day_off/preferred_day_off are 1-based for Mon-Sat (based on DAY_NAME_TO_INT logic in sync),
+    // but standard JS getDay() is 0-Sun. 
+    // Wait, in sync function: dom=0, seg=1, ter=2, qua=3, qui=4, sex=5, sab=6.
+    // The list in sheet is "Seg", "Ter", "Qua", "Qui", "Sex", "Não". (No Sunday/Saturday mentioned in user's prompt list but "Sáb" might exist)
     
-    const fixedDayOffText = employee.fixed_day_off !== null ? dayNames[employee.fixed_day_off] : "Não";
+    const getSheetDay = (val: number | null) => {
+      if (val === null) return "Não";
+      const mapping: Record<number, string> = {
+        1: "Seg", 2: "Ter", 3: "Qua", 4: "Qui", 5: "Sex", 6: "Sáb", 0: "Dom"
+      };
+      return mapping[val] || "Não";
+    };
+
+    const fixedDayOffText = getSheetDay(employee.fixed_day_off);
     const estoqueText = employee.responsibilities?.includes('estoque') ? "S" : "N";
     const maquinaText = employee.responsibilities?.includes('maquina') ? "S" : "N";
-    const shiftText = employee.preferred_shift || "todos";
-    const preferredDayOffText = employee.preferred_day_off !== null ? dayNames[employee.preferred_day_off] : "";
+    
+    let shiftText = "Todos";
+    if (employee.preferred_shift === "abertura") shiftText = "Abertura";
+    else if (employee.preferred_shift === "intermediário" || employee.preferred_shift === "intermediario") shiftText = "Intermediário";
+    else if (employee.preferred_shift === "fechamento") shiftText = "Fechamento";
+    
+    const preferredDayOffText = getSheetDay(employee.preferred_day_off);
 
     const rowData = [
       fixedDayOffText,

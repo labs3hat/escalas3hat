@@ -31,18 +31,25 @@ type Row = string[];
 
 function parseFolga(value: string): number | null {
   const v = (value ?? "").trim().toLowerCase();
-  if (!v || v.startsWith("não") || v.startsWith("nao") || v === "-" || v === "todos") return null;
+  if (!v || v === "não" || v === "nao" || v === "-" || v === "todos") return null;
   const key = v.replace(/\./g, "").trim();
   return DAY_NAME_TO_INT[key] ?? null;
 }
 
 function parseShifts(value: string): { preferred: string; allowed: string[] } {
   const raw = (value ?? "").trim().toLowerCase();
-  const all = ["abertura", "intermediario", "fechamento"];
+  const all = ["abertura", "intermediário", "fechamento"];
   if (!raw || raw === "todos") return { preferred: "flutuante", allowed: all };
+  
+  if (raw === "abertura") return { preferred: "abertura", allowed: ["abertura"] };
+  if (raw === "fechamento") return { preferred: "fechamento", allowed: ["fechamento"] };
+  if (raw === "intermediário" || raw === "intermediario") return { preferred: "intermediário", allowed: ["intermediário"] };
+  
+  // Fallback for unexpected values
   if (raw.startsWith("abert")) return { preferred: "abertura", allowed: ["abertura"] };
   if (raw.startsWith("fech")) return { preferred: "fechamento", allowed: ["fechamento"] };
-  if (raw.startsWith("inter")) return { preferred: "intermediario", allowed: ["intermediario"] };
+  if (raw.startsWith("inter")) return { preferred: "intermediário", allowed: ["intermediário"] };
+  
   return { preferred: "flutuante", allowed: all };
 }
 
@@ -159,7 +166,7 @@ Deno.serve(async (req) => {
         const name = (row[0] ?? "").trim();
         if (!name) continue;
 
-        const role = (row[1] ?? "Atendente").trim() || "Atendente";
+        const role = (row[1] ?? "ATENDENTE 2 - 44H").trim() || "ATENDENTE 2 - 44H";
         const regime = parseRegime(row[2] ?? "");
         const fixedDayOff = parseFolga(row[3] ?? "");
         const responsibilities: string[] = [];
