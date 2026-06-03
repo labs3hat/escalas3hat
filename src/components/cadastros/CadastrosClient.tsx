@@ -12,7 +12,6 @@ const ADMIN_ROLES = ['regional', 'rh', 'diretoria']
 
 const BASE_TABS = [
   { id: 'funcionarios', label: 'Funcionários', icon: Users },
-  { id: 'turnos',       label: 'Turnos',       icon: Clock },
   { id: 'config',       label: 'Config. loja',  icon: Settings },
 ]
 const ADMIN_TAB = { id: 'consistencia', label: 'Consistência', icon: GitCompare }
