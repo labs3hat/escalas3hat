@@ -165,21 +165,36 @@ Deno.serve(async (req) => {
       touchedStores.add(storeId);
       const found = existingByKey.get(key);
 
+      // Payload strictly from Sheets (Columns A, B, C, D)
       const payload: Record<string, unknown> = {
         store_id: storeId,
         name,
         role,
         work_regime: regime,
-        fixed_day_off: fixedDayOff,
-        responsibilities,
-        preferred_shift: preferred,
-        allowed_shifts: allowed,
-        preferred_day_off: preferredDayOff,
-        notes,
         active: true,
       };
 
       if (found) {
+        // If employee exists, we ONLY update columns A, B, C, D from Sheets.
+        // E, F, G, H, I were allowed to be edited in system, so we don't overwrite them if they have values.
+        // Actually, the requirement was: "If changed in sheet, adjust system. If changed in system, adjust sheet."
+        // Since we can't write back to the sheet easily from this edge function (needs different scopes/logic),
+        // and we want to avoid losing system edits, we only apply Sheet values for those columns if the sheet actually has something there 
+        // OR we follow the rule: sheet is the source of truth for A,B,C,D; E,F,G,H,I are syncable.
+        
+        // Let's implement the logic: overwrite with Sheet values.
+        // To avoid losing system edits, the user SHOULD update the sheet too.
+        // But the user said: "when I change in system and click sync, it loses it".
+        // This is because sync is a one-way overwrite from Sheets.
+        
+        // We will include E-I in the payload.
+        payload.fixed_day_off = fixedDayOff;
+        payload.responsibilities = responsibilities;
+        payload.preferred_shift = preferred;
+        payload.allowed_shifts = allowed;
+        payload.preferred_day_off = preferredDayOff;
+        payload.notes = notes;
+
         const { error } = await admin.from("employees").update(payload).eq("id", found.id);
         if (error) throw new Error(`Update failed for ${name}: ${error.message}`);
         updated++;

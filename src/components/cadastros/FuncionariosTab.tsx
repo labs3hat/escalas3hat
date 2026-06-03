@@ -23,7 +23,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     setLoading(true)
     const { data } = await supabase.from('employees').select('*')
       .eq('store_id', store.id).order('name')
-    setEmployees(data ?? [])
+    setEmployees((data as Employee[]) ?? [])
     setLoading(false)
   }
 
@@ -63,7 +63,9 @@ export default function FuncionariosTab({ store }: { store: Store }) {
 
   const form = editing ?? {
     name: '', role: 'Atendente', work_regime: '6x1' as const,
-    fixed_day_off: null, preferred_day_off: null, responsibilities: [] as string[], color: suggestColor(), notes: '', active: true
+    fixed_day_off: null, preferred_day_off: null, responsibilities: [] as string[], 
+    preferred_shift: null, allowed_shifts: [],
+    color: suggestColor(), notes: '', active: true
   }
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
@@ -77,6 +79,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
       fixed_day_off: fd.get('fixed_day_off') ? Number(fd.get('fixed_day_off')) : null,
       preferred_day_off: fd.get('preferred_day_off') ? Number(fd.get('preferred_day_off')) : null,
       responsibilities: ['estoque','maquina'].filter(r => fd.get(r) === 'on'),
+      preferred_shift: fd.get('preferred_shift') as string || null,
       color: fd.get('color') as string,
       notes: fd.get('notes') as string,
       active: true,
@@ -170,6 +173,16 @@ export default function FuncionariosTab({ store }: { store: Store }) {
               </select>
             </div>
             <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Turno preferencial</label>
+              <select name="preferred_shift" defaultValue={form.preferred_shift ?? ''}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+                <option value="">Flutuante</option>
+                <option value="abertura">Abertura</option>
+                <option value="intermediario">Intermediário</option>
+                <option value="fechamento">Fechamento</option>
+              </select>
+            </div>
+            <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Cor na grade</label>
               <div className="flex gap-1.5 flex-wrap">
                 {EMPLOYEE_COLORS.map(c => (
@@ -237,8 +250,8 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                   <span className={`text-xs font-medium px-1.5 rounded ${!emp.active ? 'bg-gray-100 text-gray-400' : emp.work_regime === '5x2' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                     {REGIME_LABELS[emp.work_regime]}
                   </span>
-                  {emp.responsibilities.includes('estoque') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>Estoque</span>}
-                  {emp.responsibilities.includes('maquina') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>Máquina</span>}
+                  {emp.responsibilities?.includes('estoque') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>Estoque</span>}
+                  {emp.responsibilities?.includes('maquina') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>Máquina</span>}
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -258,11 +271,41 @@ export default function FuncionariosTab({ store }: { store: Store }) {
               </div>
             </div>
             {expanded === emp.id && (
-              <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-2 gap-3">
-                <div><span className="text-xs text-gray-400">Regime</span><div className="text-sm text-gray-700">{emp.work_regime === '5x2' ? '5×2' : '6×1'}</div></div>
-                <div><span className="text-xs text-gray-400">Folga fixa</span><div className="text-sm text-gray-700">{emp.fixed_day_off !== null ? DAY_NAMES[emp.fixed_day_off] : '—'}</div></div>
-                <div><span className="text-xs text-gray-400">Restrição</span><div className="text-sm text-gray-700">{emp.preferred_day_off !== null ? DAY_NAMES[emp.preferred_day_off] : '—'}</div></div>
-                {emp.notes && <div className="col-span-2"><span className="text-xs text-gray-400">Observações</span><div className="text-sm text-gray-700">{emp.notes}</div></div>}
+              <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Regime</span>
+                  <div className="text-sm text-gray-700 font-medium">{emp.work_regime === '5x2' ? '5×2' : '6×1'}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Folga fixa</span>
+                  <div className="text-sm text-gray-700 font-medium">{emp.fixed_day_off !== null ? DAY_NAMES[emp.fixed_day_off] : '—'}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Preferência/Restrição</span>
+                  <div className="text-sm text-gray-700 font-medium">{emp.preferred_day_off !== null ? DAY_NAMES[emp.preferred_day_off] : '—'}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Turno preferencial</span>
+                  <div className="text-sm text-gray-700 font-medium capitalize">{emp.preferred_shift || 'Flutuante'}</div>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Responsabilidades</span>
+                  <div className="flex gap-1.5 mt-1">
+                    {emp.responsibilities && emp.responsibilities.length > 0 ? emp.responsibilities.map(r => (
+                      <span key={r} className="text-[10px] font-bold uppercase bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded shadow-sm">
+                        {r}
+                      </span>
+                    )) : <span className="text-sm text-gray-400">—</span>}
+                  </div>
+                </div>
+                {emp.notes && (
+                  <div className="col-span-full">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Observações</span>
+                    <div className="text-sm text-gray-600 bg-white p-2 rounded border border-gray-100 italic">
+                      "{emp.notes}"
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
