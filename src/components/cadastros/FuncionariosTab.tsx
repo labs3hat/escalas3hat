@@ -24,22 +24,6 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     const { data } = await supabase.from('employees').select('*')
       .eq('store_id', store.id).order('name')
     setEmployees(data ?? [])
-    
-    // Load pending changes counts
-    const { data: counts } = await supabase
-      .from('schedule_changes')
-      .select('employee_id')
-      .eq('store_id', store.id)
-      .eq('ciencia_funcionario', false)
-    
-    const countMap: Record<string, number> = {}
-    counts?.forEach(c => {
-      if (c.employee_id) {
-        countMap[c.employee_id] = (countMap[c.employee_id] || 0) + 1
-      }
-    })
-    setPendingCounts(countMap)
-    
     setLoading(false)
   }
 
