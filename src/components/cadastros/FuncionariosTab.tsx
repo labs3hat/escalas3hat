@@ -245,13 +245,29 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2 mt-0.5 flex-wrap">
-                  <span className="text-xs text-gray-400">{emp.role}</span>
-                  <span className={`text-xs font-medium px-1.5 rounded ${!emp.active ? 'bg-gray-100 text-gray-400' : emp.work_regime === '5x2' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                <div className="flex gap-2 mt-1 flex-wrap items-center">
+                  <span className="text-[11px] text-gray-500 font-medium">{emp.role}</span>
+                  <div className="w-1 h-1 rounded-full bg-gray-300" />
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${!emp.active ? 'bg-gray-100 text-gray-400 border-gray-200' : emp.work_regime === '5x2' ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
                     {REGIME_LABELS[emp.work_regime]}
                   </span>
-                  {emp.responsibilities?.includes('estoque') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>Estoque</span>}
-                  {emp.responsibilities?.includes('maquina') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>Máquina</span>}
+                  {emp.fixed_day_off !== null && (
+                    <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
+                      Folga: {DAY_NAMES[emp.fixed_day_off]}
+                    </span>
+                  )}
+                  {emp.preferred_day_off !== null && (
+                    <span className="text-[10px] font-medium bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-100">
+                      Restrição: {DAY_NAMES[emp.preferred_day_off]}
+                    </span>
+                  )}
+                  {emp.preferred_shift && (
+                    <span className="text-[10px] font-medium bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100 capitalize">
+                      {emp.preferred_shift}
+                    </span>
+                  )}
+                  {emp.responsibilities?.includes('estoque') && <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${emp.active ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>Estoque</span>}
+                  {emp.responsibilities?.includes('maquina') && <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${emp.active ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>Máquina</span>}
                 </div>
               </div>
               <div className="flex items-center gap-1">

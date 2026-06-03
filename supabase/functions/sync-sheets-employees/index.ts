@@ -131,9 +131,19 @@ Deno.serve(async (req) => {
       : { data: [] as any[] };
     const existingByKey = new Map<string, { id: string; active: boolean }>();
     for (const e of existing ?? []) {
-      existingByKey.set(`${e.store_id}::${(e.name as string).trim().toUpperCase()}`, {
-        id: e.id, active: e.active,
-      });
+      const nameKey = (e.name as string).trim().toUpperCase();
+      const storeKey = e.store_id;
+      const key = `${storeKey}::${nameKey}`;
+      
+      // If we already have this name in this store, it's a DB duplicate we should probably handle.
+      // For the sync logic, we'll just keep the first one found.
+      if (!existingByKey.has(key)) {
+        existingByKey.set(key, { id: e.id, active: e.active });
+      } else {
+        // If it's a duplicate and it's active, we might want to deactivate the older one
+        // but for now let's just make sure we don't have two entries in the map for the same key.
+        console.log(`Duplicate found in DB: ${key}`);
+      }
     }
 
     // Pull rows from Sheets
@@ -175,31 +185,32 @@ Deno.serve(async (req) => {
       };
 
       if (found) {
-        // If employee exists, we ONLY update columns A, B, C, D from Sheets.
-        // E, F, G, H, I were allowed to be edited in system, so we don't overwrite them if they have values.
-        // Actually, the requirement was: "If changed in sheet, adjust system. If changed in system, adjust sheet."
-        // Since we can't write back to the sheet easily from this edge function (needs different scopes/logic),
-        // and we want to avoid losing system edits, we only apply Sheet values for those columns if the sheet actually has something there 
-        // OR we follow the rule: sheet is the source of truth for A,B,C,D; E,F,G,H,I are syncable.
+        // Source of truth for sync:
+        // A, B, C, D -> Sheets only (always overwrite)
+        // E, F, G, H, I -> Both (Sheet takes precedence ONLY if not empty)
         
-        // Let's implement the logic: overwrite with Sheet values.
-        // To avoid losing system edits, the user SHOULD update the sheet too.
-        // But the user said: "when I change in system and click sync, it loses it".
-        // This is because sync is a one-way overwrite from Sheets.
-        
-        // We will include E-I in the payload.
+        if (fixedDayOff !== null) payload.fixed_day_off = fixedDayOff;
+        if (responsibilities.length > 0) payload.responsibilities = responsibilities;
+        if (preferred !== "flutuante") {
+          payload.preferred_shift = preferred;
+          payload.allowed_shifts = allowed;
+        }
+        if (preferredDayOff !== null) payload.preferred_day_off = preferredDayOff;
+        if (notes) payload.notes = notes;
+
+        const { error } = await admin.from("employees").update(payload).eq("id", found.id);
+        if (error) throw new Error(`Update failed for ${name}: ${error.message}`);
+        updated++;
+      } else {
+        // New employee: take everything from sheet
         payload.fixed_day_off = fixedDayOff;
         payload.responsibilities = responsibilities;
         payload.preferred_shift = preferred;
         payload.allowed_shifts = allowed;
         payload.preferred_day_off = preferredDayOff;
         payload.notes = notes;
-
-        const { error } = await admin.from("employees").update(payload).eq("id", found.id);
-        if (error) throw new Error(`Update failed for ${name}: ${error.message}`);
-        updated++;
-      } else {
         payload.color = COLOR_PALETTE[created % COLOR_PALETTE.length];
+        
         const { error } = await admin.from("employees").insert(payload);
         if (error) throw new Error(`Insert failed for ${name}: ${error.message}`);
         created++;
