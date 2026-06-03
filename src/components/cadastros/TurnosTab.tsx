@@ -26,10 +26,26 @@ export function TurnosTab({ store }: { store: Store }) {
       </div>
       <div className="flex flex-col gap-2">
         {turnos.map(t => {
-          const [eh] = t.entry_time.split(':').map(Number)
-          const [xh] = t.exit_time.split(':').map(Number)
-          const hrs = (xh + (t.exit_time.endsWith('30') ? 0.5 : 0)) -
-                      (eh + (t.entry_time.endsWith('30') ? 0.5 : 0)) - 1
+          const [eh, em] = t.entry_time.split(':').map(Number)
+          const [xh, xm] = t.exit_time.split(':').map(Number)
+          const [bsh, bsm] = t.break_start.split(':').map(Number)
+          const [beh, bem] = t.break_end.split(':').map(Number)
+          
+          const entryTotalMinutes = eh * 60 + em
+          const exitTotalMinutes = xh * 60 + xm
+          const breakStartMinutes = bsh * 60 + bsm
+          const breakEndMinutes = beh * 60 + bem
+          
+          let durationMinutes = exitTotalMinutes - entryTotalMinutes
+          if (durationMinutes < 0) durationMinutes += 24 * 60
+          
+          const breakDurationMinutes = breakEndMinutes - breakStartMinutes
+          const netMinutes = durationMinutes - breakDurationMinutes
+          
+          const netHours = Math.floor(netMinutes / 60)
+          const netRemMinutes = netMinutes % 60
+          const netDisplay = netRemMinutes > 0 ? `${netHours}h${netRemMinutes.toString().padStart(2, '0')}` : `${netHours}h`
+
           const barColor = t.name.includes('Abertura') ? '#185FA5'
             : t.name.includes('Fechamento') ? '#0F6E56' : '#854F0B'
 
@@ -41,9 +57,9 @@ export function TurnosTab({ store }: { store: Store }) {
                   {t.name} <span className="text-xs font-normal text-gray-400">({t.regime})</span>
                 </div>
                 <div className="text-xs text-gray-500">
-                  {t.entry_time} – {t.exit_time} &nbsp;·&nbsp;
-                  Intervalo {t.break_start}–{t.break_end} &nbsp;·&nbsp;
-                  <span className="font-medium text-gray-700">{hrs}h líquidas</span>
+                  {t.entry_time.substring(0, 5)} – {t.exit_time.substring(0, 5)} &nbsp;·&nbsp;
+                  Intervalo {t.break_start.substring(0, 5)}–{t.break_end.substring(0, 5)} &nbsp;·&nbsp;
+                  <span className="font-medium text-gray-700">{netDisplay} líquidas</span>
                 </div>
               </div>
             </div>
