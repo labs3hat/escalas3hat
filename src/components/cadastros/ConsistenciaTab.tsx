@@ -3,7 +3,7 @@ import { RefreshCw, CheckCircle2, AlertTriangle, Plus, Minus, Loader2 } from 'lu
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
-const DAY_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+const DAY_NAMES = ['Não', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex']
 
 type Diff = { field: string; db: unknown; sheet: unknown }
 type StoreRow = { status: 'equal'|'diff'|'new'|'inactive'; code: string; name: string; diffs?: Diff[]; sheet?: any }
@@ -44,7 +44,10 @@ function fmt(v: unknown, field?: string): string {
     }
     return v.join(', ') || '—'
   }
-  if (field === 'fixed_day_off' && typeof v === 'number') return DAY_NAMES[v] ?? String(v)
+  if (field === 'fixed_day_off' && typeof v === 'number') {
+    if (v === 0) return 'Não'
+    return DAY_NAMES[v] ?? String(v)
+  }
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não'
   return String(v)
 }

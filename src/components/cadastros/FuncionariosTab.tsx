@@ -7,7 +7,16 @@ import { EMPLOYEE_COLORS } from '@/types'
 import TurnosTab from './TurnosTab'
 
 const REGIME_LABELS = { '6x1': '6×1', '5x2': '5×2' }
-const DAY_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']
+const DAY_OPTIONS = [
+  { value: 1, label: 'Seg' },
+  { value: 2, label: 'Ter' },
+  { value: 3, label: 'Qua' },
+  { value: 4, label: 'Qui' },
+  { value: 5, label: 'Sex' },
+  { value: 0, label: 'Não' }
+]
+
 
 export default function FuncionariosTab({ store }: { store: Store }) {
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -211,7 +220,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
               <select name="fixed_day_off" defaultValue={form.fixed_day_off ?? ''}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
                 <option value="">—</option>
-                {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                {DAY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
             </div>
             <div>
@@ -219,7 +228,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
               <select name="preferred_day_off" defaultValue={form.preferred_day_off ?? ''}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
                 <option value="">—</option>
-                {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                {DAY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
             </div>
             <div>
@@ -303,12 +312,12 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                   </span>
                   {emp.fixed_day_off !== null && (
                     <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
-                      Folga: {DAY_NAMES[emp.fixed_day_off]}
+                      Folga: {DAY_OPTIONS.find(o => o.value === emp.fixed_day_off)?.label || 'Não'}
                     </span>
                   )}
                   {emp.preferred_day_off !== null && (
                     <span className="text-[10px] font-medium bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-100">
-                      Restrição: {DAY_NAMES[emp.preferred_day_off]}
+                      Restrição: {DAY_OPTIONS.find(o => o.value === emp.preferred_day_off)?.label || 'Não'}
                     </span>
                   )}
                   {emp.preferred_shift && (
@@ -344,11 +353,11 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Folga fixa</span>
-                  <div className="text-sm text-gray-700 font-medium">{emp.fixed_day_off !== null ? DAY_NAMES[emp.fixed_day_off] : '—'}</div>
+                  <div className="text-sm text-gray-700 font-medium">{emp.fixed_day_off !== null ? (DAY_OPTIONS.find(o => o.value === emp.fixed_day_off)?.label || 'Não') : '—'}</div>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Preferência/Restrição</span>
-                  <div className="text-sm text-gray-700 font-medium">{emp.preferred_day_off !== null ? DAY_NAMES[emp.preferred_day_off] : '—'}</div>
+                  <div className="text-sm text-gray-700 font-medium">{emp.preferred_day_off !== null ? (DAY_OPTIONS.find(o => o.value === emp.preferred_day_off)?.label || 'Não') : '—'}</div>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Turno preferencial</span>
