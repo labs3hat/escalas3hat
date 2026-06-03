@@ -2,13 +2,25 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SPREADSHEET_ID = "1p7Fs30H1nzYYOXoYmm0P_4UPA78HfIrHByxbqXhjSvA";
-const EMPLOYEES_SHEET_RANGE = "FUNCIONÁRIOS!A2:I2000";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+async function getSheetNames(lovableKey: string, sheetsKey: string): Promise<string[]> {
+  const url = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": sheetsKey,
+    },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch spreadsheet info: ${await res.text()}`);
+  const data = await res.json();
+  return data.sheets.map((s: any) => s.properties.title);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -30,65 +42,72 @@ Deno.serve(async (req) => {
 
     if (empError || !employee) throw new Error("Employee not found");
 
-    // 2. Fetch current sheet values to find the row
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    const sheetsKey = Deno.env.get("GOOGLE_SHEETS_API_KEY");
-    
-    const fetchUrl = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(EMPLOYEES_SHEET_RANGE)}`;
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
+    const sheetsKey = Deno.env.get("GOOGLE_SHEETS_API_KEY")!;
+
+    // 2. Find the correct sheet
+    const sheetNames = await getSheetNames(lovableKey, sheetsKey);
+    const normalizedCode = employee.stores.code.replace(/([a-zA-Z]+)(\d+)/, "$1 $2").toUpperCase();
+    const targetSheet = sheetNames.find(s => s.toUpperCase().startsWith(normalizedCode));
+
+    if (!targetSheet) throw new Error(`Target sheet for store ${employee.stores.code} not found`);
+
+    // 3. Fetch current sheet values to find the row
+    const fetchRange = `${targetSheet}!A3:A100`;
+    const fetchUrl = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(fetchRange)}`;
     const fetchRes = await fetch(fetchUrl, {
       headers: {
         Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": sheetsKey!,
+        "X-Connection-Api-Key": sheetsKey,
       },
     });
     
     const sheetData = await fetchRes.json();
     const rows = sheetData.values || [];
     
-    // Find the row index (1-indexed for Google Sheets range, +1 for starting at A2)
+    // Find the row index (1-indexed, starting at A3)
     let rowIndex = -1;
-    const storeCode = employee.stores?.code?.toUpperCase();
     const employeeName = employee.name.trim().toUpperCase();
 
     for (let i = 0; i < rows.length; i++) {
-      const rowStoreCode = (rows[i][0] || "").trim().toUpperCase();
-      const rowName = (rows[i][1] || "").trim().toUpperCase();
-      
-      if (rowStoreCode === storeCode && rowName === employeeName) {
-        rowIndex = i + 2; // +2 because range starts at A2 (index 0 is row 2)
+      const rowName = (rows[i][0] || "").trim().toUpperCase();
+      if (rowName === employeeName) {
+        rowIndex = i + 3; // +3 because range starts at A3
         break;
       }
     }
 
     if (rowIndex === -1) {
-      // If not found, we could append, but for now let's just return error to be safe
       throw new Error("Employee not found in spreadsheet to update");
     }
 
-    // 3. Prepare row data
-    // Sheets Columns: A:Loja, B:Nome, C:Cargo, D:Regime, E:Folga Fixa, F:Estoque?, G:Máquina?, H:Turno, I:Preferencia
+    // 4. Prepare row data (Columns D to H)
+    // D:Folga fixa, E:Estoque, F:Máquina, G:Turno, H:Restrição (Preferência)
     const dayNames = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    
+    const fixedDayOffText = employee.fixed_day_off !== null ? dayNames[employee.fixed_day_off] : "Não";
+    const estoqueText = employee.responsibilities?.includes('estoque') ? "S" : "N";
+    const maquinaText = employee.responsibilities?.includes('maquina') ? "S" : "N";
+    const shiftText = employee.preferred_shift || "todos";
+    const preferredDayOffText = employee.preferred_day_off !== null ? dayNames[employee.preferred_day_off] : "";
+
     const rowData = [
-      storeCode,
-      employee.name,
-      employee.role,
-      employee.work_regime,
-      employee.fixed_day_off !== null ? dayNames[employee.fixed_day_off] : "",
-      employee.responsibilities?.includes('estoque') ? "S" : "N",
-      employee.responsibilities?.includes('maquina') ? "S" : "N",
-      employee.preferred_shift || "todos",
-      employee.preferred_day_off !== null ? dayNames[employee.preferred_day_off] : ""
+      fixedDayOffText,
+      estoqueText,
+      maquinaText,
+      shiftText,
+      preferredDayOffText
     ];
 
-    // 4. Update the row
-    const updateRange = `FUNCIONÁRIOS!A${rowIndex}:I${rowIndex}`;
+    // 5. Update the row (Range D to H)
+    const updateRange = `${targetSheet}!D${rowIndex}:H${rowIndex}`;
     const updateUrl = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(updateRange)}?valueInputOption=USER_ENTERED`;
     
     const updateRes = await fetch(updateUrl, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": sheetsKey!,
+        "X-Connection-Api-Key": sheetsKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -105,6 +124,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    console.error("update-sheet-employee error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

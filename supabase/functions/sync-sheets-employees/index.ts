@@ -1,11 +1,9 @@
-// Sync employees from Google Sheets (FUNCIONÁRIOS tab) into the `employees` table.
+// Sync employees from multiple Google Sheets tabs (one per store) into the `employees` table.
 // Reads via Lovable connector gateway (google_sheets). Writes via service role.
-// Auth: requires a valid Supabase user JWT.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SPREADSHEET_ID = "1p7Fs30H1nzYYOXoYmm0P_4UPA78HfIrHByxbqXhjSvA";
-const SHEET_RANGE = "FUNCIONÁRIOS!A2:I2000";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,23 +55,30 @@ function isYes(value: string): boolean {
   return v === "s" || v === "sim" || v === "y" || v === "yes" || v === "1";
 }
 
-async function fetchSheetRows(): Promise<Row[]> {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  const sheetsKey = Deno.env.get("GOOGLE_SHEETS_API_KEY");
-  if (!lovableKey) throw new Error("LOVABLE_API_KEY not configured");
-  if (!sheetsKey) throw new Error("GOOGLE_SHEETS_API_KEY not configured (link Google Sheets connector)");
-
-  const url = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_RANGE)}`;
+async function getSheetNames(lovableKey: string, sheetsKey: string): Promise<string[]> {
+  const url = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}`;
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${lovableKey}`,
       "X-Connection-Api-Key": sheetsKey,
     },
   });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Sheets gateway error ${res.status}: ${txt}`);
-  }
+  if (!res.ok) throw new Error(`Failed to fetch spreadsheet info: ${await res.text()}`);
+  const data = await res.json();
+  return data.sheets.map((s: any) => s.properties.title);
+}
+
+async function fetchSheetRows(sheetName: string, lovableKey: string, sheetsKey: string): Promise<Row[]> {
+  // Range: A3:I100 (assuming A1 is "ATIVOS", A2 is headers)
+  const range = `${sheetName}!A3:I100`;
+  const url = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": sheetsKey,
+    },
+  });
+  if (!res.ok) return []; // Skip if sheet doesn't exist or error
   const json = await res.json();
   return (json.values ?? []) as Row[];
 }
@@ -85,14 +90,11 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
+    const sheetsKey = Deno.env.get("GOOGLE_SHEETS_API_KEY")!;
 
     // Auth check
     const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
     const userClient = createClient(SUPABASE_URL, ANON, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -105,125 +107,100 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // Resolve which stores the user can sync
+    // Get profile to check permissions
     const { data: profile } = await admin
       .from("profiles").select("role, store_ids").eq("id", userData.user.id).single();
-    if (!profile) {
-      return new Response(JSON.stringify({ error: "Profile not found" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!profile) throw new Error("Profile not found");
     const isAdmin = ["regional", "diretoria", "rh"].includes(profile.role);
 
-    const { data: stores } = await admin.from("stores").select("id, code").eq("active", true);
+    // Get active stores
+    const { data: stores } = await admin.from("stores").select("id, code, name").eq("active", true);
     const allStores = stores ?? [];
-    const codeToId = new Map<string, string>();
-    for (const s of allStores) codeToId.set((s.code as string).toUpperCase(), s.id as string);
+    
+    // Filter stores based on user permissions
+    const allowedStores = allStores.filter(s => isAdmin || (profile.store_ids ?? []).includes(s.id));
+    const allowedStoreIds = new Set(allowedStores.map(s => s.id));
 
-    const allowedStoreIds = new Set<string>(
-      isAdmin ? allStores.map((s) => s.id as string) : (profile.store_ids ?? []),
-    );
-
-    // Fetch existing employees once (only for stores we may touch)
-    const allowedIdList = Array.from(allowedStoreIds);
-    const { data: existing } = allowedIdList.length
-      ? await admin.from("employees").select("id, store_id, name, active").in("store_id", allowedIdList)
-      : { data: [] as any[] };
+    // Get all existing employees for these stores
+    const { data: existing } = await admin.from("employees")
+      .select("id, store_id, name, active")
+      .in("store_id", Array.from(allowedStoreIds));
+    
     const existingByKey = new Map<string, { id: string; active: boolean }>();
     for (const e of existing ?? []) {
-      const nameKey = (e.name as string).trim().toUpperCase();
-      const storeKey = e.store_id;
-      const key = `${storeKey}::${nameKey}`;
-      
-      // If we already have this name in this store, it's a DB duplicate we should probably handle.
-      // For the sync logic, we'll just keep the first one found.
-      if (!existingByKey.has(key)) {
-        existingByKey.set(key, { id: e.id, active: e.active });
-      } else {
-        // If it's a duplicate and it's active, we might want to deactivate the older one
-        // but for now let's just make sure we don't have two entries in the map for the same key.
-        console.log(`Duplicate found in DB: ${key}`);
-      }
+      const key = `${e.store_id}::${(e.name as string).trim().toUpperCase()}`;
+      existingByKey.set(key, { id: e.id, active: e.active });
     }
 
-    // Pull rows from Sheets
-    const rows = await fetchSheetRows();
+    // Get all sheet names
+    const sheetNames = await getSheetNames(lovableKey, sheetsKey);
 
     let created = 0, updated = 0, skipped = 0;
     const touchedKeys = new Set<string>();
     const touchedStores = new Set<string>();
 
-    for (const row of rows) {
-      const codeRaw = (row[0] ?? "").trim().toUpperCase();
-      const name = (row[1] ?? "").trim();
-      if (!codeRaw || !name) { skipped++; continue; }
-      const storeId = codeToId.get(codeRaw);
-      if (!storeId || !allowedStoreIds.has(storeId)) { skipped++; continue; }
+    // Process each store
+    for (const store of allowedStores) {
+      // Find the sheet that matches the store code
+      // Store code CL2 should match "CL 2 - ..."
+      // We'll normalize the code by adding a space if it's like "CL2" -> "CL 2"
+      const normalizedCode = store.code.replace(/([a-zA-Z]+)(\d+)/, "$1 $2").toUpperCase();
+      const targetSheet = sheetNames.find(s => s.toUpperCase().startsWith(normalizedCode));
 
-      const role = (row[2] ?? "Atendente").trim() || "Atendente";
-      const regime = parseRegime(row[3] ?? "");
-      const fixedDayOff = parseFolga(row[4] ?? "");
-      const responsibilities: string[] = [];
-      if (isYes(row[5] ?? "")) responsibilities.push("estoque");
-      if (isYes(row[6] ?? "")) responsibilities.push("maquina");
-      const { preferred, allowed } = parseShifts(row[7] ?? "");
-      const preferredDayOff = parseFolga(row[8] ?? "");
-      const notes = (row[9] ?? "").trim();
+      if (!targetSheet) {
+        console.log(`No sheet found for store ${store.code} (${normalizedCode})`);
+        continue;
+      }
 
-      const key = `${storeId}::${name.toUpperCase()}`;
-      touchedKeys.add(key);
-      touchedStores.add(storeId);
-      const found = existingByKey.get(key);
+      touchedStores.add(store.id);
+      const rows = await fetchSheetRows(targetSheet, lovableKey, sheetsKey);
 
-      // Payload strictly from Sheets (Columns A, B, C, D)
-      const payload: Record<string, unknown> = {
-        store_id: storeId,
-        name,
-        role,
-        work_regime: regime,
-        active: true,
-      };
+      for (const row of rows) {
+        const name = (row[0] ?? "").trim();
+        if (!name) continue;
 
-      if (found) {
-        // Rules:
-        // A (Store), B (Name), C (Role), D (Regime) -> Sheets only (always overwrite system)
-        // E (Fixed Day Off), F (Stock), G (Machine), H (Shift), I (RestDay) -> Bidirectional (priority to sheet if not empty)
-        
-        if (fixedDayOff !== null) payload.fixed_day_off = fixedDayOff;
-        // responsibilities F & G
-        if (responsibilities.length > 0) payload.responsibilities = responsibilities;
-        
-        // preferred_shift H
-        if (preferred !== "flutuante") {
-          payload.preferred_shift = preferred;
-          payload.allowed_shifts = allowed;
+        const role = (row[1] ?? "Atendente").trim() || "Atendente";
+        const regime = parseRegime(row[2] ?? "");
+        const fixedDayOff = parseFolga(row[3] ?? "");
+        const responsibilities: string[] = [];
+        if (isYes(row[4] ?? "")) responsibilities.push("estoque");
+        if (isYes(row[5] ?? "")) responsibilities.push("maquina");
+        const { preferred, allowed } = parseShifts(row[6] ?? "");
+        const preferredDayOff = parseFolga(row[7] ?? "");
+        const notes = (row[8] ?? "").trim();
+
+        const key = `${store.id}::${name.toUpperCase()}`;
+        touchedKeys.add(key);
+        const found = existingByKey.get(key);
+
+        const payload: Record<string, unknown> = {
+          store_id: store.id,
+          name,
+          role,
+          work_regime: regime,
+          active: true,
+          fixed_day_off: fixedDayOff,
+          responsibilities,
+          preferred_shift: preferred,
+          allowed_shifts: allowed,
+          preferred_day_off: preferredDayOff,
+          notes: notes
+        };
+
+        if (found) {
+          const { error } = await admin.from("employees").update(payload).eq("id", found.id);
+          if (error) throw new Error(`Update failed for ${name}: ${error.message}`);
+          updated++;
+        } else {
+          payload.color = COLOR_PALETTE[(created + updated) % COLOR_PALETTE.length];
+          const { error } = await admin.from("employees").insert(payload);
+          if (error) throw new Error(`Insert failed for ${name}: ${error.message}`);
+          created++;
         }
-        
-        // preferred_day_off I
-        if (preferredDayOff !== null) payload.preferred_day_off = preferredDayOff;
-        
-        if (notes) payload.notes = notes;
-
-        const { error } = await admin.from("employees").update(payload).eq("id", found.id);
-        if (error) throw new Error(`Update failed for ${name}: ${error.message}`);
-        updated++;
-      } else {
-        // New employee: take everything from sheet
-        payload.fixed_day_off = fixedDayOff;
-        payload.responsibilities = responsibilities;
-        payload.preferred_shift = preferred;
-        payload.allowed_shifts = allowed;
-        payload.preferred_day_off = preferredDayOff;
-        payload.notes = notes;
-        payload.color = COLOR_PALETTE[created % COLOR_PALETTE.length];
-        
-        const { error } = await admin.from("employees").insert(payload);
-        if (error) throw new Error(`Insert failed for ${name}: ${error.message}`);
-        created++;
       }
     }
 
-    // Deactivate employees in synced stores that no longer appear in the sheet
+    // Deactivate employees in processed stores that no longer appear in the sheets
     let deactivated = 0;
     for (const [key, info] of existingByKey) {
       const [storeId] = key.split("::");
