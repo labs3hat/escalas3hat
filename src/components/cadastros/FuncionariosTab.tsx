@@ -291,7 +291,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                 <div className="col-span-2">
                   <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Responsabilidades</span>
                   <div className="flex gap-1.5 mt-1">
-                    {emp.responsibilities.length > 0 ? emp.responsibilities.map(r => (
+                    {emp.responsibilities && emp.responsibilities.length > 0 ? emp.responsibilities.map(r => (
                       <span key={r} className="text-[10px] font-bold uppercase bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded shadow-sm">
                         {r}
                       </span>

@@ -47,7 +47,7 @@ export interface Employee {
   color: string
   notes: string
   preferred_shift: string | null
-  allowed_shifts: string[]
+  allowed_shifts: string[] | null
   active: boolean
   created_at: string
 }
