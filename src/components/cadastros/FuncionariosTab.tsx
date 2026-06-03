@@ -220,7 +220,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
               <select name="fixed_day_off" defaultValue={form.fixed_day_off ?? ''}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
                 <option value="">—</option>
-                {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                {DAY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
             </div>
             <div>
