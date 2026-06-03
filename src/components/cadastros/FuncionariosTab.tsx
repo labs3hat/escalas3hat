@@ -63,7 +63,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
 
   const form = editing ?? {
     name: '', role: 'Atendente', work_regime: '6x1' as const,
-    fixed_day_off: null, responsibilities: [] as string[], color: suggestColor(), notes: '', active: true
+    fixed_day_off: null, preferred_day_off: null, responsibilities: [] as string[], color: suggestColor(), notes: '', active: true
   }
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
@@ -74,7 +74,8 @@ export default function FuncionariosTab({ store }: { store: Store }) {
       name: fd.get('name') as string,
       role: fd.get('role') as string,
       work_regime: fd.get('work_regime') as '6x1' | '5x2',
-      fixed_day_off: fd.get('work_regime') === '5x2' ? Number(fd.get('fixed_day_off')) : null,
+      fixed_day_off: fd.get('fixed_day_off') ? Number(fd.get('fixed_day_off')) : null,
+      preferred_day_off: fd.get('preferred_day_off') ? Number(fd.get('preferred_day_off')) : null,
       responsibilities: ['estoque','maquina'].filter(r => fd.get(r) === 'on'),
       color: fd.get('color') as string,
       notes: fd.get('notes') as string,
@@ -155,6 +156,14 @@ export default function FuncionariosTab({ store }: { store: Store }) {
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Folga fixa (5×2)</label>
               <select name="fixed_day_off" defaultValue={form.fixed_day_off ?? ''}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+                <option value="">—</option>
+                {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Preferência/Restrição</label>
+              <select name="preferred_day_off" defaultValue={form.preferred_day_off ?? ''}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
                 <option value="">—</option>
                 {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
@@ -252,6 +261,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
               <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-2 gap-3">
                 <div><span className="text-xs text-gray-400">Regime</span><div className="text-sm text-gray-700">{emp.work_regime === '5x2' ? '5×2' : '6×1'}</div></div>
                 <div><span className="text-xs text-gray-400">Folga fixa</span><div className="text-sm text-gray-700">{emp.fixed_day_off !== null ? DAY_NAMES[emp.fixed_day_off] : '—'}</div></div>
+                <div><span className="text-xs text-gray-400">Restrição</span><div className="text-sm text-gray-700">{emp.preferred_day_off !== null ? DAY_NAMES[emp.preferred_day_off] : '—'}</div></div>
                 {emp.notes && <div className="col-span-2"><span className="text-xs text-gray-400">Observações</span><div className="text-sm text-gray-700">{emp.notes}</div></div>}
               </div>
             )}

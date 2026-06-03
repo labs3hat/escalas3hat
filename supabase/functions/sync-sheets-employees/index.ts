@@ -5,7 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SPREADSHEET_ID = "1p7Fs30H1nzYYOXoYmm0P_4UPA78HfIrHByxbqXhjSvA";
-const SHEET_RANGE = "FUNCIONÁRIOS!A2:J2000";
+const SHEET_RANGE = "FUNCIONÁRIOS!A2:I2000";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,10 +31,9 @@ const DAY_NAME_TO_INT: Record<string, number> = {
 
 type Row = string[];
 
-function parseFolga(value: string, regime: string): number | null {
-  if (regime !== "5x2") return null;
+function parseFolga(value: string): number | null {
   const v = (value ?? "").trim().toLowerCase();
-  if (!v || v.startsWith("não") || v.startsWith("nao") || v === "-") return null;
+  if (!v || v.startsWith("não") || v.startsWith("nao") || v === "-" || v === "todos") return null;
   const key = v.replace(/\./g, "").trim();
   return DAY_NAME_TO_INT[key] ?? null;
 }
@@ -153,11 +152,12 @@ Deno.serve(async (req) => {
 
       const role = (row[2] ?? "Atendente").trim() || "Atendente";
       const regime = parseRegime(row[3] ?? "");
-      const fixedDayOff = parseFolga(row[4] ?? "", regime);
+      const fixedDayOff = parseFolga(row[4] ?? "");
       const responsibilities: string[] = [];
       if (isYes(row[5] ?? "")) responsibilities.push("estoque");
       if (isYes(row[6] ?? "")) responsibilities.push("maquina");
       const { preferred, allowed } = parseShifts(row[7] ?? "");
+      const preferredDayOff = parseFolga(row[8] ?? "");
       const notes = (row[9] ?? "").trim();
 
       const key = `${storeId}::${name.toUpperCase()}`;
@@ -174,6 +174,7 @@ Deno.serve(async (req) => {
         responsibilities,
         preferred_shift: preferred,
         allowed_shifts: allowed,
+        preferred_day_off: preferredDayOff,
         notes,
         active: true,
       };
