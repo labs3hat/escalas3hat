@@ -23,7 +23,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     setLoading(true)
     const { data } = await supabase.from('employees').select('*')
       .eq('store_id', store.id).order('name')
-    setEmployees(data ?? [])
+    setEmployees((data as Employee[]) ?? [])
     setLoading(false)
   }
 
@@ -250,8 +250,8 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                   <span className={`text-xs font-medium px-1.5 rounded ${!emp.active ? 'bg-gray-100 text-gray-400' : emp.work_regime === '5x2' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                     {REGIME_LABELS[emp.work_regime]}
                   </span>
-                  {emp.responsibilities.includes('estoque') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>Estoque</span>}
-                  {emp.responsibilities.includes('maquina') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>Máquina</span>}
+                  {emp.responsibilities?.includes('estoque') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>Estoque</span>}
+                  {emp.responsibilities?.includes('maquina') && <span className={`text-xs px-1.5 rounded ${emp.active ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>Máquina</span>}
                 </div>
               </div>
               <div className="flex items-center gap-1">

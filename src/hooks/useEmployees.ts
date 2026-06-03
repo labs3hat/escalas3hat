@@ -15,7 +15,7 @@ export function useEmployees(storeId: string | null) {
         .eq('store_id', storeId as string)
         .eq('active', true)
         .order('name')
-      setEmployees(data ?? [])
+      setEmployees((data as Employee[]) ?? [])
       setLoading(false)
     }
     load()
