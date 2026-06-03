@@ -63,7 +63,9 @@ export default function FuncionariosTab({ store }: { store: Store }) {
 
   const form = editing ?? {
     name: '', role: 'Atendente', work_regime: '6x1' as const,
-    fixed_day_off: null, preferred_day_off: null, responsibilities: [] as string[], color: suggestColor(), notes: '', active: true
+    fixed_day_off: null, preferred_day_off: null, responsibilities: [] as string[], 
+    preferred_shift: null, allowed_shifts: [],
+    color: suggestColor(), notes: '', active: true
   }
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
@@ -77,6 +79,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
       fixed_day_off: fd.get('fixed_day_off') ? Number(fd.get('fixed_day_off')) : null,
       preferred_day_off: fd.get('preferred_day_off') ? Number(fd.get('preferred_day_off')) : null,
       responsibilities: ['estoque','maquina'].filter(r => fd.get(r) === 'on'),
+      preferred_shift: fd.get('preferred_shift') as string || null,
       color: fd.get('color') as string,
       notes: fd.get('notes') as string,
       active: true,
@@ -167,6 +170,16 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
                 <option value="">—</option>
                 {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Turno preferencial</label>
+              <select name="preferred_shift" defaultValue={form.preferred_shift ?? ''}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+                <option value="">Flutuante</option>
+                <option value="abertura">Abertura</option>
+                <option value="intermediario">Intermediário</option>
+                <option value="fechamento">Fechamento</option>
               </select>
             </div>
             <div>
