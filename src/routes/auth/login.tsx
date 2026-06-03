@@ -28,6 +28,24 @@ function LoginPage() {
     }
   }
 
+  async function handleResetPassword() {
+    if (!email) {
+      toast.error('Por favor, digite seu e-mail para recuperar a senha.')
+      return
+    }
+    setLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    })
+    setLoading(false)
+    if (error) {
+      toast.error(error.message)
+    } else {
+      toast.success('E-mail de recuperação enviado com sucesso!')
+    }
+  }
+
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -59,7 +77,16 @@ function LoginPage() {
               required
             />
             <button
+              type="button"
+              onClick={handleResetPassword}
+              disabled={loading}
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium text-right mb-1"
+            >
+              Esqueceu a senha?
+            </button>
+            <button
               type="submit"
+
               disabled={loading}
               className="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 rounded-lg text-sm transition-colors disabled:opacity-60"
             >
