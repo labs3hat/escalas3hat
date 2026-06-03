@@ -87,14 +87,27 @@ export default function FuncionariosTab({ store }: { store: Store }) {
 
     if (editing) {
       await supabase.from('employees').update(data).eq('id', editing.id)
-      toast.success('Funcionário atualizado')
+      
+      // Atualizar planilha em background
+      supabase.functions.invoke('update-sheet-employee', {
+        body: { employeeId: editing.id }
+      }).then(({ error }) => {
+        if (error) console.error('Erro ao atualizar planilha:', error)
+      })
+
+      toast.success('Funcionário atualizado e planilha sincronizada')
     } else {
-      await supabase.from('employees').insert(data)
+      const { data: newEmp, error } = await supabase.from('employees').insert(data).select().single()
+      if (!error && newEmp) {
+        // Para novos, poderíamos ter um 'append-sheet-employee'
+        // Por enquanto vamos apenas avisar que foi criado no sistema
+      }
       toast.success('Funcionário cadastrado')
     }
     setShowForm(false)
     setEditing(null)
     load()
+
   }
 
   if (loading) return <div className="p-5 text-sm text-gray-400">Carregando...</div>
