@@ -20,7 +20,7 @@ export function TurnosTab({ store }: { store: Store }) {
   if (loading) return <div className="p-5 text-sm text-gray-400">Carregando...</div>
 
   return (
-    <div className="p-5">
+    <div>
       <div className="text-sm font-medium text-gray-700 mb-4">
         Turnos — {store.name}
       </div>
