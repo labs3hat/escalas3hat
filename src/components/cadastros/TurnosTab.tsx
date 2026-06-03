@@ -20,9 +20,9 @@ export function TurnosTab({ store }: { store: Store }) {
   if (loading) return <div className="p-5 text-sm text-gray-400">Carregando...</div>
 
   return (
-    <div className="p-5">
+    <div>
       <div className="text-sm font-medium text-gray-700 mb-4">
-        Turnos padrão — {store.name}
+        Turnos — {store.name}
       </div>
       <div className="flex flex-col gap-2">
         {turnos.map(t => {
@@ -44,7 +44,7 @@ export function TurnosTab({ store }: { store: Store }) {
           
           const netHours = Math.floor(netMinutes / 60)
           const netRemMinutes = netMinutes % 60
-          const netDisplay = netRemMinutes > 0 ? `${netHours}h${netRemMinutes.toString().padStart(2, '0')}` : `${netHours}h`
+          const netDisplay = `${netHours}h${netRemMinutes.toString().padStart(2, '0')}`
 
           const barColor = t.name.includes('Abertura') ? '#185FA5'
             : t.name.includes('Fechamento') ? '#0F6E56' : '#854F0B'
