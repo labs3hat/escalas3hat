@@ -29,6 +29,8 @@ export interface Store {
   min_weekend_staff: number
   min_sunday_staff: number
   min_sunday_off_per_month: number
+  weekly_hours_6x1: number | null
+  weekly_hours_5x2: number | null
   active: boolean
   created_at: string
 }
