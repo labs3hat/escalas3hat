@@ -6,7 +6,6 @@ import type { Profile } from '@/types'
 const navItems = [
   { href: '/escalas',     label: 'Escalas',               icon: Calendar },
   { href: '/cadastros',   label: 'Funcionários',          icon: Users },
-  { href: '/turnos',      label: 'Turnos padrão',         icon: Timer },
   { href: '/config-loja', label: 'Configurações da loja', icon: Settings },
   { href: '/alteracoes',  label: 'Alterações',            icon: RefreshCw },
   { href: '/horas',       label: 'Horas',                 icon: Clock },
