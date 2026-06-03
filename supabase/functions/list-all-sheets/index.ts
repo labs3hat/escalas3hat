@@ -18,17 +18,17 @@ serve(async (req) => {
       throw new Error("Missing API keys");
     }
 
-    const url = \`https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/\${SPREADSHEET_ID}\`;
+    const url = "https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/" + SPREADSHEET_ID;
     const res = await fetch(url, {
       headers: {
-        Authorization: \`Bearer \${lovableKey}\`,
+        Authorization: "Bearer " + lovableKey,
         "X-Connection-Api-Key": sheetsKey,
       },
     });
 
     if (!res.ok) {
       const txt = await res.text();
-      return new Response(JSON.stringify({ error: \`Sheets API error: \${txt}\` }), {
+      return new Response(JSON.stringify({ error: "Sheets API error: " + txt }), {
         status: res.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -40,10 +40,10 @@ serve(async (req) => {
     const allData: Record<string, any> = {};
 
     for (const name of sheetNames) {
-      const rangeUrl = \`https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/\${SPREADSHEET_ID}/values/\${encodeURIComponent(name + "!A1:Z10")}\`;
+      const rangeUrl = "https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/" + SPREADSHEET_ID + "/values/" + encodeURIComponent(name + "!A1:Z5");
       const rangeRes = await fetch(rangeUrl, {
         headers: {
-          Authorization: \`Bearer \${lovableKey}\`,
+          Authorization: "Bearer " + lovableKey,
           "X-Connection-Api-Key": sheetsKey,
         },
       });
