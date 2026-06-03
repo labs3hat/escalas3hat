@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Users, Clock, Settings, GitCompare } from 'lucide-react'
+import { Users, Clock, Settings, GitCompare, ShieldCheck } from 'lucide-react'
 import type { Profile, Store } from '@/types'
 import FuncionariosTab from './FuncionariosTab'
 import TurnosTab from './TurnosTab'
 import ConfigLojaTab from './ConfigLojaTab'
 import ConsistenciaTab from './ConsistenciaTab'
+import UsuariosTab from './UsuariosTab'
 
 interface Props { profile: Profile | null; initialStores: Store[] }
 
@@ -14,14 +15,17 @@ const BASE_TABS = [
   { id: 'funcionarios', label: 'Funcionários', icon: Users },
   { id: 'config',       label: 'Config. loja',  icon: Settings },
 ]
-const ADMIN_TAB = { id: 'consistencia', label: 'Consistência', icon: GitCompare }
+const ADMIN_TABS = [
+  { id: 'usuarios',     label: 'Usuários',      icon: ShieldCheck },
+  { id: 'consistencia', label: 'Consistência', icon: GitCompare },
+]
 
 
 export default function CadastrosClient({ profile, initialStores }: Props) {
   const [tab, setTab] = useState('funcionarios')
   const [selectedStore, setSelectedStore] = useState<Store>(initialStores[0])
   const isAdmin = profile && ADMIN_ROLES.includes(profile.role)
-  const TABS = isAdmin ? [...BASE_TABS, ADMIN_TAB] : BASE_TABS
+  const TABS = isAdmin ? [...BASE_TABS, ...ADMIN_TABS] : BASE_TABS
 
   if (!selectedStore) return (
 
@@ -68,6 +72,7 @@ export default function CadastrosClient({ profile, initialStores }: Props) {
         {tab === 'funcionarios' && <FuncionariosTab store={selectedStore} />}
         {tab === 'turnos'       && <TurnosTab store={selectedStore} />}
         {tab === 'config'       && <ConfigLojaTab store={selectedStore} />}
+        {tab === 'usuarios'     && isAdmin && <UsuariosTab />}
         {tab === 'consistencia' && isAdmin && <ConsistenciaTab />}
       </div>
     </div>
