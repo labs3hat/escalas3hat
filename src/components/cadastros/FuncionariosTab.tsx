@@ -258,11 +258,41 @@ export default function FuncionariosTab({ store }: { store: Store }) {
               </div>
             </div>
             {expanded === emp.id && (
-              <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-2 gap-3">
-                <div><span className="text-xs text-gray-400">Regime</span><div className="text-sm text-gray-700">{emp.work_regime === '5x2' ? '5×2' : '6×1'}</div></div>
-                <div><span className="text-xs text-gray-400">Folga fixa</span><div className="text-sm text-gray-700">{emp.fixed_day_off !== null ? DAY_NAMES[emp.fixed_day_off] : '—'}</div></div>
-                <div><span className="text-xs text-gray-400">Restrição</span><div className="text-sm text-gray-700">{emp.preferred_day_off !== null ? DAY_NAMES[emp.preferred_day_off] : '—'}</div></div>
-                {emp.notes && <div className="col-span-2"><span className="text-xs text-gray-400">Observações</span><div className="text-sm text-gray-700">{emp.notes}</div></div>}
+              <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Regime</span>
+                  <div className="text-sm text-gray-700 font-medium">{emp.work_regime === '5x2' ? '5×2' : '6×1'}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Folga fixa</span>
+                  <div className="text-sm text-gray-700 font-medium">{emp.fixed_day_off !== null ? DAY_NAMES[emp.fixed_day_off] : '—'}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Preferência/Restrição</span>
+                  <div className="text-sm text-gray-700 font-medium">{emp.preferred_day_off !== null ? DAY_NAMES[emp.preferred_day_off] : '—'}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Turno preferencial</span>
+                  <div className="text-sm text-gray-700 font-medium capitalize">{emp.preferred_shift || 'Flutuante'}</div>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Responsabilidades</span>
+                  <div className="flex gap-1.5 mt-1">
+                    {emp.responsibilities.length > 0 ? emp.responsibilities.map(r => (
+                      <span key={r} className="text-[10px] font-bold uppercase bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded shadow-sm">
+                        {r}
+                      </span>
+                    )) : <span className="text-sm text-gray-400">—</span>}
+                  </div>
+                </div>
+                {emp.notes && (
+                  <div className="col-span-full">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Observações</span>
+                    <div className="text-sm text-gray-600 bg-white p-2 rounded border border-gray-100 italic">
+                      "{emp.notes}"
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
