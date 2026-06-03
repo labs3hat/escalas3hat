@@ -88,21 +88,36 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     }
 
     if (editing) {
-      await supabase.from('employees').update(data).eq('id', editing.id)
+      const { error: updateError } = await supabase.from('employees').update(data).eq('id', editing.id)
       
-      // Atualizar planilha em background
-      supabase.functions.invoke('update-sheet-employee', {
-        body: { employeeId: editing.id }
-      }).then(({ error }) => {
-        if (error) console.error('Erro ao atualizar planilha:', error)
-      })
+      if (updateError) {
+        toast.error('Erro ao atualizar no banco de dados')
+        console.error(updateError)
+        return
+      }
 
-      toast.success('Funcionário atualizado e planilha sincronizada')
+      // Atualizar planilha em background
+      try {
+        const { error: functionError } = await supabase.functions.invoke('update-sheet-employee', {
+          body: { employeeId: editing.id }
+        })
+        
+        if (functionError) {
+          console.error('Erro ao atualizar planilha:', functionError)
+          toast.error('Banco atualizado, mas erro ao sincronizar planilha')
+        } else {
+          toast.success('Funcionário atualizado e planilha sincronizada')
+        }
+      } catch (e) {
+        console.error('Exceção ao chamar função:', e)
+        toast.error('Erro de conexão ao sincronizar planilha')
+      }
     } else {
       const { data: newEmp, error } = await supabase.from('employees').insert(data).select().single()
-      if (!error && newEmp) {
-        // Para novos, poderíamos ter um 'append-sheet-employee'
-        // Por enquanto vamos apenas avisar que foi criado no sistema
+      if (error) {
+        toast.error('Erro ao cadastrar funcionário')
+        console.error(error)
+        return
       }
       toast.success('Funcionário cadastrado')
     }

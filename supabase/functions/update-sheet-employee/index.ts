@@ -83,12 +83,6 @@ Deno.serve(async (req) => {
 
     // 4. Prepare row data (Columns D to H)
     // D:Folga fixa, E:Estoque, F:Máquina, G:Turno, H:Restrição (Preferência)
-    const dayNamesAbbr = ["Não", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-    // Since dayNamesAbbr[0] is "Não", and fixed_day_off/preferred_day_off are 1-based for Mon-Sat (based on DAY_NAME_TO_INT logic in sync),
-    // but standard JS getDay() is 0-Sun. 
-    // Wait, in sync function: dom=0, seg=1, ter=2, qua=3, qui=4, sex=5, sab=6.
-    // The list in sheet is "Seg", "Ter", "Qua", "Qui", "Sex", "Não". (No Sunday/Saturday mentioned in user's prompt list but "Sáb" might exist)
-    
     const getSheetDay = (val: number | null) => {
       if (val === null) return "Não";
       const mapping: Record<number, string> = {
@@ -101,7 +95,7 @@ Deno.serve(async (req) => {
     const estoqueText = employee.responsibilities?.includes('estoque') ? "S" : "N";
     const maquinaText = employee.responsibilities?.includes('maquina') ? "S" : "N";
     
-    let shiftText = "Todos";
+    let shiftText = "Não"; // Default matches "Todos" in spreadsheet validation if possible, but user said "Abertura", "Intermediário", "Fechamento", "Não"
     if (employee.preferred_shift === "abertura") shiftText = "Abertura";
     else if (employee.preferred_shift === "intermediário" || employee.preferred_shift === "intermediario") shiftText = "Intermediário";
     else if (employee.preferred_shift === "fechamento") shiftText = "Fechamento";
