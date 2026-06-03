@@ -75,15 +75,15 @@ export default function FuncionariosTab({ store }: { store: Store }) {
     const fd = new FormData(e.currentTarget)
     const data = {
       store_id: store.id,
-      name: fd.get('name') as string,
-      role: fd.get('role') as string,
-      work_regime: fd.get('work_regime') as '6x1' | '5x2',
-      fixed_day_off: fd.get('fixed_day_off') ? Number(fd.get('fixed_day_off')) : null,
-      preferred_day_off: fd.get('preferred_day_off') ? Number(fd.get('preferred_day_off')) : null,
+      name: (fd.get('name') as string) || form.name,
+      role: (fd.get('role') as string) || form.role,
+      work_regime: (fd.get('work_regime') as '6x1' | '5x2') || form.work_regime,
+      fixed_day_off: (fd.get('fixed_day_off') !== null && fd.get('fixed_day_off') !== '') ? Number(fd.get('fixed_day_off')) : null,
+      preferred_day_off: (fd.get('preferred_day_off') !== null && fd.get('preferred_day_off') !== '') ? Number(fd.get('preferred_day_off')) : null,
       responsibilities: ['estoque','maquina'].filter(r => fd.get(r) === 'on'),
-      preferred_shift: fd.get('preferred_shift') as string || null,
-      color: fd.get('color') as string,
-      notes: fd.get('notes') as string,
+      preferred_shift: (fd.get('preferred_shift') as string) || null,
+      color: (fd.get('color') as string) || form.color,
+      notes: (fd.get('notes') as string) || '',
       active: true,
     }
 
