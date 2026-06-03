@@ -95,9 +95,9 @@ Deno.serve(async (req) => {
     const estoqueText = employee.responsibilities?.includes('estoque') ? "S" : "N";
     const maquinaText = employee.responsibilities?.includes('maquina') ? "S" : "N";
     
-    let shiftText = "Não"; // Default matches "Todos" in spreadsheet validation if possible, but user said "Abertura", "Intermediário", "Fechamento", "Não"
+    let shiftText = "Não"; 
     if (employee.preferred_shift === "abertura") shiftText = "Abertura";
-    else if (employee.preferred_shift === "intermediário" || employee.preferred_shift === "intermediario") shiftText = "Intermediário";
+    else if (employee.preferred_shift === "intermediario" || employee.preferred_shift === "intermediário") shiftText = "Intermediário";
     else if (employee.preferred_shift === "fechamento") shiftText = "Fechamento";
     
     const preferredDayOffText = getSheetDay(employee.preferred_day_off);
