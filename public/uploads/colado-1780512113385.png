@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Project not found</title>
+    <style>
+    body {
+        font-family: Cantarell, sans-serif;
+        background-color: rgb(24, 24, 27);
+        height: 100vh;
+        padding: 2rem;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    p {
+        letter-spacing: .025em;
+        font-weight: 300;
+        font-size: 1rem;
+        line-height: 1.5rem;
+        color: rgb(161, 161, 170);
+        text-align: center;
+        margin: 0 auto;
+        max-width: fit-content;
+    }
+
+    img {
+      width: 5rem;
+        height: 5rem;
+        margin-bottom: 2rem;
+        object-fit: scale-down;
+    }
+
+    div {
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        display: flex;
+    }
+    </style>
+  </head>
+  <body>
+    <div>
+        <img src="https://lovable-pre-project.lovable.app/lovable-uploads/lovable-logo-mono-2.png" alt="Grey heart">
+        <p>Publish or update your Lovable project for it to appear here.</p>
+    </div>
+  </body>
+</html>
