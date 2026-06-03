@@ -185,17 +185,23 @@ Deno.serve(async (req) => {
       };
 
       if (found) {
-        // Source of truth for sync:
-        // A, B, C, D -> Sheets only (always overwrite)
-        // E, F, G, H, I -> Both (Sheet takes precedence ONLY if not empty)
+        // Rules:
+        // A (Store), B (Name), C (Role), D (Regime) -> Sheets only (always overwrite system)
+        // E (Fixed Day Off), F (Stock), G (Machine), H (Shift), I (RestDay) -> Bidirectional (priority to sheet if not empty)
         
         if (fixedDayOff !== null) payload.fixed_day_off = fixedDayOff;
+        // responsibilities F & G
         if (responsibilities.length > 0) payload.responsibilities = responsibilities;
+        
+        // preferred_shift H
         if (preferred !== "flutuante") {
           payload.preferred_shift = preferred;
           payload.allowed_shifts = allowed;
         }
+        
+        // preferred_day_off I
         if (preferredDayOff !== null) payload.preferred_day_off = preferredDayOff;
+        
         if (notes) payload.notes = notes;
 
         const { error } = await admin.from("employees").update(payload).eq("id", found.id);

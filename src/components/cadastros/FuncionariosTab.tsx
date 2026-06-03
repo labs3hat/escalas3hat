@@ -153,18 +153,19 @@ export default function FuncionariosTab({ store }: { store: Store }) {
           <form onSubmit={handleSave} className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="text-xs font-medium text-gray-500 mb-1 block">Nome completo</label>
-              <input name="name" defaultValue={form.name} required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+              <input name="name" defaultValue={form.name} required readOnly={!!editing}
+                className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 ${editing ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`} />
+              {editing && <p className="text-[10px] text-gray-400 mt-1">Alterável apenas na planilha</p>}
             </div>
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Cargo</label>
-              <input name="role" defaultValue={form.role}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+              <input name="role" defaultValue={form.role} readOnly={!!editing}
+                className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 ${editing ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`} />
             </div>
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">Regime</label>
-              <select name="work_regime" defaultValue={form.work_regime}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+              <select name="work_regime" defaultValue={form.work_regime} disabled={!!editing}
+                className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 ${editing ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}>
                 <option value="6x1">6×1</option>
                 <option value="5x2">5×2</option>
               </select>
