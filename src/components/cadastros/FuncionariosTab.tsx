@@ -353,11 +353,11 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Folga fixa</span>
-                  <div className="text-sm text-gray-700 font-medium">{emp.fixed_day_off !== null ? DAY_NAMES[emp.fixed_day_off] : '—'}</div>
+                  <div className="text-sm text-gray-700 font-medium">{emp.fixed_day_off !== null ? (DAY_OPTIONS.find(o => o.value === emp.fixed_day_off)?.label || 'Não') : '—'}</div>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Preferência/Restrição</span>
-                  <div className="text-sm text-gray-700 font-medium">{emp.preferred_day_off !== null ? DAY_NAMES[emp.preferred_day_off] : '—'}</div>
+                  <div className="text-sm text-gray-700 font-medium">{emp.preferred_day_off !== null ? (DAY_OPTIONS.find(o => o.value === emp.preferred_day_off)?.label || 'Não') : '—'}</div>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">Turno preferencial</span>
