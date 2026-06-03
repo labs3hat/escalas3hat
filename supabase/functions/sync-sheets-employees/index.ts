@@ -36,21 +36,21 @@ function parseFolga(value: string): number | null {
   return DAY_NAME_TO_INT[key] ?? null;
 }
 
-function parseShifts(value: string): { preferred: string; allowed: string[] } {
+function parseShifts(value: string): { preferred: string | null; allowed: string[] } {
   const raw = (value ?? "").trim().toLowerCase();
-  const all = ["abertura", "intermediário", "fechamento"];
-  if (!raw || raw === "todos") return { preferred: "flutuante", allowed: all };
+  const all = ["abertura", "intermediario", "fechamento"];
+  if (!raw || raw === "todos" || raw === "não" || raw === "nao") return { preferred: null, allowed: all };
   
   if (raw === "abertura") return { preferred: "abertura", allowed: ["abertura"] };
   if (raw === "fechamento") return { preferred: "fechamento", allowed: ["fechamento"] };
-  if (raw === "intermediário" || raw === "intermediario") return { preferred: "intermediário", allowed: ["intermediário"] };
+  if (raw === "intermediário" || raw === "intermediario") return { preferred: "intermediario", allowed: ["intermediario"] };
   
   // Fallback for unexpected values
   if (raw.startsWith("abert")) return { preferred: "abertura", allowed: ["abertura"] };
   if (raw.startsWith("fech")) return { preferred: "fechamento", allowed: ["fechamento"] };
-  if (raw.startsWith("inter")) return { preferred: "intermediário", allowed: ["intermediário"] };
+  if (raw.startsWith("inter")) return { preferred: "intermediario", allowed: ["intermediario"] };
   
-  return { preferred: "flutuante", allowed: all };
+  return { preferred: null, allowed: all };
 }
 
 function parseRegime(value: string): "6x1" | "5x2" {
