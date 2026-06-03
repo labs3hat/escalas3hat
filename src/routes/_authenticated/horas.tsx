@@ -12,6 +12,7 @@ import {
 import { ChevronLeft, ChevronRight, Users, Clock, TrendingDown, Zap, Loader2 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { MONTHS } from '@/types'
+import { getContractWeeklyHours } from '@/lib/utils'
 
 export const Route = createFileRoute('/_authenticated/horas')({
   component: HorasPage,
@@ -37,10 +38,7 @@ interface EmpLite {
 }
 
 function contractWeekly(emp: EmpLite, store: StoreLite | undefined): number {
-  const r = (emp.role || '').toLowerCase()
-  if (r.includes('36h') || r.includes('atendente 1')) return 36
-  const base = emp.work_regime === '5x2' ? store?.weekly_hours_5x2 : store?.weekly_hours_6x1
-  return Number(base ?? 44)
+  return getContractWeeklyHours(emp as any, store as any)
 }
 
 function fmtH(n: number | null | undefined) {
