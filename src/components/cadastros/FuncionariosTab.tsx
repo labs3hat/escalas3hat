@@ -317,7 +317,7 @@ export default function FuncionariosTab({ store }: { store: Store }) {
                   )}
                   {emp.preferred_day_off !== null && (
                     <span className="text-[10px] font-medium bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-100">
-                      Restrição: {DAY_NAMES[emp.preferred_day_off]}
+                      Restrição: {DAY_OPTIONS.find(o => o.value === emp.preferred_day_off)?.label || 'Não'}
                     </span>
                   )}
                   {emp.preferred_shift && (
