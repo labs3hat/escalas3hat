@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Mail, Shield, Store, Loader2, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, Mail, Shield, Store, Loader2, RefreshCw, Key, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import type { Profile, UserRole, Store as StoreType } from '@/types'
@@ -39,32 +39,55 @@ export default function UsuariosTab() {
     const email = fd.get('email') as string
     const name = fd.get('name') as string
     const role = fd.get('role') as UserRole
+    const password = fd.get('password') as string
     const selectedStores = stores.filter(s => fd.get(`store_${s.id}`) === 'on').map(s => s.id)
 
     setSaving(true)
     try {
-      // Usando o método de cadastro (signUp) do Supabase. 
-      // Se o domínio de e-mail estiver configurado, ele enviará um e-mail de confirmação.
-      // Se não estiver, ele criará o usuário (mas ele precisará confirmar o e-mail se a config do Supabase exigir).
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: 'ChangeMe123!', // Senha temporária padrão
-        options: {
-          data: {
-            name,
-            role,
-            store_ids: selectedStores
-          }
+      const { data, error } = await supabase.functions.invoke('manage-user-auth', {
+        body: {
+          action: 'createUser',
+          email,
+          password,
+          name,
+          role,
+          store_ids: selectedStores
         }
       })
 
-      if (authError) throw authError
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
 
-      toast.success(`Usuário ${email} convidado com sucesso! Instrua-o a verificar o e-mail (ou use "Esqueci minha senha" se o e-mail de confirmação não chegar).`)
+      toast.success(`Usuário ${email} cadastrado com sucesso! A senha definida foi: ${password}`)
       load()
       setShowForm(false)
     } catch (error: any) {
       toast.error(`Erro ao cadastrar: ${error.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleResetPassword(userId: string, email: string) {
+    const newPassword = prompt(`Digite a nova senha para ${email}:`, '3hat2026')
+    if (!newPassword) return
+
+    setSaving(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-user-auth', {
+        body: {
+          action: 'updatePassword',
+          userId,
+          password: newPassword
+        }
+      })
+
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+
+      toast.success(`Senha de ${email} alterada para: ${newPassword}`)
+    } catch (error: any) {
+      toast.error(`Erro ao resetar senha: ${error.message}`)
     } finally {
       setSaving(false)
     }
@@ -108,6 +131,11 @@ export default function UsuariosTab() {
             <div>
               <label className="text-xs font-medium text-gray-500 mb-1 block">E-mail</label>
               <input name="email" type="email" required placeholder="joao@exemplo.com"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Senha Inicial</label>
+              <input name="password" required defaultValue="3hat2026"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
             </div>
             <div>
@@ -194,7 +222,14 @@ export default function UsuariosTab() {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {/* Edit functionality could be added here */}
+                  <button 
+                    onClick={() => handleResetPassword(p.id, p.email)}
+                    disabled={saving}
+                    className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
+                    title="Alterar Senha Manualmente"
+                  >
+                    <Key size={16} />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -219,23 +254,3 @@ export default function UsuariosTab() {
   )
 }
 
-function AlertTriangle(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </svg>
-  )
-}
