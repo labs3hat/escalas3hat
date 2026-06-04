@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.check-sheets-consistency]
 verify_jwt = true
+
+[functions.manage-user-auth]
+verify_jwt = true
