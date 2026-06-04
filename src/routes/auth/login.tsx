@@ -36,9 +36,11 @@ function LoginPage() {
     setLoading(true)
     
     // O Supabase enviará o e-mail de recuperação. O link no e-mail levará o usuário
-    // para a página de reset de senha com um access_token no fragmento da URL.
+    // para a página de reset de senha. Forçamos o redirecionamento absoluto.
+    const resetUrl = `${window.location.origin}/auth/reset-password`;
+    console.log('Solicitando reset de senha com redirectTo:', resetUrl);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      redirectTo: resetUrl,
     })
     
     setLoading(false)
