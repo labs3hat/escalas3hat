@@ -34,14 +34,20 @@ function LoginPage() {
       return
     }
     setLoading(true)
+    
+    // O Supabase enviará o e-mail de recuperação. O link no e-mail levará o usuário
+    // para a página de reset de senha com um access_token no fragmento da URL.
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     })
+    
     setLoading(false)
     if (error) {
-      toast.error(error.message)
+      toast.error(error.message === 'Email not confirmed' 
+        ? 'E-mail ainda não confirmado. Verifique sua caixa de entrada para o link de confirmação inicial.' 
+        : error.message)
     } else {
-      toast.success('E-mail de recuperação enviado com sucesso!')
+      toast.success('E-mail de recuperação enviado! Verifique sua caixa de entrada.')
     }
   }
 
