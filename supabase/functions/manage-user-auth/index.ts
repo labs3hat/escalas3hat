@@ -23,22 +23,16 @@ serve(async (req) => {
       }
     )
 
-    // Get the requester's auth token
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('No authorization header')
-    }
+    if (!authHeader) throw new Error('No authorization header')
 
     const { data: { user: requester }, error: requesterError } = await createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     ).auth.getUser(authHeader.replace('Bearer ', ''))
 
-    if (requesterError || !requester) {
-      throw new Error('Invalid token')
-    }
+    if (requesterError || !requester) throw new Error('Invalid token')
 
-    // Check if requester is admin
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('role')
@@ -64,7 +58,7 @@ serve(async (req) => {
     }
 
     if (action === 'createUser') {
-      // Create auth user
+      // 1. Create auth user
       const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
         email,
         password,
@@ -73,6 +67,19 @@ serve(async (req) => {
       })
 
       if (authError) throw authError
+
+      // 2. Update profile (trigger might have created it with defaults)
+      const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .upsert({
+          id: authUser.user.id,
+          email,
+          name,
+          role,
+          store_ids
+        })
+
+      if (profileError) throw profileError
 
       return new Response(JSON.stringify({ data: authUser }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
