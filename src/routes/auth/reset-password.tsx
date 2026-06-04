@@ -13,14 +13,23 @@ function ResetPasswordPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Check if we have a session (returned from the reset link)
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event !== 'PASSWORD_RECOVERY') {
-        // If it's not a recovery event and no session, redirect to login
-        if (!session) navigate({ to: '/auth/login' })
+    // Escuta mudanças no estado de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event in ResetPasswordPage:', event, !!session);
+      
+      // Se não houver sessão ativa e não for um evento de recuperação ou login, redireciona
+      // Isso permite que o usuário veja a página quando clica no link (que cria uma sessão temporária)
+      if (!session && event !== 'PASSWORD_RECOVERY') {
+        const hash = window.location.hash;
+        if (!hash.includes('access_token=') && !hash.includes('type=recovery')) {
+          toast.error('Link de recuperação inválido ou expirado.');
+          navigate({ to: '/auth/login' });
+        }
       }
-    })
-  }, [navigate])
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   async function handleUpdatePassword(e: React.FormEvent) {
     e.preventDefault()
