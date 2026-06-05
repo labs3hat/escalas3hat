@@ -20,6 +20,7 @@ interface Props {
   initialStores: Store[];
   initialStoreId?: string;
   initialWeek?: string;
+  initialTab?: "grade" | "resumo" | "freelancers";
 }
 
 const STORE_SELECTION_KEY = "escalas:selectedStoreId";
@@ -29,7 +30,7 @@ function getSavedStoreId() {
   return window.localStorage.getItem(STORE_SELECTION_KEY) ?? undefined;
 }
 
-export default function EscalasClient({ profile, initialStores, initialStoreId, initialWeek }: Props) {
+export default function EscalasClient({ profile, initialStores, initialStoreId, initialWeek, initialTab }: Props) {
   const navigate = useNavigate();
   const [selectedStore, setSelectedStore] = useState<Store>(() => {
     const preferredStoreId = initialStoreId ?? getSavedStoreId();
@@ -48,7 +49,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     }
   });
 
-  const [view, setView] = useState<"grade" | "resumo" | "freelancers">("grade");
+  const [view, setView] = useState<"grade" | "resumo" | "freelancers">(initialTab ?? "grade");
   const [publishing, setPublishing] = useState(false);
   const [copying, setCopying] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -90,21 +91,21 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     [weekStart],
   );
 
-  const syncSearch = (storeId: string, week: Date) => {
+  const syncSearch = (storeId: string, week: Date, tab?: string) => {
     void navigate({
       to: "/escalas",
       replace: true,
-      search: { storeId, week: format(week, "yyyy-MM-dd") },
+      search: { storeId, week: format(week, "yyyy-MM-dd"), tab: tab as any },
     });
   };
 
   useEffect(() => {
     if (!selectedStore?.id) return;
     const weekKey = format(weekStart, "yyyy-MM-dd");
-    if (initialStoreId !== selectedStore.id || initialWeek !== weekKey) {
-      syncSearch(selectedStore.id, weekStart);
+    if (initialStoreId !== selectedStore.id || initialWeek !== weekKey || initialTab !== view) {
+      syncSearch(selectedStore.id, weekStart, view);
     }
-  }, [selectedStore?.id, weekStart, initialStoreId, initialWeek]);
+  }, [selectedStore?.id, weekStart, initialStoreId, initialWeek, view, initialTab]);
 
   const { employees: allEmployees } = useEmployees(selectedStore?.id ?? null);
   const employees = useMemo(() => allEmployees.filter(e => e.active), [allEmployees]);
@@ -450,13 +451,18 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
           ) : (
             <div className="p-6 w-full h-full overflow-auto bg-gray-50/50">
               {schedule?.id ? (
-                <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  <FreelancerSlots scheduleId={schedule.id} storeId={selectedStore.id} />
-                </div>
+                <FreelancerSlots 
+                  scheduleId={schedule.id} 
+                  storeId={selectedStore.id} 
+                  isEmbed={true}
+                />
               ) : (
-                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                  <AlertTriangle className="mb-2 text-amber-500" />
-                  <p className="text-sm font-medium">Gere a escala primeiro para ver as vagas freelancer.</p>
+                <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-12 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 mb-4">
+                    <AlertTriangle size={32} />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Escala não gerada</h3>
+                  <p className="text-sm text-gray-500 max-w-xs">Gere a escala base primeiro para poder gerenciar as vagas freelancer desta semana.</p>
                 </div>
               )}
             </div>

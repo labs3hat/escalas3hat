@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { UserPlus } from "lucide-react";
 
 // ── Tipos ─────────────────────────────────────────────────────
 export interface FreelancerSlot {
@@ -500,7 +501,7 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
 // =============================================================
 // Componente principal
 // =============================================================
-export function FreelancerSlots({ scheduleId, storeId, className = "" }: { scheduleId: string | null, storeId: string, className?: string }) {
+export function FreelancerSlots({ scheduleId, storeId, className = "", isEmbed = false }: { scheduleId: string | null, storeId: string, className?: string, isEmbed?: boolean }) {
   const [activeSlot, setActiveSlot] = useState<any>(null);
   
   const {
@@ -552,17 +553,22 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }: { sched
   );
 
   return (
-    <div className={className}>
+    <div className={`${className} ${!isEmbed ? 'max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6 shadow-sm' : ''}`}>
+      {!isEmbed && (
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+          <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
+            <UserPlus size={20} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 leading-tight">Gestão de Freelancers</h2>
+            <p className="text-xs text-gray-500">Controle de vagas e coberturas extras</p>
+          </div>
+        </div>
+      )}
+
       <AlertBar openCount={openCount} />
 
       <div style={{ marginBottom: 12 }}>
-        <p style={{
-          fontSize: 10, fontWeight: 500, color: "#999",
-          textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8,
-        }}>
-          Gestão de Freelancers
-        </p>
-
         {byDay.map((daySlots, dayIdx) => (
           <div key={dayIdx} style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>

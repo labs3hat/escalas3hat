@@ -8,6 +8,7 @@ import { z } from 'zod'
 const searchSchema = z.object({
   storeId: z.string().optional(),
   week: z.string().optional(),
+  tab: z.enum(['grade', 'resumo', 'freelancers']).optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/escalas')({
@@ -16,7 +17,7 @@ export const Route = createFileRoute('/_authenticated/escalas')({
 })
 
 function EscalasPage() {
-  const { storeId, week } = Route.useSearch()
+  const { storeId, week, tab } = Route.useSearch()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,6 +63,7 @@ function EscalasPage() {
       initialStores={stores} 
       initialStoreId={storeId} 
       initialWeek={week} 
+      initialTab={tab} 
     />
   )
 }
