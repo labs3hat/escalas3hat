@@ -63,11 +63,17 @@ export default function Sidebar({ profile, collapsed }: Props) {
       {/* Nav */}
       <nav className="flex-1 py-2 overflow-y-auto">
         {finalItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href.includes('?') && pathname === href.split('?')[0])
+          const targetPath = href.split('?')[0]
+          const active = pathname === targetPath
+          const search = href.includes('?') 
+            ? Object.fromEntries(new URLSearchParams(href.split('?')[1]))
+            : undefined
+
           return (
             <Link
               key={href}
-              to={href}
+              to={targetPath as any}
+              search={search}
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 ${collapsed ? 'justify-center px-0' : 'px-4'} py-2.5 text-sm transition-colors border-l-2 ${
                 active
