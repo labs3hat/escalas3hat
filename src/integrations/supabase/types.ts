@@ -813,7 +813,12 @@ export type Database = {
       schedule_status: "draft" | "published" | "frozen"
       severity_type: "critical" | "warning"
       slot_type: "work" | "interval" | "day_off" | "empty"
-      store_region: "curitiba" | "maringa" | "Curitiba e Região"
+      store_region:
+        | "curitiba"
+        | "maringa"
+        | "Curitiba e Região"
+        | "Curitiba"
+        | "Maringá"
       store_type:
         | "loja"
         | "quiosque"
@@ -962,7 +967,13 @@ export const Constants = {
       schedule_status: ["draft", "published", "frozen"],
       severity_type: ["critical", "warning"],
       slot_type: ["work", "interval", "day_off", "empty"],
-      store_region: ["curitiba", "maringa", "Curitiba e Região"],
+      store_region: [
+        "curitiba",
+        "maringa",
+        "Curitiba e Região",
+        "Curitiba",
+        "Maringá",
+      ],
       store_type: [
         "loja",
         "quiosque",
