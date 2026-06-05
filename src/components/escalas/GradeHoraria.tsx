@@ -256,15 +256,22 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                         dayFree.map(s => (
                           <div 
                             key={s.id} 
-                            className={`flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-medium border ${
+                            className={`flex flex-col gap-0 px-1 py-0.5 rounded border ${
                               s.filled_by 
                                 ? 'bg-amber-100 border-amber-200 text-amber-800' 
                                 : 'bg-white border-dashed border-amber-300 text-amber-400'
                             }`}
-                            title={`${s.shift_name}: ${s.filled_by || 'Aguardando'}`}
+                            title={`${s.shift_name}: ${s.filled_by || 'Aguardando'} (${s.start_time || '--:--'} às ${s.end_time || '--:--'})`}
                           >
-                            <User size={6} />
-                            <span className="truncate max-w-[40px]">{s.filled_by || s.shift_name}</span>
+                            <div className="flex items-center gap-0.5">
+                              <User size={6} />
+                              <span className="truncate max-w-[40px] text-[7px] font-bold">{s.filled_by || s.shift_name}</span>
+                            </div>
+                            {s.filled_by && (
+                              <span className="text-[6px] opacity-80 leading-tight">
+                                {s.start_time || '--:--'}-{s.end_time || '--:--'}
+                              </span>
+                            )}
                           </div>
                         ))
                       ) : (
