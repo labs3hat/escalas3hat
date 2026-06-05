@@ -63,7 +63,7 @@ export default function Sidebar({ profile, collapsed }: Props) {
       {/* Nav */}
       <nav className="flex-1 py-2 overflow-y-auto">
         {finalItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href)
+          const active = pathname === href || (href.includes('?') && pathname === href.split('?')[0])
           return (
             <Link
               key={href}
