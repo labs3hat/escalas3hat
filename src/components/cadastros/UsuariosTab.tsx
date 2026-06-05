@@ -190,6 +190,7 @@ export default function UsuariosTab() {
             <tr>
               <th className="text-left px-4 py-3 font-semibold">Nome / E-mail</th>
               <th className="text-left px-4 py-3 font-semibold">Função</th>
+              <th className="text-left px-4 py-3 font-semibold">Status</th>
               <th className="text-left px-4 py-3 font-semibold">Lojas</th>
               <th className="text-right px-4 py-3 font-semibold w-20"></th>
             </tr>
@@ -216,6 +217,17 @@ export default function UsuariosTab() {
                   </span>
                 </td>
                 <td className="px-4 py-3">
+                  {p.has_auth ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 border border-green-200">
+                      Ativo
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 border border-amber-200">
+                      Sem Acesso
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {p.role === 'diretoria' || p.role === 'regional' || p.role === 'rh' ? (
                       <span className="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-100 font-medium">
@@ -240,14 +252,47 @@ export default function UsuariosTab() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button 
-                      onClick={() => handleResetPassword(p.id, p.email)}
-                      disabled={saving}
-                      className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
-                      title="Alterar Senha Manualmente"
-                    >
-                      <Key size={16} />
-                    </button>
+                    {!p.has_auth && (
+                      <button 
+                        onClick={() => {
+                          const pass = prompt('Defina uma senha inicial para este usuário:', '3hat2026')
+                          if (!pass) return
+                          setSaving(true)
+                          supabase.functions.invoke('manage-user-auth', {
+                            body: {
+                              action: 'createUser',
+                              email: p.email,
+                              password: pass,
+                              name: p.name,
+                              role: p.role,
+                              store_ids: p.store_ids
+                            }
+                          }).then(({ data, error }) => {
+                            if (error || data?.error) {
+                              toast.error(`Erro: ${error?.message || data?.error}`)
+                            } else {
+                              toast.success('Acesso criado com sucesso!')
+                              load()
+                            }
+                          }).finally(() => setSaving(false))
+                        }}
+                        disabled={saving}
+                        className="p-1.5 text-brand-500 hover:text-brand-600 transition-colors"
+                        title="Ativar Acesso"
+                      >
+                        <Key size={16} />
+                      </button>
+                    )}
+                    {p.has_auth && (
+                      <button 
+                        onClick={() => handleResetPassword(p.id, p.email)}
+                        disabled={saving}
+                        className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
+                        title="Alterar Senha Manualmente"
+                      >
+                        <Key size={16} />
+                      </button>
+                    )}
                   </div>
                 </td>
 
