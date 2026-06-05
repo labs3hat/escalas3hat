@@ -128,7 +128,7 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
       original: emp
     }));
 
-    const freeData = freelancerSlots
+    const freeData = (freelancerSlots || [])
       .filter(s => s.day_of_week === dow && s.filled_by)
       .map(s => {
         const [h, m] = (s.start_time || '00:00').split(':').map(Number);
