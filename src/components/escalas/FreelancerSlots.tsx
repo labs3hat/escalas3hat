@@ -228,27 +228,40 @@ function FreelancerCell({ slot, onFill, onClear }) {
   if (filled) {
     return (
       <div style={{
-        background: "var(--color-background-info)",
-        border: "0.5px solid var(--color-border-info)",
+        background: slot.is_manual ? "#F5F5F5" : "var(--color-background-info)",
+        border: `0.5px solid ${slot.is_manual ? "#DDD" : "var(--color-border-info)"}`,
         borderRadius: 4,
         padding: "4px 6px",
-        minHeight: 44,
+        minHeight: 54,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         cursor: "pointer",
+        position: "relative"
       }}
-        onClick={() => onClear(slot.id)}
-        title="Toque para desfazer"
+        onClick={() => onClear(slot)}
+        title="Toque para remover/limpar"
         role="button"
-        aria-label={`Freelancer ${slot.filled_by} — ${slot.shift_name}. Toque para desfazer.`}
       >
-        <span style={{ fontSize: 10, fontWeight: 500, color: "var(--color-text-info)" }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-primary)" }}>
           {slot.filled_by}
         </span>
-        <span style={{ fontSize: 9, color: "var(--color-text-secondary)" }}>
-          Freelancer
-        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <span style={{ fontSize: 9, color: "var(--color-text-secondary)" }}>
+            {slot.start_time || "--:--"} às {slot.end_time || "--:--"}
+          </span>
+          <span style={{ fontSize: 8, color: "var(--color-text-tertiary)" }}>
+            Pausa: {slot.break_minutes}m
+          </span>
+        </div>
+        {slot.is_manual && (
+          <span style={{ 
+            position: "absolute", top: 2, right: 2, fontSize: 7, 
+            background: "#EEE", padding: "1px 3px", borderRadius: 2 
+          }}>
+            Manual
+          </span>
+        )}
       </div>
     );
   }
@@ -260,7 +273,7 @@ function FreelancerCell({ slot, onFill, onClear }) {
         border: `1px dashed ${rule.border}`,
         borderRadius: 4,
         padding: "4px 6px",
-        minHeight: 44,
+        minHeight: 54,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -268,13 +281,12 @@ function FreelancerCell({ slot, onFill, onClear }) {
       }}
       onClick={() => onFill(slot)}
       role="button"
-      aria-label={`Vaga freelancer ${slot.shift_name} — regra ${slot.rule_origin}. Toque para preencher.`}
     >
       <span style={{
         display: "inline-block",
-        fontSize: 9,
-        fontWeight: 500,
-        padding: "1px 5px",
+        fontSize: 8,
+        fontWeight: 600,
+        padding: "1px 4px",
         borderRadius: 3,
         background: rule.border,
         color: rule.text,
@@ -286,7 +298,7 @@ function FreelancerCell({ slot, onFill, onClear }) {
       <span style={{ fontSize: 10, fontWeight: 500, color: rule.text }}>
         {slot.shift_name}
       </span>
-      <span style={{ fontSize: 9, color: rule.text, opacity: 0.8, marginTop: 2 }}>
+      <span style={{ fontSize: 9, color: rule.text, opacity: 0.8, marginTop: 1 }}>
         + preencher
       </span>
     </div>
