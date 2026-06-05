@@ -1,5 +1,5 @@
 export type StoreType = 'loja' | 'quiosque' | 'shopping' | 'Loja' | 'Quiosque' | 'Shopping'
-export type StoreRegion = 'curitiba' | 'maringa' | 'Curitiba e Região' | 'Curitiba' | 'Maringá'
+export type StoreRegion = 'curitiba' | 'maringa' | 'Curitiba e Região' | 'Curitiba' | 'Maringá' | 'Maringá e Região'
 export type WorkRegime = '6x1' | '5x2'
 export type UserRole = 'gerente' | 'regional' | 'diretoria' | 'rh'
 export type ScheduleStatus = 'draft' | 'published' | 'frozen'
