@@ -61,7 +61,23 @@ export function useFreelancerSlots(scheduleId) {
     setLoading(false);
   }, [scheduleId]);
 
-  useEffect(() => { fetchSlots(); }, [fetchSlots]);
+  useEffect(() => { 
+    fetchSlots(); 
+    // Inscrever para mudanças em tempo real para manter todas as instâncias sincronizadas
+    const channel = supabase
+      .channel(`freelancer_slots_${scheduleId}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'freelancer_slots',
+        filter: `schedule_id=eq.${scheduleId}`
+      }, () => {
+        fetchSlots();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchSlots, scheduleId]);
 
   // 2. Preencher vaga com nome do freelancer e horários
   const fillSlot = useCallback(async (slotId, data) => {
