@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import type { Schedule, ScheduleSlot, SlotType } from "@/types";
+import type { Schedule, ScheduleSlot, SlotType, Employee } from "@/types";
+import { validateScheduleRules } from "@/utils/scheduleRules";
 
 function normalizeSlot(slot: ScheduleSlot): ScheduleSlot {
   return { ...slot, slot_time: slot.slot_time.slice(0, 5) };
@@ -312,5 +313,20 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     );
   }
 
-  return { schedule, slots, loading, updateSlot, updateDay, publish, copyPreviousWeek, getSlot, reload: load };
+  function validate(employees: Employee[], newChange?: any) {
+    return validateScheduleRules(employees, slots, newChange);
+  }
+
+  return { 
+    schedule, 
+    slots, 
+    loading, 
+    updateSlot, 
+    updateDay, 
+    publish, 
+    copyPreviousWeek, 
+    getSlot, 
+    reload: load,
+    validate
+  };
 }
