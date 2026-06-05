@@ -21,7 +21,7 @@ const DAY_NAME_TO_INT: Record<string, number> = {
   qua: 3, quarta: 3,
   qui: 4, quinta: 4, quin: 4,
   sex: 5, sexta: 5,
-  sab: 6, sabado: 6, "sábado": 6,
+  sab: 6, sabado: 6, "sábado": 6, "sab.": 6, "sáb": 6, "sáb.": 6,
 };
 
 type Row = string[];
@@ -62,14 +62,19 @@ function parseDays(value: string): number[] {
   const raw = (value ?? "").trim();
   if (!raw || raw === "-" || raw.toLowerCase() === "n/a") return [];
   return raw
-    .split(/[,;/|\s]+/)
-    .map((p) => p.trim().toLowerCase().replace(/\./g, ""))
+    .split(/[,;/|\s\+]+/)
+    .map((p) => p.trim().toLowerCase().replace(/\.$/, ""))
     .filter(Boolean)
     .map((p) => {
       if (/^\d+$/.test(p)) return Number(p);
       if (DAY_NAME_TO_INT[p] !== undefined) return DAY_NAME_TO_INT[p];
-      const prefix = p.substring(0, 3);
-      if (DAY_NAME_TO_INT[prefix] !== undefined) return DAY_NAME_TO_INT[prefix];
+      
+      // Try fuzzy matching for common variations if exact match fails
+      for (const [key, val] of Object.entries(DAY_NAME_TO_INT)) {
+        if (p.startsWith(key) || key.startsWith(p)) {
+          if (p.length >= 2) return val;
+        }
+      }
       return undefined;
     })
     .filter((n): n is number => typeof n === "number" && n >= 0 && n <= 6);
