@@ -12,12 +12,20 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute('/_authenticated/escalas')({
-  validateSearch: (search) => searchSchema.parse(search),
+  validateSearch: (search) => {
+    try {
+      return searchSchema.parse(search);
+    } catch (e) {
+      console.warn("Invalid search params in /escalas:", e);
+      return {};
+    }
+  },
   component: EscalasPage,
 })
 
 function EscalasPage() {
-  const { storeId, week, tab } = Route.useSearch()
+  const search = Route.useSearch();
+  const { storeId, week, tab } = search || {};
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [loading, setLoading] = useState(true)

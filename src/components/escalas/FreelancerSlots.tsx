@@ -243,7 +243,7 @@ function AlertBar({ openCount }: { openCount: number }) {
 // =============================================================
 // Componente de célula freelancer
 // =============================================================
-function FreelancerCell({ slot, onFill, onClear }: { slot: FreelancerSlot, onFill: (s: any) => void, onClear: (s: any) => void }) {
+function FreelancerCell({ slot, onFill, onClear }: { slot: FreelancerSlot, onFill: (s: FreelancerSlot) => void, onClear: (s: FreelancerSlot) => void }) {
   const rule = RULE_COLORS[slot.rule_origin] ?? RULE_COLORS.R18;
   const filled = !!slot.filled_by;
 
