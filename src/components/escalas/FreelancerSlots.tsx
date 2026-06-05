@@ -93,29 +93,32 @@ export function useFreelancerSlots(scheduleId) {
 
   // 2. Preencher vaga com nome do freelancer e horários
   const fillSlot = useCallback(async (slotId, data) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error: err } = await supabase
-      .from("freelancer_slots")
-      .update({
-        filled_by:      data.nome,
-        start_time:     data.startTime,
-        end_time:       data.endTime,
-        break_minutes:  data.breakMinutes,
-        filled_at:      new Date().toISOString(),
-        filled_by_user: user?.id ?? null,
-      })
-      .eq("id", slotId);
-    if (err) throw new Error(err.message);
-    
-    toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
+    try {
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr) throw authErr;
 
-    setSlots((prev) =>
-      prev.map((s) =>
-        s.id === slotId
-          ? { ...s, filled_by: data.nome, start_time: data.startTime, end_time: data.endTime, break_minutes: data.breakMinutes, filled_at: new Date().toISOString() }
-          : s
-      )
-    );
+      const { error: err } = await supabase
+        .from("freelancer_slots")
+        .update({
+          filled_by:      data.nome,
+          start_time:     data.startTime,
+          end_time:       data.endTime,
+          break_minutes:  data.breakMinutes,
+          filled_at:      new Date().toISOString(),
+          filled_by_user: user?.id ?? null,
+        })
+        .eq("id", slotId);
+      
+      if (err) throw err;
+      
+      toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
+      // Não atualizamos o estado local manualmente aqui para evitar conflitos com o real-time
+      // O fetchSlots() será chamado pelo listener do postgres_changes
+    } catch (err: any) {
+      console.error("Erro em fillSlot:", err);
+      toast.error("Erro ao salvar freelancer: " + err.message);
+      throw err;
+    }
   }, []);
 
   // 3. Adicionar vaga manual
