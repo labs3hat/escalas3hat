@@ -123,55 +123,69 @@ export function useFreelancerSlots(scheduleId) {
 
   // 3. Adicionar vaga manual
   const addManualSlot = useCallback(async (scheduleId, storeId, dayOfWeek, data) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: newSlot, error: err } = await supabase
-      .from("freelancer_slots")
-      .insert({
-        schedule_id:    scheduleId,
-        store_id:       storeId,
-        day_of_week:    dayOfWeek,
-        shift_name:     "Manual",
-        rule_origin:    "Manual",
-        filled_by:      data.nome,
-        start_time:     data.startTime,
-        end_time:       data.endTime,
-        break_minutes:  data.breakMinutes,
-        is_manual:      true,
-        filled_at:      new Date().toISOString(),
-        filled_by_user: user?.id ?? null,
-      })
-      .select()
-      .single();
-    
-    if (err) throw new Error(err.message);
-    
-    toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
-    setSlots(prev => [...prev, newSlot]);
+    try {
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr) throw authErr;
+
+      const { data: newSlot, error: err } = await supabase
+        .from("freelancer_slots")
+        .insert({
+          schedule_id:    scheduleId,
+          store_id:       storeId,
+          day_of_week:    dayOfWeek,
+          shift_name:     "Manual",
+          rule_origin:    "Manual",
+          filled_by:      data.nome,
+          start_time:     data.startTime,
+          end_time:       data.endTime,
+          break_minutes:  data.breakMinutes,
+          is_manual:      true,
+          filled_at:      new Date().toISOString(),
+          filled_by_user: user?.id ?? null,
+        })
+        .select()
+        .single();
+      
+      if (err) throw err;
+      
+      toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
+      // O real-time cuidará de atualizar o estado
+    } catch (err: any) {
+      console.error("Erro em addManualSlot:", err);
+      toast.error("Erro ao adicionar freelancer: " + err.message);
+      throw err;
+    }
   }, []);
 
   // 4. Limpar/Excluir vaga
   const clearSlot = useCallback(async (slotId, isManual) => {
-    if (isManual) {
-      const { error: err } = await supabase
-        .from("freelancer_slots")
-        .delete()
-        .eq("id", slotId);
-      if (err) throw new Error(err.message);
-      setSlots(prev => prev.filter(s => s.id !== slotId));
-      toast.success("Freelancer removido com sucesso!");
-    } else {
-      const { error: err } = await supabase
-        .from("freelancer_slots")
-        .update({ filled_by: null, filled_at: null, filled_by_user: null, start_time: null, end_time: null })
-        .eq("id", slotId);
-      if (err) throw new Error(err.message);
-      setSlots((prev) =>
-        prev.map((s) =>
-          s.id === slotId
-            ? { ...s, filled_by: null, filled_at: null, start_time: null, end_time: null }
-            : s
-        )
-      );
+    try {
+      if (isManual) {
+        const { error: err } = await supabase
+          .from("freelancer_slots")
+          .delete()
+          .eq("id", slotId);
+        if (err) throw err;
+        toast.success("Freelancer removido com sucesso!");
+      } else {
+        const { error: err } = await supabase
+          .from("freelancer_slots")
+          .update({ 
+            filled_by: null, 
+            filled_at: null, 
+            filled_by_user: null, 
+            start_time: null, 
+            end_time: null,
+            break_minutes: 60
+          })
+          .eq("id", slotId);
+        if (err) throw err;
+        toast.success("Vaga de freelancer liberada!");
+      }
+      // O real-time cuidará de atualizar o estado
+    } catch (err: any) {
+      console.error("Erro em clearSlot:", err);
+      toast.error("Erro ao remover/limpar: " + err.message);
     }
   }, []);
 

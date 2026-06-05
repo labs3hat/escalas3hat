@@ -300,10 +300,11 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
 
                   {weekDates.map((d, di) => {
                     const dow = d.getDay()
-                    return employees.map((emp, ei) => {
+                    
+                    // Colunas de funcionários regulares
+                    const empCols = employees.map((emp, ei) => {
                       const slotType = hourType(emp.id, dow, hour)
                       const fullOff = isFullDayOff(emp.id, dow)
-
                       const borderLeft = ei === 0 ? '2px solid #888780' : '0.5px solid #E5E5E0'
                       let style: React.CSSProperties = { backgroundColor: 'white', borderLeft }
 
@@ -326,10 +327,18 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                         />
                       )
                     })
+
+                    return empCols
                   })}
                 </tr>
               )
             })}
+
+            {/* Linhas extras para Freelancers Preenchidos (opcional: mostrar como "funcionários" extras) */}
+            {/* Por enquanto, já mostramos o resumo no cabeçalho. 
+                Se o usuário quiser que eles apareçam exatamente como funcionários, 
+                precisaríamos de uma lógica mais complexa para alinhar as colunas.
+                A linha de resumo no topo e no resumo diário deve ser o suficiente se funcionar bem. */}
 
 
             <tr ref={footerRef} className="bg-gray-50 border-t border-gray-300">

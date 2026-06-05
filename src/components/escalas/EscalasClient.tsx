@@ -449,13 +449,16 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
             />
 
           ) : (
-            <div className="p-4 max-w-lg h-full overflow-auto">
+            <div className="p-6 w-full h-full overflow-auto bg-gray-50/50">
               {schedule?.id ? (
-                <FreelancerSlots scheduleId={schedule.id} storeId={selectedStore.id} />
+                <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <FreelancerSlots scheduleId={schedule.id} storeId={selectedStore.id} />
+                </div>
               ) : (
-                <p className="text-sm text-gray-400">
-                  Gere a escala primeiro para ver as vagas freelancer.
-                </p>
+                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                  <AlertTriangle className="mb-2 text-amber-500" />
+                  <p className="text-sm font-medium">Gere a escala primeiro para ver as vagas freelancer.</p>
+                </div>
               )}
             </div>
           )}
