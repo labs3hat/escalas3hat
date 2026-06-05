@@ -172,6 +172,16 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     return formatters.weekRange(weekDates[0], weekDates[6]);
   }, [weekDates]);
 
+  async function handleRefresh() {
+    try {
+      await reload();
+      await refetchFreelancers();
+      toast.success("Escala atualizada!");
+    } catch (e: any) {
+      handleSupabaseError(e, "Erro ao atualizar escala");
+    }
+  }
+
   async function handlePublish() {
     setPublishing(true);
     try {
