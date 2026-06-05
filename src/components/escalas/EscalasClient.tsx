@@ -126,10 +126,10 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     if (!selectedStore?.id) return;
     const weekKey = format(weekStart, "yyyy-MM-dd");
     
-    // Only sync if actual values changed and are different from current search params
+    // Sync if values changed and are different from current search params
     const currentWeekKey = initialWeek;
     const currentStoreId = initialStoreId;
-    const currentTab = initialTab;
+    const currentTab = initialTab || "grade";
 
     if (selectedStore.id !== currentStoreId || weekKey !== currentWeekKey || view !== currentTab) {
       syncSearch(selectedStore.id, weekStart, view);
