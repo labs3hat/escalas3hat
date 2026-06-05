@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
 import SlotModal, { type DayPayload } from './SlotModal'
+import { AlertTriangle, User } from 'lucide-react'
+
+interface FreelancerSlot {
+  id: string;
+  day_of_week: number;
+  shift_name: string;
+  filled_by: string | null;
+  rule_origin: string;
+}
 
 interface Props {
   employees: Employee[]
@@ -15,6 +24,7 @@ interface Props {
   ) => Promise<void>
   store: Store
   isPublished: boolean
+  freelancerSlots?: FreelancerSlot[]
 }
 
 const TODAY = new Date()
@@ -26,7 +36,7 @@ function hex2rgba(hex: string, alpha = 0.15) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function GradeHoraria({ employees, weekDates, getSlot, updateDay, store, isPublished }: Props) {
+export default function GradeHoraria({ employees, weekDates, getSlot, updateDay, store, isPublished, freelancerSlots = [] }: Props) {
   const [modal, setModal] = useState<{
     emp: Employee; dow: number; date: Date; initial: DayPayload
   } | null>(null)
@@ -280,8 +290,18 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 const dow = d.getDay()
                 const abSlot = store.opening_time_weekday || '10:00'
                 const fcSlot = '22:00'
-                const abCount = employees.filter(e => getSlot(e.id, dow, abSlot) === 'work').length
-                const fcCount = employees.filter(e => getSlot(e.id, dow, fcSlot) === 'work').length
+                
+                // Count employees
+                const abEmpCount = employees.filter(e => getSlot(e.id, dow, abSlot) === 'work').length
+                const fcEmpCount = employees.filter(e => getSlot(e.id, dow, fcSlot) === 'work').length
+                
+                // Count freelancers (heuristic: Abertura = opening, Fechamento = closing)
+                const abFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
+                const fcFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
+
+                const abCount = abEmpCount + abFreeCount
+                const fcCount = fcEmpCount + fcFreeCount
+
                 const abOk = abCount >= (store.min_opening_staff ?? 1)
                 const fcOk = fcCount >= (store.min_closing_staff ?? 2)
                 const ok = abOk && fcOk
