@@ -12,13 +12,13 @@ const searchSchema = z.object({
   tab: z.enum(['grade', 'resumo', 'freelancers']).optional().catch('grade' as const),
 })
 
-function RouteError({ error }: { error: Error }) {
+function RouteError({ error }: { error: any }) {
   console.error("Critical error in /escalas route:", error);
   return (
     <div className="flex flex-col items-center justify-center h-full p-4 text-center">
       <h2 className="text-lg font-semibold text-gray-900">Erro ao carregar a página</h2>
       <p className="text-sm text-gray-500 mt-1">
-        {error.message || "Ocorreu um problema ao processar os parâmetros da escala."}
+        {error?.message || "Ocorreu um problema ao processar os parâmetros da escala."}
       </p>
       <button 
         onClick={() => {
