@@ -67,9 +67,13 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
     const entry = workSlots[0]
     const [eh, em] = entry.split(':').map(Number)
     const entryTotal = eh * 60 + em
-    const grossMin = emp.work_regime === '5x2' ? 588 : 500
-    const exitTotal = entryTotal + grossMin
-    const netMin = grossMin - 60
+    
+    // Heurística de saída baseada em quem entra
+    const lastWork = workSlots[workSlots.length - 1]
+    const [lh, lm] = lastWork.split(':').map(Number)
+    const exitTotal = lh * 60 + lm + 30
+
+    const netMin = workSlots.length * 30
     const hrs = `${Math.floor(netMin / 60)}h${netMin % 60 ? String(netMin % 60).padStart(2,'0') : ''}`
     const xh = Math.floor(exitTotal / 60)
     const xm = exitTotal % 60
@@ -79,8 +83,8 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
     if (intervalSlots.length > 0) {
       const first = intervalSlots[0]
       const last = intervalSlots[intervalSlots.length - 1]
-      const [lh, lm] = last.split(':').map(Number)
-      const endTotal = lh * 60 + lm + 30
+      const [lih, lim] = last.split(':').map(Number)
+      const endTotal = lih * 60 + lim + 30
       intervalLabel = `${first} – ${fmt(Math.floor(endTotal / 60), endTotal % 60)}`
     }
 
@@ -128,7 +132,12 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
           const isWknd = dow === 0 || dow === 6
           const abCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday?.replace(':','') ?? '10:00') === 'work').length
           const fcCount = employees.filter(e => getSlot(e.id, dow, '22:00') === 'work').length
-          const fcOk = fcCount >= (store.min_closing_staff ?? 2)
+          
+          // Considerar freelancers no resumo
+          // Precisamos dos slots de freelancer passados via props
+          // Mas como não estão nas props, vamos adicionar ou usar via hook se necessário.
+          // Por enquanto, vamos deixar marcado para o EscalasClient passar.
+
 
           return (
             <div

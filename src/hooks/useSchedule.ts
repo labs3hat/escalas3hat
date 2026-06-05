@@ -119,31 +119,39 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    // Normalizar slotTime para garantir consistência (ex: "08:00:00" -> "08:00")
+    const normalizedTime = slotTime.length > 5 ? slotTime.slice(0, 5) : slotTime;
+
     const existing = slots.find(
       (s) =>
-        s.employee_id === employeeId && s.day_of_week === dayOfWeek && s.slot_time === slotTime,
+        s.employee_id === employeeId && s.day_of_week === dayOfWeek && s.slot_time === normalizedTime,
     );
 
     if (existing) {
-      await supabase
-        .from("schedule_slots")
-        .update({
-          slot_type: typedSlotType,
-          updated_by: user?.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id);
-      setSlots((prev) =>
-        prev.map((s) => (s.id === existing.id ? { ...s, slot_type: typedSlotType } : s)),
-      );
-    } else {
+      if (typedSlotType === 'empty') {
+        await supabase.from("schedule_slots").delete().eq("id", existing.id);
+        setSlots((prev) => prev.filter((s) => s.id !== existing.id));
+      } else {
+        await supabase
+          .from("schedule_slots")
+          .update({
+            slot_type: typedSlotType,
+            updated_by: user?.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id);
+        setSlots((prev) =>
+          prev.map((s) => (s.id === existing.id ? { ...s, slot_type: typedSlotType } : s)),
+        );
+      }
+    } else if (typedSlotType !== 'empty') {
       const { data: newSlot } = await supabase
         .from("schedule_slots")
         .insert({
           schedule_id: schedule.id,
           employee_id: employeeId,
           day_of_week: dayOfWeek,
-          slot_time: slotTime,
+          slot_time: normalizedTime,
           slot_type: typedSlotType,
           updated_by: user?.id,
         })

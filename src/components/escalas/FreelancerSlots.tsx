@@ -139,6 +139,9 @@ export function usePublishSchedule(scheduleId, canPublish) {
       setPublished(true);
       // Forçar um recarregamento da página para refletir o status
       window.location.reload();
+      // Em vez de reload, o ideal é o EscalasClient detectar a mudança via realtime
+      // ou callback, mas o reload resolve o sumiço imediato relatado.
+
     }
     setPublishing(false);
   }, [scheduleId]);
