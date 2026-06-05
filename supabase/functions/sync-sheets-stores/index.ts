@@ -27,20 +27,28 @@ const DAY_NAME_TO_INT: Record<string, number> = {
 type Row = string[];
 
 function parseTime(value: string): string | null {
-  const raw = (value ?? "").trim();
-  if (!raw || raw === "-" || raw.toLowerCase() === "n/a") return null;
+  const raw = (value ?? "").trim().replace(/\s/g, "");
+  if (!raw || raw === "-" || raw.toLowerCase() === "n/a" || raw === "0") return null;
   
-  // Already HH:MM or HH:MM:SS
-  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(raw)) {
-    const parts = raw.split(":");
-    const h = parts[0].padStart(2, "0");
-    const m = parts[1].padStart(2, "0");
+  // Handle HH:MM:SS or HH:MM
+  const timeMatch = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (timeMatch) {
+    const h = timeMatch[1].padStart(2, "0");
+    const m = timeMatch[2].padStart(2, "0");
+    return `${h}:${m}`;
+  }
+  
+  // Handle HHhMM format (common in Brazil)
+  const hMatch = raw.match(/^(\d{1,2})[hH](\d{2})?$/);
+  if (hMatch) {
+    const h = hMatch[1].padStart(2, "0");
+    const m = (hMatch[2] ?? "00").padStart(2, "0");
     return `${h}:${m}`;
   }
   
   // Excel decimal fraction of a day (e.g. 0.4166 for 10:00)
   const num = Number(raw.replace(",", "."));
-  if (!isNaN(num) && isFinite(num) && num >= 0 && num < 1) {
+  if (!isNaN(num) && isFinite(num) && num > 0 && num < 1) {
     const totalMin = Math.round(num * 24 * 60);
     const h = Math.floor(totalMin / 60) % 24;
     const m = totalMin % 60;
