@@ -19,7 +19,7 @@ const DAY_NAME_TO_INT: Record<string, number> = {
   seg: 1, segunda: 1,
   ter: 2, terca: 2, "terça": 2,
   qua: 3, quarta: 3,
-  qui: 4, quinta: 4,
+  qui: 4, quinta: 4, quin: 4,
   sex: 5, sexta: 5,
   sab: 6, sabado: 6, "sábado": 6,
 };
@@ -62,12 +62,15 @@ function parseDays(value: string): number[] {
   const raw = (value ?? "").trim();
   if (!raw || raw === "-" || raw.toLowerCase() === "n/a") return [];
   return raw
-    .split(/[,;/\s]+/)
+    .split(/[,;/|\s]+/)
     .map((p) => p.trim().toLowerCase().replace(/\./g, ""))
     .filter(Boolean)
     .map((p) => {
       if (/^\d+$/.test(p)) return Number(p);
-      return DAY_NAME_TO_INT[p];
+      if (DAY_NAME_TO_INT[p] !== undefined) return DAY_NAME_TO_INT[p];
+      const prefix = p.substring(0, 3);
+      if (DAY_NAME_TO_INT[prefix] !== undefined) return DAY_NAME_TO_INT[prefix];
+      return undefined;
     })
     .filter((n): n is number => typeof n === "number" && n >= 0 && n <= 6);
 }
