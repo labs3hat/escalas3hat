@@ -9,10 +9,11 @@ function FreelancersRedirect() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    navigate({ to: '/escalas', search: { storeId: undefined, week: undefined }, replace: true })
-    // Adicionar um pequeno delay ou simplesmente deixar que o usuário veja a aba correta
-    // Mas o ideal é que ele caia na tela de escalas com a aba de freelancers ativa.
-    // Como o estado da aba é local ao EscalasClient, não conseguimos passar via URL sem alterar o EscalasClient.
+    navigate({ 
+      to: '/escalas', 
+      search: { tab: 'freelancers' }, 
+      replace: true 
+    })
   }, [navigate])
 
   return null

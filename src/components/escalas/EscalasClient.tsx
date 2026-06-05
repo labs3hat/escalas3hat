@@ -20,6 +20,7 @@ interface Props {
   initialStores: Store[];
   initialStoreId?: string;
   initialWeek?: string;
+  initialTab?: "grade" | "resumo" | "freelancers";
 }
 
 const STORE_SELECTION_KEY = "escalas:selectedStoreId";
@@ -29,7 +30,7 @@ function getSavedStoreId() {
   return window.localStorage.getItem(STORE_SELECTION_KEY) ?? undefined;
 }
 
-export default function EscalasClient({ profile, initialStores, initialStoreId, initialWeek }: Props) {
+export default function EscalasClient({ profile, initialStores, initialStoreId, initialWeek, initialTab }: Props) {
   const navigate = useNavigate();
   const [selectedStore, setSelectedStore] = useState<Store>(() => {
     const preferredStoreId = initialStoreId ?? getSavedStoreId();
@@ -48,7 +49,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     }
   });
 
-  const [view, setView] = useState<"grade" | "resumo" | "freelancers">("grade");
+  const [view, setView] = useState<"grade" | "resumo" | "freelancers">(initialTab ?? "grade");
   const [publishing, setPublishing] = useState(false);
   const [copying, setCopying] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -90,21 +91,21 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     [weekStart],
   );
 
-  const syncSearch = (storeId: string, week: Date) => {
+  const syncSearch = (storeId: string, week: Date, tab?: string) => {
     void navigate({
       to: "/escalas",
       replace: true,
-      search: { storeId, week: format(week, "yyyy-MM-dd") },
+      search: { storeId, week: format(week, "yyyy-MM-dd"), tab: tab as any },
     });
   };
 
   useEffect(() => {
     if (!selectedStore?.id) return;
     const weekKey = format(weekStart, "yyyy-MM-dd");
-    if (initialStoreId !== selectedStore.id || initialWeek !== weekKey) {
-      syncSearch(selectedStore.id, weekStart);
+    if (initialStoreId !== selectedStore.id || initialWeek !== weekKey || initialTab !== view) {
+      syncSearch(selectedStore.id, weekStart, view);
     }
-  }, [selectedStore?.id, weekStart, initialStoreId, initialWeek]);
+  }, [selectedStore?.id, weekStart, initialStoreId, initialWeek, view, initialTab]);
 
   const { employees: allEmployees } = useEmployees(selectedStore?.id ?? null);
   const employees = useMemo(() => allEmployees.filter(e => e.active), [allEmployees]);
