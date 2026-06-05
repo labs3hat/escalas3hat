@@ -186,7 +186,12 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
                     <div className="text-[10px] font-bold truncate leading-tight text-amber-700">
                       {free.filled_by}
                     </div>
-                    <span className="inline-block text-[8px] bg-amber-100 text-amber-700 px-1 rounded">Freelancer ({free.shift_name})</span>
+                    <div className="text-[9px] text-amber-600 font-medium">
+                      {free.start_time || "--:--"}–{free.end_time || "--:--"}
+                    </div>
+                    <span className="inline-block text-[8px] bg-amber-100 text-amber-700 px-1 rounded">
+                      Freelancer ({free.is_manual ? 'Manual' : free.shift_name})
+                    </span>
                   </div>
                 ))}
                 
