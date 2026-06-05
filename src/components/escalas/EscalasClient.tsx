@@ -1,12 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { addDays, startOfWeek, format, subWeeks, addWeeks, differenceInWeeks, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Profile, Store } from "@/types";
-import { SLOT_KEYS, DAY_NAMES, MONTHS } from "@/types";
+import { SLOT_KEYS, MONTHS } from "@/types";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useSchedule } from "@/hooks/useSchedule";
 import GradeHoraria from "./GradeHoraria";
@@ -15,6 +14,13 @@ import PainelAlertas from "./PainelAlertas";
 import FreelancerSlots from "./FreelancerSlots";
 import { useFreelancerSlots } from "./FreelancerSlots";
 import GerarEscalaMensalModal from "./GerarEscalaMensalModal";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { TabBar } from "@/components/ui/TabBar";
+import { formatters } from "@/lib/formatters";
+import { handleSupabaseError } from "@/lib/errorHandler";
+import { BUSINESS_RULES, WORK_REGIMES } from "@/constants";
 
 interface Props {
   profile: Profile | null;
@@ -55,19 +61,18 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
 
   const [view, setView] = useState<"grade" | "resumo" | "freelancers">("grade");
 
-  // Sincronizar estado local com props de navegação
   useEffect(() => {
     if (initialTab && ["grade", "resumo", "freelancers"].includes(initialTab)) {
       setView(initialTab);
     }
   }, [initialTab]);
+
   const [publishing, setPublishing] = useState(false);
   const [copying, setCopying] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
 
-  // Update selected store if initialStoreId changes (navigation)
   useEffect(() => {
     if (initialStoreId) {
       const store = initialStores.find(s => s.id === initialStoreId);
@@ -80,7 +85,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     window.localStorage.setItem(STORE_SELECTION_KEY, selectedStore.id);
   }, [selectedStore?.id]);
 
-  // Update week offset if initialWeek changes (navigation)
   useEffect(() => {
     if (initialWeek) {
       try {
@@ -90,7 +94,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
       } catch (e) {}
     }
   }, [initialWeek]);
-
 
   const weekStart = useMemo(() => {
     const base = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -129,29 +132,24 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     weekStart,
   );
 
-  // Freelancers
   const { slots: freelancerSlots, openCount } = useFreelancerSlots(schedule?.id ?? null);
 
   const weekLabel = useMemo(() => {
-    const s = weekDates[0],
-      e = weekDates[6];
-    return `${s.getDate()} – ${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
+    return formatters.weekRange(weekDates[0], weekDates[6]);
   }, [weekDates]);
 
-  // Publicação sempre permitida; vagas freelancer em aberto viram apenas aviso
   async function handlePublish() {
     setPublishing(true);
     try {
       await publish();
       toast.success("Escala publicada com sucesso");
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao publicar escala");
+      handleSupabaseError(e, "Erro ao publicar escala");
     } finally {
       setPublishing(false);
     }
   }
 
-  // Edição pós-publicação: pede motivo e registra em schedule_changes
   async function updateDayWithAudit(
     employeeId: string,
     dayOfWeek: number,
@@ -159,7 +157,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
     reason?: string
   ) {
-    // 1. Validar travas de segurança ANTES de salvar
     const violations = validate(employees, { employeeId, dayOfWeek, type, payload });
     const errors = violations.filter(v => v.type === 'error');
     
@@ -170,7 +167,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
 
     const warnings = violations.filter(v => v.type === 'warning');
     if (warnings.length > 0) {
-      // Avisa mas permite se for gerente ou superior (o sistema já faz isso por estar no componente de edição)
       toast.warning(warnings[0].message, { duration: 5000 });
     }
 
@@ -180,7 +176,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         return;
       }
 
-      // Calculate old values
       const workSlots = SLOT_KEYS.filter(s => getSlot(employeeId, dayOfWeek, s) === 'work');
       const intervalSlots = SLOT_KEYS.filter(s => getSlot(employeeId, dayOfWeek, s) === 'interval');
       const offSlot = SLOT_KEYS.some(s => getSlot(employeeId, dayOfWeek, s) === 'day_off');
@@ -188,6 +183,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
       let oldType: "work" | "day_off" | "empty" = offSlot ? 'day_off' : (workSlots.length > 0 ? 'work' : 'empty');
       let oldEntry: string | null = workSlots.length > 0 ? workSlots[0] : null;
       let oldExit: string | null = null;
+      
       if (workSlots.length > 0) {
         const emp = employees.find(e => e.id === employeeId);
         const toMin = (s: string) => {
@@ -197,8 +193,8 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         const fmt = (mins: number) =>
           `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
         
-        const bruta = emp?.work_regime === '5x2' ? 588 : 500;
-        oldExit = oldEntry ? fmt(toMin(oldEntry) + bruta) : null;
+        const shiftDuration = emp?.work_regime === WORK_REGIMES.R5X2 ? BUSINESS_RULES.DEFAULT_5X2_HOURS : BUSINESS_RULES.DEFAULT_6X1_HOURS;
+        oldExit = oldEntry ? fmt(toMin(oldEntry) + shiftDuration) : null;
       }
       let oldBreak: string | null = intervalSlots.length > 0 ? intervalSlots[0] : null;
 
@@ -228,25 +224,28 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         
         toast.success("Alteração registrada e salva com sucesso");
       } catch (err) {
-        console.error("Erro ao salvar alteração auditada:", err);
-        toast.error("Erro ao salvar a alteração.");
+        handleSupabaseError(err, "Erro ao salvar alteração auditada");
       }
     } else {
       try {
         await updateDay(employeeId, dayOfWeek, type, payload);
         toast.success("Escala atualizada");
       } catch (err) {
-        console.error("Erro ao atualizar escala:", err);
-        toast.error("Erro ao atualizar escala.");
+        handleSupabaseError(err, "Erro ao atualizar escala");
       }
     }
   }
 
   async function handleCopy() {
     setCopying(true);
-    await copyPreviousWeek(employees);
-    toast.success("Semana anterior copiada!");
-    setCopying(false);
+    try {
+      await copyPreviousWeek(employees);
+      toast.success("Semana anterior copiada!");
+    } catch (err) {
+      handleSupabaseError(err, "Erro ao copiar semana");
+    } finally {
+      setCopying(false);
+    }
   }
 
   async function handleGenerate() {
@@ -254,9 +253,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     const currentStore = selectedStore;
     setGenerating(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       const weekKey = format(weekStart, "yyyy-MM-dd");
       const { data, error } = await supabase.rpc("generate_base_schedule", {
         p_store_id: currentStore.id,
@@ -268,58 +265,39 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         toast.error((error?.message ?? result?.error) || "Erro ao gerar escala");
         return;
       }
-      setSelectedStore(currentStore);
-      syncSearch(currentStore.id, weekStart);
       toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
       await reload();
       setRefreshKey((k) => k + 1);
+    } catch (err) {
+      handleSupabaseError(err, "Erro ao gerar escala base");
     } finally {
       setGenerating(false);
     }
   }
 
   if (!selectedStore) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-        Nenhuma loja disponível
-      </div>
-    );
+    return <EmptyState title="Nenhuma loja disponível" />;
   }
+
+  const tabItems = [
+    { id: "grade", label: "Grade semanal" },
+    { id: "resumo", label: "Resumo diário" },
+    { id: "freelancers", label: "Freelancers", badge: openCount, icon: openCount > 0 ? <AlertTriangle size={14} className="text-amber-500" /> : null }
+  ] as const;
 
   return (
     <div className="flex h-full">
-      {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Page header */}
-        <div className="px-6 pt-3 pb-2 flex items-start justify-between gap-4 flex-shrink-0">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight">Escalas</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Grade semanal por loja</p>
-          </div>
-          {initialStores.length > 1 ? (
-            <select
-              value={selectedStore.id}
-              onChange={(e) =>
-                setSelectedStore(initialStores.find((s) => s.id === e.target.value)!)
-              }
-              className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 font-medium focus:outline-none focus:border-brand-400 min-w-[200px]"
-            >
-              {initialStores.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.code} — {s.shopping}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="text-sm font-medium bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-lg">
-              {selectedStore.code}
-            </span>
-          )}
-        </div>
+        <PageHeader 
+          title="Escalas" 
+          subtitle="Grade semanal por loja"
+          stores={initialStores}
+          selectedStoreId={selectedStore.id}
+          onStoreChange={setSelectedStore}
+        />
 
-        {/* Toolbar card */}
+        {/* Toolbar */}
         <div className="mx-6 mb-2 bg-white border border-gray-200 rounded-xl px-4 py-2 flex items-center justify-between gap-3 flex-wrap flex-shrink-0">
-          {/* Left: week nav */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekOffset((w) => w - 1)}
@@ -344,7 +322,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
             </button>
           </div>
 
-          {/* Right: status + actions */}
           <div className="flex items-center gap-2 flex-wrap">
             {schedule && (
               <span
@@ -356,15 +333,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
               >
                 {schedule.status === "published" ? "Publicada" : "Rascunho"}
               </span>
-            )}
-            {openCount > 0 && (
-              <button
-                onClick={() => setView("freelancers")}
-                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
-              >
-                <AlertTriangle size={11} />
-                {openCount} vaga{openCount > 1 ? "s" : ""} freelancer
-              </button>
             )}
             <button
               onClick={handleCopy}
@@ -408,36 +376,11 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
           </div>
         </div>
 
-        {/* Segmented tabs */}
-        <div className="px-6 flex items-center gap-2 flex-shrink-0">
-          <div className="inline-flex bg-gray-100 rounded-lg p-1">
-            {(["grade", "resumo", "freelancers"] as const).map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className={`px-4 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1.5 ${
-                  view === v
-                    ? "bg-white text-gray-900 font-medium shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {v === "grade" ? "Grade semanal" : v === "resumo" ? "Resumo diário" : "Freelancers"}
-                {v === "freelancers" && openCount > 0 && (
-                  <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold rounded-full bg-amber-500 text-white">
-                    {openCount}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+        <TabBar items={tabItems} activeId={view} onChange={setView} />
 
-        {/* Content */}
         <div className="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-2">
           {loading ? (
-            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-              Carregando escala...
-            </div>
+            <LoadingState fullPage />
           ) : view === "grade" ? (
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden h-full">
               <GradeHoraria
@@ -461,7 +404,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
               isPublished={schedule?.status === "published"}
               freelancerSlots={freelancerSlots}
             />
-
           ) : (
             <div className="p-6 w-full h-full overflow-auto bg-gray-50/50">
               {schedule?.id ? (
@@ -471,18 +413,17 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
                   isEmbed={true}
                 />
               ) : (
-                <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-12 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 mb-4">
-                    <AlertTriangle size={32} />
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">Escala não gerada</h3>
-                  <p className="text-sm text-gray-500 max-w-xs">Gere a escala base primeiro para poder gerenciar as vagas freelancer desta semana.</p>
-                </div>
+                <EmptyState 
+                  title="Escala não gerada" 
+                  description="Gere a escala base primeiro para poder gerenciar as vagas freelancer desta semana."
+                  icon={<AlertTriangle size={32} className="text-amber-500" />}
+                />
               )}
             </div>
           )}
         </div>
       </div>
+
 
       {/* RIGHT PANEL */}
       <PainelAlertas
