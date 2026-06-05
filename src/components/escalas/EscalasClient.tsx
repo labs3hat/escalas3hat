@@ -452,7 +452,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
             <div className="p-6 w-full h-full overflow-auto bg-gray-50/50">
               {schedule?.id ? (
                 <div className="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  {console.log("Renderizando FreelancerSlots com ID:", schedule.id)}
+                  {(() => { console.log("Renderizando FreelancerSlots com ID:", schedule.id); return null; })()}
                   <FreelancerSlots scheduleId={schedule.id} storeId={selectedStore.id} />
                 </div>
               ) : (
