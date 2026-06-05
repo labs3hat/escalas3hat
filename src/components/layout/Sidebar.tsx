@@ -5,7 +5,7 @@ import type { Profile } from '@/types'
 
 const navItems = [
   { href: '/escalas',     label: 'Escalas',               icon: Calendar },
-  { href: '/freelancers', label: 'Freelancers',          icon: UserPlus },
+  { href: '/escalas?tab=freelancers', label: 'Freelancers',          icon: UserPlus },
   { href: '/cadastros',   label: 'Funcionários',          icon: Users },
   { href: '/config-loja', label: 'Configurações da loja', icon: Settings },
   { href: '/usuarios',    label: 'Usuários',              icon: ShieldCheck },
@@ -63,11 +63,17 @@ export default function Sidebar({ profile, collapsed }: Props) {
       {/* Nav */}
       <nav className="flex-1 py-2 overflow-y-auto">
         {finalItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href)
+          const targetPath = href.split('?')[0]
+          const active = pathname === targetPath
+          const search = href.includes('?') 
+            ? Object.fromEntries(new URLSearchParams(href.split('?')[1]))
+            : undefined
+
           return (
             <Link
               key={href}
-              to={href}
+              to={targetPath as any}
+              search={search as any}
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 ${collapsed ? 'justify-center px-0' : 'px-4'} py-2.5 text-sm transition-colors border-l-2 ${
                 active
