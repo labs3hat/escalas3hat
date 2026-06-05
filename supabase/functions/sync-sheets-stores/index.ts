@@ -140,13 +140,23 @@ Deno.serve(async (req) => {
       const name = (row[1] ?? "").trim();
       if (!code || !name) { skipped++; continue; }
 
+      // Map spreadsheet regions to database regions
+      let region = (row[5] ?? "").trim().toLowerCase();
+      if (region.includes("curitiba")) {
+        region = "curitiba";
+      } else if (region.includes("maringa") || region.includes("maringá")) {
+        region = "maringa";
+      } else {
+        region = "curitiba"; // default fallback
+      }
+
       const payload = {
         code,
         name,
         type: (row[2] ?? "").trim() || "shopping",
         shopping: (row[3] ?? "").trim(),
         city: (row[4] ?? "").trim(),
-        region: (row[5] ?? "").trim() || "sudeste",
+        region,
         opening_time_weekday: parseTime(row[6]) ?? "10:00",
         closing_time_weekday: parseTime(row[7]),
         opening_time_saturday: parseTime(row[8]) ?? "10:00",
