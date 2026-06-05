@@ -232,6 +232,45 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 }),
               )}
             </tr>
+            {/* Linha de Freelancers (se houver no dia) */}
+            <tr style={{ height: 32 }} className="bg-amber-50/30">
+              <th className="sticky left-0 z-10 bg-amber-50/30 border-b border-r border-gray-200 w-10 h-[32px] text-left px-1 py-0 text-[7px] font-bold uppercase text-amber-700 leading-none align-middle">
+                Freelancers
+              </th>
+              {weekDates.map((d, di) => {
+                const dow = d.getDay()
+                const dayFree = freelancerSlots.filter(s => s.day_of_week === dow)
+                return (
+                  <th
+                    key={`free-header-${di}`}
+                    colSpan={employees.length}
+                    className="h-[32px] border-b border-gray-200 text-center py-0.5 bg-amber-50/20 leading-none align-middle"
+                    style={{ borderLeft: '2px solid #888780' }}
+                  >
+                    <div className="flex flex-wrap items-center justify-center gap-1 px-1">
+                      {dayFree.length > 0 ? (
+                        dayFree.map(s => (
+                          <div 
+                            key={s.id} 
+                            className={`flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-medium border ${
+                              s.filled_by 
+                                ? 'bg-amber-100 border-amber-200 text-amber-800' 
+                                : 'bg-white border-dashed border-amber-300 text-amber-400'
+                            }`}
+                            title={`${s.shift_name}: ${s.filled_by || 'Aguardando'}`}
+                          >
+                            <User size={6} />
+                            <span className="truncate max-w-[40px]">{s.filled_by || s.shift_name}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[7px] text-gray-300 font-normal italic">Nenhum</span>
+                      )}
+                    </div>
+                  </th>
+                )
+              })}
+            </tr>
           </thead>
 
 
