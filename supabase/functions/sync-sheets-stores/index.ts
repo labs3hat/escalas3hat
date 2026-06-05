@@ -178,12 +178,13 @@ Deno.serve(async (req) => {
     }
 
     if (payloads.length > 0) {
-      // Use upsert with onConflict on 'code'
+      console.log(`Upserting ${payloads.length} stores...`);
       const { error: upsertError } = await admin
         .from("stores")
         .upsert(payloads, { onConflict: "code" });
       
       if (upsertError) {
+        console.error("Payload sample:", JSON.stringify(payloads[0], null, 2));
         throw new Error(`Upsert error: ${upsertError.message}`);
       }
     }
