@@ -141,12 +141,8 @@ Deno.serve(async (req) => {
       if (!code || !name) { skipped++; continue; }
 
       // Map spreadsheet regions to database regions
-      let region = (row[5] ?? "").trim().toLowerCase();
-      if (region.includes("curitiba")) {
-        region = "curitiba";
-      } else if (region.includes("maringa") || region.includes("maringá")) {
-        region = "maringa";
-      } else {
+      let region = (row[5] ?? "").trim();
+      if (!region) {
         region = "curitiba"; // default fallback
       }
 
