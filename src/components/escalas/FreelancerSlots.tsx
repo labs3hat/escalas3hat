@@ -113,7 +113,9 @@ export function useFreelancerSlots(scheduleId: string | null) {
       if (err) throw err;
       toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
       // Refetch imediato para garantir consistência
-      fetchSlots();
+      await fetchSlots();
+      // Forçar atualização do estado global se necessário
+      window.dispatchEvent(new CustomEvent('freelancer_updated'));
     } catch (err: any) {
       console.error("Erro em fillSlot:", err);
       toast.error("Erro ao salvar freelancer: " + err.message);
@@ -147,7 +149,8 @@ export function useFreelancerSlots(scheduleId: string | null) {
       
       if (err) throw err;
       toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
-      fetchSlots();
+      await fetchSlots();
+      window.dispatchEvent(new CustomEvent('freelancer_updated'));
     } catch (err: any) {
       console.error("Erro em addManualSlot:", err);
       toast.error("Erro ao adicionar freelancer: " + err.message);
@@ -164,6 +167,8 @@ export function useFreelancerSlots(scheduleId: string | null) {
           .eq("id", slotId);
         if (err) throw err;
         toast.success("Freelancer removido com sucesso!");
+        await fetchSlots();
+        window.dispatchEvent(new CustomEvent('freelancer_updated'));
       } else {
         const { error: err } = await (supabase
           .from("freelancer_slots")
@@ -178,6 +183,8 @@ export function useFreelancerSlots(scheduleId: string | null) {
           .eq("id", slotId));
         if (err) throw err;
         toast.success("Vaga de freelancer liberada!");
+        await fetchSlots();
+        window.dispatchEvent(new CustomEvent('freelancer_updated'));
       }
     } catch (err: any) {
       console.error("Erro em clearSlot:", err);
@@ -449,51 +456,64 @@ function FillModal({ slot, onConfirm, onCancel }: { slot: any, onConfirm: (s: an
 // =============================================================
 // Botão de publicação
 // =============================================================
-function PublishButton({ canPublish, openCount, onPublish, publishing, published }: { canPublish: boolean, openCount: number, onPublish: () => void, publishing: boolean, published: boolean }) {
-  if (published) {
-    return (
-      <div style={{
-        width: "100%", padding: 12, borderRadius: 6,
-        background: "var(--color-background-success, #ecfdf5)",
-        border: "0.5px solid var(--color-border-success, #10b981)",
-        color: "var(--color-text-success, #065f46)",
-        fontSize: 13, fontWeight: 500,
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-      }}>
-        ✓ Escala publicada
-      </div>
-    );
-  }
-
+function PublishButton({ canPublish, openCount, onPublish, publishing, published, onRefresh }: { canPublish: boolean, openCount: number, onPublish: () => void, publishing: boolean, published: boolean, onRefresh?: () => void }) {
   return (
-    <button
-      onClick={canPublish ? onPublish : undefined}
-      disabled={!canPublish || publishing}
-      style={{
-        width: "100%", padding: 12, borderRadius: 6,
-        background: canPublish ? "var(--color-background-primary, #BA7517)" : "#EEE",
-        border: `0.5px solid ${canPublish ? "#A66714" : "#DDD"}`,
-        color: canPublish ? "white" : "#999",
-        fontSize: 13, fontWeight: 500,
-        cursor: canPublish ? "pointer" : "default",
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-        marginTop: 12,
-      }}
-    >
-      {publishing
-        ? "Publicando..."
-        : canPublish
-          ? "Publicar escala →"
-          : `Publicar escala — ${openCount} vaga${openCount > 1 ? "s" : ""} em aberto`
-      }
-    </button>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+      <button
+        onClick={onRefresh}
+        style={{
+          width: "100%", padding: 12, borderRadius: 6,
+          background: "#BA7517",
+          border: "0.5px solid #A66714",
+          color: "white",
+          fontSize: 13, fontWeight: 500,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        }}
+      >
+        Atualizar escala
+      </button>
+
+      {published ? (
+        <div style={{
+          width: "100%", padding: 12, borderRadius: 6,
+          background: "var(--color-background-success, #ecfdf5)",
+          border: "0.5px solid var(--color-border-success, #10b981)",
+          color: "var(--color-text-success, #065f46)",
+          fontSize: 13, fontWeight: 500,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        }}>
+          ✓ Escala publicada
+        </div>
+      ) : (
+        <button
+          onClick={canPublish ? onPublish : undefined}
+          disabled={!canPublish || publishing}
+          style={{
+            width: "100%", padding: 12, borderRadius: 6,
+            background: "#f3f4f6",
+            border: "0.5px solid #e5e7eb",
+            color: "#6b7280",
+            fontSize: 13, fontWeight: 500,
+            cursor: canPublish ? "pointer" : "default",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            opacity: canPublish ? 1 : 0.6
+          }}
+        >
+          {publishing
+            ? "Publicando..."
+            : "Publicar escala →"
+          }
+        </button>
+      )}
+    </div>
   );
 }
 
 // =============================================================
 // Componente principal
 // =============================================================
-export default function FreelancerSlots({ scheduleId, storeId, className = "", isEmbed = false }: { scheduleId: string | null, storeId: string, className?: string, isEmbed?: boolean }) {
+export default function FreelancerSlots({ scheduleId, storeId, className = "", isEmbed = false, onRefresh }: { scheduleId: string | null, storeId: string, className?: string, isEmbed?: boolean, onRefresh?: () => void }) {
   const [activeSlot, setActiveSlot] = useState<FreelancerSlot | { day_of_week: number, shift_name: string, is_manual: boolean } | null>(null);
   
   const {
@@ -604,6 +624,7 @@ export default function FreelancerSlots({ scheduleId, storeId, className = "", i
         onPublish={publish}
         publishing={publishing}
         published={published}
+        onRefresh={onRefresh || (() => window.location.reload())}
       />
 
       {(pubError || error) && (
