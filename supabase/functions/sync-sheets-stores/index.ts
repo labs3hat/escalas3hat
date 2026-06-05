@@ -160,6 +160,16 @@ Deno.serve(async (req) => {
       foundRegions.add(region);
       foundTypes.add(type);
 
+      const opening_time_sunday = parseTime(row[10]);
+      const closing_time_sunday = parseTime(row[11]);
+      
+      if (row[10] && row[10] !== "-" && !opening_time_sunday) {
+        console.warn(`Warning: Could not parse opening_time_sunday for ${code}: "${row[10]}"`);
+      }
+      if (row[11] && row[11] !== "-" && !closing_time_sunday) {
+        console.warn(`Warning: Could not parse closing_time_sunday for ${code}: "${row[11]}"`);
+      }
+
       const payload = {
         code,
         name,
@@ -171,8 +181,8 @@ Deno.serve(async (req) => {
         closing_time_weekday: parseTime(row[7]),
         opening_time_saturday: parseTime(row[8]) ?? "10:00",
         closing_time_saturday: parseTime(row[9]),
-        opening_time_sunday: parseTime(row[10]) || "11:00",
-        closing_time_sunday: parseTime(row[11]) || "20:00",
+        opening_time_sunday: opening_time_sunday || "11:00",
+        closing_time_sunday: closing_time_sunday || "20:00",
         machine_wash_days: parseDays(row[12]),
         stock_count_days: parseDays(row[13]),
         min_opening_staff: parseInt0(row[14], 1),
@@ -187,13 +197,6 @@ Deno.serve(async (req) => {
         weekly_hours_5x2: parseNum(row[23], 44),
         active: true,
       };
-
-      if (code === "SJP1") {
-        console.log("SJP1 Row Data:", row);
-        console.log("SJP1 Sunday Closing Raw:", row[11]);
-        console.log("SJP1 Sunday Closing Parsed:", parseTime(row[11]));
-        console.log("SJP1 Payload Sunday Closing:", payload.closing_time_sunday);
-      }
       
       payloads.push(payload);
     }
