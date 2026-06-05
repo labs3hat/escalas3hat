@@ -98,7 +98,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [schedule?.id, load]);
+  }, [schedule?.id, load, subscriptionId]);
 
   async function updateSlot(
     employeeId: string,

@@ -182,16 +182,16 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
               <div className="flex-1 overflow-auto">
                 {/* Freelancers na lista */}
                 {freelancerSlots.filter(s => s.day_of_week === dow && s.filled_by).map(free => (
-                  <div key={free.id} className="px-1.5 py-1 border-b border-gray-100 bg-amber-50/30">
-                    <div className="text-[10px] font-bold truncate leading-tight text-amber-700">
-                      {free.filled_by}
+                  <div key={free.id} className="px-1.5 py-1 border-b border-gray-100 bg-amber-50/20">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] font-bold truncate leading-tight text-amber-800">
+                        {free.filled_by}
+                      </div>
+                      <span className="text-[7px] bg-amber-100 text-amber-700 px-1 rounded font-bold">FREE</span>
                     </div>
                     <div className="text-[9px] text-amber-600 font-medium">
                       {free.start_time || "--:--"}–{free.end_time || "--:--"}
                     </div>
-                    <span className="inline-block text-[8px] bg-amber-100 text-amber-700 px-1 rounded">
-                      Freelancer ({free.is_manual ? 'Manual' : free.shift_name})
-                    </span>
                   </div>
                 ))}
                 

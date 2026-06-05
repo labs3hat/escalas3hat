@@ -80,10 +80,16 @@ export function useFreelancerSlots(scheduleId: string | null) {
       }, () => {
         fetchSlots();
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Subscribed to freelancer_slots for schedule ${scheduleId}`);
+        }
+      });
 
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchSlots, scheduleId]);
+    return () => { 
+      supabase.removeChannel(channel); 
+    };
+  }, [fetchSlots, scheduleId, subscriptionId]);
 
   const fillSlot = useCallback(async (slotId: string, data: any) => {
     try {
@@ -100,10 +106,14 @@ export function useFreelancerSlots(scheduleId: string | null) {
           filled_at:      new Date().toISOString(),
           filled_by_user: user?.id ?? null,
         })
-        .eq("id", slotId);
+        .eq("id", slotId)
+        .select()
+        .single();
       
       if (err) throw err;
       toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
+      // Refetch imediato para garantir consistência
+      fetchSlots();
     } catch (err: any) {
       console.error("Erro em fillSlot:", err);
       toast.error("Erro ao salvar freelancer: " + err.message);
@@ -131,10 +141,13 @@ export function useFreelancerSlots(scheduleId: string | null) {
           is_manual:      true,
           filled_at:      new Date().toISOString(),
           filled_by_user: user?.id ?? null,
-        });
+        })
+        .select()
+        .single();
       
       if (err) throw err;
       toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
+      fetchSlots();
     } catch (err: any) {
       console.error("Erro em addManualSlot:", err);
       toast.error("Erro ao adicionar freelancer: " + err.message);
@@ -216,29 +229,7 @@ export function usePublishSchedule(scheduleId: string | null, canPublish: boolea
 // Componente de alerta
 // =============================================================
 function AlertBar({ openCount }: { openCount: number }) {
-  if (openCount === 0) return null;
-  return (
-    <div style={{
-      background: "#FAEEDA",
-      border: "0.5px solid #BA7517",
-      borderRadius: 8,
-      padding: "8px 12px",
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 12,
-    }}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-        stroke="#854F0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        aria-hidden="true">
-        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
-      <span style={{ fontSize: 12, color: "#854F0B", flex: 1 }}>
-        {openCount} vaga{openCount > 1 ? "s" : ""} freelancer em aberto
-      </span>
-    </div>
-  );
+  return null;
 }
 
 // =============================================================
