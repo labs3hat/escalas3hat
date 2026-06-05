@@ -8,6 +8,10 @@ interface FreelancerSlot {
   shift_name: string;
   filled_by: string | null;
   rule_origin: string;
+  start_time?: string;
+  end_time?: string;
+  break_minutes?: number;
+  is_manual?: boolean;
 }
 
 interface Props {
