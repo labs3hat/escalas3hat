@@ -1,10 +1,11 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Calendar, RefreshCw, Clock, Users, Map, LogOut, Settings, ShieldCheck } from 'lucide-react'
+import { Calendar, RefreshCw, Clock, Users, Map, LogOut, Settings, ShieldCheck, UserPlus } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import type { Profile } from '@/types'
 
 const navItems = [
   { href: '/escalas',     label: 'Escalas',               icon: Calendar },
+  { href: '/freelancers', label: 'Freelancers',          icon: UserPlus },
   { href: '/cadastros',   label: 'Funcionários',          icon: Users },
   { href: '/config-loja', label: 'Configurações da loja', icon: Settings },
   { href: '/usuarios',    label: 'Usuários',              icon: ShieldCheck },
