@@ -12,15 +12,32 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute('/_authenticated/escalas')({
-  validateSearch: (search) => {
+  validateSearch: (search: Record<string, unknown>) => {
     try {
       return searchSchema.parse(search);
     } catch (e) {
       console.warn("Invalid search params in /escalas:", e);
-      return {};
+      return { tab: 'grade' as const };
     }
   },
   component: EscalasPage,
+  errorComponent: ({ error, reset }) => {
+    console.error("Error in /escalas route:", error);
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+        <h2 className="text-lg font-semibold text-gray-900">Erro ao carregar a página</h2>
+        <p className="text-sm text-gray-500 mt-1">Ocorreu um problema ao processar os parâmetros da escala.</p>
+        <button 
+          onClick={() => {
+            window.location.href = '/escalas';
+          }}
+          className="mt-4 px-4 py-2 bg-brand-500 text-white rounded-md text-sm font-medium"
+        >
+          Recarregar Escalas
+        </button>
+      </div>
+    );
+  }
 })
 
 function EscalasPage() {
