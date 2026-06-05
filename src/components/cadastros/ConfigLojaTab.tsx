@@ -104,13 +104,13 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
       </div>
 
       {/* Horários de abertura */}
-      <div className="mb-6">
+      <div className="mb-8">
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Horário de abertura oficial</div>
         <div className="grid grid-cols-3 gap-3">
           {[
             { label: 'Seg – Sex', value: openWeekday, onChange: (v: string) => { setOpenWeekday(v); setChanged(true) } },
             { label: 'Sábado',    value: openSaturday, onChange: (v: string) => { setOpenSaturday(v); setChanged(true) } },
-            { label: 'Domingo',   value: openSunday,   onChange: (v: string) => { setOpenSunday(v); setChanged(true) } },
+            { label: 'Domingo',   value: openSunday,   onChange: (v: string) => { setOpenSunday(v);   setChanged(true) } },
           ].map(f => (
             <div key={f.label}>
               <label className="text-xs text-gray-400 mb-1 block">{f.label}</label>
@@ -124,8 +124,80 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
         </p>
       </div>
 
+      {/* Horários de fechamento */}
+      <div className="mb-8">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Horário de fechamento oficial</div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Seg – Sex', value: closeWeekday, onChange: (v: string) => { setCloseWeekday(v); setChanged(true) } },
+            { label: 'Sábado',    value: closeSaturday, onChange: (v: string) => { setCloseSaturday(v); setChanged(true) } },
+            { label: 'Domingo',   value: closeSunday,   onChange: (v: string) => { setCloseSunday(v);   setChanged(true) } },
+          ].map(f => (
+            <div key={f.label}>
+              <label className="text-xs text-gray-400 mb-1 block">{f.label}</label>
+              <input type="time" value={f.value} onChange={e => f.onChange(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Equipe Mínima */}
+      <div className="mb-8">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Equipe Mínima Necessária</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100 pb-1">Cobertura de Horário</div>
+            {[
+              { label: 'Abertura (Seg-Sex)', value: minOpen,     onChange: (v: number) => { setMinOpen(v);     setChanged(true) } },
+              { label: 'Abertura (Fim Sem)', value: minOpenWknd, onChange: (v: number) => { setMinOpenWknd(v); setChanged(true) } },
+              { label: 'Fechamento (Seg-Sex)', value: minClose,     onChange: (v: number) => { setMinClose(v);     setChanged(true) } },
+              { label: 'Fechamento (Fim Sem)', value: minCloseWknd, onChange: (v: number) => { setMinCloseWknd(v); setChanged(true) } },
+            ].map(f => (
+              <div key={f.label} className="flex items-center justify-between">
+                <label className="text-xs text-gray-500">{f.label}</label>
+                <input type="number" min="0" value={f.value} onChange={e => f.onChange(parseInt(e.target.value) || 0)}
+                  className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-brand-400" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-3">
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100 pb-1">Mínimo Diário (Total)</div>
+            {[
+              { label: 'Dia de Semana', value: minWeekday, onChange: (v: number) => { setMinWeekday(v); setChanged(true) } },
+              { label: 'Finais de Semana',  value: minWeekend, onChange: (v: number) => { setMinWeekend(v); setChanged(true) } },
+              { label: 'Domingos',     value: minSunday,  onChange: (v: number) => { setMinSunday(v);  setChanged(true) } },
+            ].map(f => (
+              <div key={f.label} className="flex items-center justify-between">
+                <label className="text-xs text-gray-500">{f.label}</label>
+                <input type="number" min="0" value={f.value} onChange={e => f.onChange(parseInt(e.target.value) || 0)}
+                  className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-brand-400" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Equipe Ideal */}
+      <div className="mb-8">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Equipe Ideal (Meta)</div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Abertura',  value: idealOpen,  onChange: (v: number) => { setIdealOpen(v);  setChanged(true) } },
+            { label: 'Fechamento', value: idealClose, onChange: (v: number) => { setIdealClose(v); setChanged(true) } },
+            { label: 'Total Loja', value: idealTotal, onChange: (v: number) => { setIdealTotal(v); setChanged(true) } },
+          ].map(f => (
+            <div key={f.label}>
+              <label className="text-xs text-gray-400 mb-1 block text-center">{f.label}</label>
+              <input type="number" min="0" value={f.value} onChange={e => f.onChange(parseInt(e.target.value) || 0)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:border-brand-400" />
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Dias de lavagem */}
-      <div className="mb-6">
+      <div className="mb-8 pt-4 border-t border-gray-100">
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Dias de lavagem da máquina</div>
         <p className="text-xs text-gray-400 mb-3">Afeta R6 (proibição de folga) e R8 (entrada 2h antes). Padrão: Ter, Qui, Sáb</p>
         <div className="flex gap-2">
@@ -141,14 +213,14 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
           ))}
         </div>
         {lavarDays.length > 0 && (
-          <div className="mt-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">
+          <div className="mt-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 max-w-sm">
             R6 e R8 aplicadas em: {lavarDays.map(d => DAY_NAMES[d]).join(', ')}
           </div>
         )}
       </div>
 
       {/* Dias de estoque */}
-      <div className="mb-6">
+      <div className="mb-8">
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Dias de contagem de estoque</div>
         <p className="text-xs text-gray-400 mb-3">Afeta R5 (proibição de folga na segunda) e R8. Padrão: Seg</p>
         <div className="flex gap-2">
