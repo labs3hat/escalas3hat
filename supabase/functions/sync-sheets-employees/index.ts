@@ -125,14 +125,15 @@ Deno.serve(async (req) => {
     const storesMap = new Map<string, any>();
     for (const s of dbStores ?? []) storesMap.set(s.code.toUpperCase(), s);
     
-    // Get all existing employees
+    // Get all existing employees - Group by name+store_id to handle duplicates
     const { data: existing } = await admin.from("employees").select("id, store_id, name, active");
-    const existingByKey = new Map<string, any>();
+    const existingByKey = new Map<string, any[]>();
     for (const e of existing ?? []) {
       const store = (dbStores ?? []).find(s => s.id === e.store_id);
       if (!store) continue;
       const key = `${store.code.toUpperCase()}::${(e.name as string).trim().toUpperCase()}`;
-      existingByKey.set(key, e);
+      if (!existingByKey.has(key)) existingByKey.set(key, []);
+      existingByKey.get(key)!.push(e);
     }
 
     // 1. Fetch main "FUNCIONÁRIOS" sheet (Source of Truth for active/inactive)
