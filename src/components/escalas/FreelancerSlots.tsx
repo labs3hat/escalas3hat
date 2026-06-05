@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // ── Tipos ─────────────────────────────────────────────────────
-interface FreelancerSlot {
+export interface FreelancerSlot {
   id: string;
   schedule_id: string;
   store_id: string;
@@ -150,7 +150,7 @@ export function useFreelancerSlots(scheduleId: string | null) {
         if (err) throw err;
         toast.success("Freelancer removido com sucesso!");
       } else {
-        const { error: err } = await supabase
+        await (supabase
           .from("freelancer_slots")
           .update({ 
             filled_by: null, 
@@ -160,7 +160,7 @@ export function useFreelancerSlots(scheduleId: string | null) {
             end_time: null,
             break_minutes: 60
           })
-          .eq("id", slotId);
+          .eq("id", slotId) as any);
         if (err) throw err;
         toast.success("Vaga de freelancer liberada!");
       }
