@@ -309,9 +309,12 @@ function FreelancerCell({ slot, onFill, onClear }) {
 // Modal de preenchimento (bottom sheet)
 // =============================================================
 function FillModal({ slot, onConfirm, onCancel }) {
-  const [nome, setNome]     = useState("");
-  const [saving, setSaving] = useState(false);
-  const [err, setErr]       = useState(null);
+  const [nome, setNome]           = useState(slot.filled_by || "");
+  const [startTime, setStartTime] = useState(slot.start_time || (slot.shift_name === 'Abertura' ? '08:00' : '13:00'));
+  const [endTime, setEndTime]     = useState(slot.end_time || (slot.shift_name === 'Abertura' ? '17:00' : '22:00'));
+  const [breakMin, setBreakMin]   = useState(slot.break_minutes || 60);
+  const [saving, setSaving]       = useState(false);
+  const [err, setErr]             = useState(null);
 
   if (!slot) return null;
 
@@ -320,7 +323,12 @@ function FillModal({ slot, onConfirm, onCancel }) {
     setSaving(true);
     setErr(null);
     try {
-      await onConfirm(slot.id, nome.trim());
+      await onConfirm(slot, {
+        nome: nome.trim(),
+        startTime,
+        endTime,
+        breakMinutes: parseInt(breakMin) || 0
+      });
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -328,95 +336,92 @@ function FillModal({ slot, onConfirm, onCancel }) {
     }
   };
 
-  const handleKey = (e) => { if (e.key === "Enter") handleConfirm(); };
-
   return (
     <div
       style={{
         position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.7)", // Escurecido conforme pedido
+        background: "rgba(0,0,0,0.7)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 9999, // Garantir que fique por cima de tudo
+        zIndex: 9999,
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="fl-modal-title"
     >
       <div style={{
         background: "#FFFFFF",
-        borderRadius: "12px", // Centralizado e com bordas arredondadas completas
+        borderRadius: "12px",
         padding: "24px",
         width: "90%",
         maxWidth: 400,
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)",
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
       }}>
-        <h3 id="fl-modal-title" style={{
-          fontSize: 15, fontWeight: 500,
-          color: "var(--color-text-primary)", marginBottom: 4,
-        }}>
-          Preencher vaga freelancer
+        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+          {slot.is_manual && !slot.id ? "Adicionar Freelancer" : "Editar Freelancer"}
         </h3>
-        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 16 }}>
-          {DAY_LABELS[slot.day_of_week]} · {slot.shift_name} · Regra {slot.rule_origin}
+        <p style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
+          {DAY_LABELS[slot.day_of_week]} · {slot.shift_name}
         </p>
 
-        <input
-          type="text"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Nome do freelancer"
-          autoFocus
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            border: "0.5px solid var(--color-border-secondary)",
-            borderRadius: 6,
-            fontSize: 14,
-            color: "var(--color-text-primary)",
-            background: "var(--color-background-primary)",
-            marginBottom: err ? 8 : 12,
-            outline: "none",
-          }}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 500, color: "#999", display: "block", marginBottom: 4 }}>NOME DO FREELANCER</label>
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex: João Silva"
+              autoFocus
+              style={{
+                width: "100%", padding: "10px", border: "1px solid #DDD", borderRadius: 6, fontSize: 14, outline: "none"
+              }}
+            />
+          </div>
 
-        {err && (
-          <p style={{ fontSize: 11, color: "var(--color-text-danger)", marginBottom: 12 }}>
-            {err}
-          </p>
-        )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 500, color: "#999", display: "block", marginBottom: 4 }}>INÍCIO</label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                style={{ width: "100%", padding: "10px", border: "1px solid #DDD", borderRadius: 6, fontSize: 14 }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 500, color: "#999", display: "block", marginBottom: 4 }}>FIM</label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                style={{ width: "100%", padding: "10px", border: "1px solid #DDD", borderRadius: 6, fontSize: 14 }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 500, color: "#999", display: "block", marginBottom: 4 }}>INTERVALO (MINUTOS)</label>
+            <input
+              type="number"
+              value={breakMin}
+              onChange={(e) => setBreakMin(e.target.value)}
+              style={{ width: "100%", padding: "10px", border: "1px solid #DDD", borderRadius: 6, fontSize: 14 }}
+            />
+          </div>
+        </div>
+
+        {err && <p style={{ fontSize: 11, color: "red", marginBottom: 12 }}>{err}</p>}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <button
-            onClick={onCancel}
-            disabled={saving}
-            style={{
-              padding: 10,
-              borderRadius: 6,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              background: "var(--color-background-secondary)",
-              border: "0.5px solid var(--color-border-tertiary)",
-              color: "var(--color-text-secondary)",
-            }}
-          >
+          <button onClick={onCancel} disabled={saving} style={{ padding: 10, borderRadius: 6, fontSize: 13, background: "#EEE", border: "none" }}>
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={saving || !nome.trim()}
             style={{
-              padding: 10,
-              borderRadius: 6,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: nome.trim() ? "pointer" : "default",
-              background: nome.trim() ? "#BA7517" : "var(--color-background-secondary)",
-              border: "none",
-              color: nome.trim() ? "#fff" : "var(--color-text-tertiary)",
-              transition: "background 0.15s",
+              padding: 10, borderRadius: 6, fontSize: 13, fontWeight: 600,
+              background: nome.trim() ? "#BA7517" : "#CCC", color: "#FFF", border: "none"
             }}
           >
             {saving ? "Salvando..." : "Confirmar"}
