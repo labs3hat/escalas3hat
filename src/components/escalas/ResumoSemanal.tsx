@@ -109,21 +109,44 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
   }
 
   // Ordena por horário de entrada do dia: quem entra antes aparece primeiro.
-  // Folga/sem escala vão para o final.
-  function entryRank(emp: Employee, dow: number): number {
-    const workSlots = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'work').sort()
-    if (workSlots.length === 0) return Number.MAX_SAFE_INTEGER
-    const [h, m] = workSlots[0].split(':').map(Number)
-    return h * 60 + m
-  }
+  // Incluímos freelancers preenchidos na lista de ordenação para que fiquem misturados corretamente.
+  function getSortedDayEntities(dow: number) {
+    const empData = employees.map(emp => ({
+      type: 'employee' as const,
+      id: emp.id,
+      name: emp.name,
+      color: emp.color,
+      rank: entryRank(emp, dow),
+      data: getDayData(emp, dow),
+      original: emp
+    }));
 
-  function sortedDayEmployees(dow: number): Employee[] {
-    return [...employees].sort((a, b) => {
-      const ra = entryRank(a, dow)
-      const rb = entryRank(b, dow)
-      if (ra !== rb) return ra - rb
-      return a.name.localeCompare(b.name)
-    })
+    const freeData = freelancerSlots
+      .filter(s => s.day_of_week === dow && s.filled_by)
+      .map(s => {
+        const [h, m] = (s.start_time || '00:00').split(':').map(Number);
+        return {
+          type: 'freelancer' as const,
+          id: s.id,
+          name: s.filled_by!,
+          color: '#F59E0B', // Amber 500
+          rank: h * 60 + m,
+          data: {
+            type: 'work' as const,
+            entry: s.start_time || '--:--',
+            exit: s.end_time || '--:--',
+            hrs: s.shift_name,
+            intervalLabel: null,
+            hasIntervalConflict: false
+          },
+          original: s
+        };
+      });
+
+    return [...empData, ...freeData].sort((a, b) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      return a.name.localeCompare(b.name);
+    });
   }
 
   return (
@@ -180,24 +203,28 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
               </div>
 
               <div className="flex-1 overflow-auto">
-                {/* Freelancers na lista */}
-                {freelancerSlots.filter(s => s.day_of_week === dow && s.filled_by).map(free => (
-                  <div key={free.id} className="px-1.5 py-1 border-b border-gray-100 bg-amber-50/20">
-                    <div className="flex items-center justify-between">
-                      <div className="text-[10px] font-bold truncate leading-tight text-amber-800">
-                        {free.filled_by}
+                {getSortedDayEntities(dow).map(item => {
+                  if (item.type === 'freelancer') {
+                    return (
+                      <div key={item.id} className="px-1.5 py-1 border-b border-gray-100 bg-amber-50/40">
+                        <div className="flex items-center justify-between">
+                          <div className="text-[11px] font-bold truncate leading-tight text-amber-700">
+                            {item.name.split(' ')[0]}
+                          </div>
+                          <span className="text-[7px] bg-amber-100 text-amber-700 px-1 rounded font-bold">FREE</span>
+                        </div>
+                        <div className="text-[10px] text-amber-600 font-medium">
+                          {item.data.entry}–{item.data.exit}
+                        </div>
+                        <div className="text-[9px] text-amber-500/80 leading-tight">
+                          {item.data.hrs}
+                        </div>
                       </div>
-                      <span className="text-[7px] bg-amber-100 text-amber-700 px-1 rounded font-bold">FREE</span>
-                    </div>
-                    <div className="text-[9px] text-amber-600 font-medium">
-                      {free.start_time || "--:--"}–{free.end_time || "--:--"}
-                    </div>
-                  </div>
-                ))}
-                
-                {sortedDayEmployees(dow).map(emp => {
+                    )
+                  }
 
-                  const data = getDayData(emp, dow)
+                  const emp = item.original as Employee
+                  const data = item.data
                   return (
                     <div
                       key={emp.id}
