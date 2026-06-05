@@ -1,17 +1,5 @@
 // @ts-nocheck
-// =============================================================
-// 3HAT ESCALAS — FreelancerSlots.jsx
-// Componente completo: query + mutation + validação de publicação
-//
-// Como usar no Lovable:
-//   1. Colar este arquivo em src/components/schedule/FreelancerSlots.jsx
-//   2. Importar e usar dentro da grade de escala semanal:
-//      <FreelancerSlots scheduleId={schedule.id} onAllFilled={setCanPublish} />
-//   3. O hook useFreelancerSlots também pode ser usado diretamente
-//      para bloquear o botão de publicação no componente pai.
-// =============================================================
-
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
