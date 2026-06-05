@@ -109,6 +109,15 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
   }
 
   // Ordena por horário de entrada do dia: quem entra antes aparece primeiro.
+  // Folga/sem escala vão para o final.
+  function entryRank(emp: Employee, dow: number): number {
+    const workSlots = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'work').sort()
+    if (workSlots.length === 0) return Number.MAX_SAFE_INTEGER
+    const [h, m] = workSlots[0].split(':').map(Number)
+    return h * 60 + m
+  }
+
+  // Ordena por horário de entrada do dia: quem entra antes aparece primeiro.
   // Incluímos freelancers preenchidos na lista de ordenação para que fiquem misturados corretamente.
   function getSortedDayEntities(dow: number) {
     const empData = employees.map(emp => ({
