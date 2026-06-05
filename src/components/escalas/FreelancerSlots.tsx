@@ -510,6 +510,7 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
 // Componente principal — grade de vagas freelancer por dia
 // =============================================================
 export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
+  console.log("FreelancerSlots montando...", { scheduleId, storeId });
   const {
     slots, loading, error,
     fillSlot, addManualSlot, clearSlot,
@@ -520,6 +521,7 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
     usePublishSchedule(scheduleId, canPublish);
 
   const [activeSlot, setActiveSlot] = useState(null);
+  console.log("FreelancerSlots state:", { slotsLength: slots?.length, loading, error });
 
   if (loading) {
     return (
