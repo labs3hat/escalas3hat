@@ -147,8 +147,18 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
           const abEmpCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday?.replace(':','') ?? '10:00') === 'work').length
           const fcEmpCount = employees.filter(e => getSlot(e.id, dow, '22:00') === 'work').length
           
-          const abFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
-          const fcFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
+          const abSlot = store.opening_time_weekday || '10:00'
+          const fcSlot = '22:00'
+          const abFreeCount = freelancerSlots.filter(s => {
+            if (s.day_of_week !== dow || !s.filled_by) return false;
+            if (s.start_time) return s.start_time <= abSlot;
+            return s.shift_name === 'Abertura';
+          }).length;
+          const fcFreeCount = freelancerSlots.filter(s => {
+            if (s.day_of_week !== dow || !s.filled_by) return false;
+            if (s.end_time) return s.end_time >= fcSlot;
+            return s.shift_name === 'Fechamento';
+          }).length;
 
           const abCount = abEmpCount + abFreeCount
           const fcCount = fcEmpCount + fcFreeCount
