@@ -28,7 +28,7 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       const label = `${DAY_NAMES[dow]} ${d.getDate()}/${d.getMonth()+1}`
 
       // R1 — mínimo na abertura
-      const openingTime = dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday) || '10:00'
+      const openingTime = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
       const abCount = employees.filter(e => getSlot(e.id, dow, openingTime) === 'work').length
       const abFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
       
@@ -37,7 +37,7 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       }
 
       // R2 — mínimo no fechamento
-      const closingTime = dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday) || '22:00'
+      const closingTime = (dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday)) || '22:00'
       const fcCount = employees.filter(e => getSlot(e.id, dow, closingTime) === 'work').length
       const fcFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
 
