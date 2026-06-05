@@ -101,7 +101,7 @@ export function useFreelancerSlots(scheduleId) {
   }, []);
 
   const openCount  = slots.filter((s) => !s.filled_by).length;
-  const canPublish = openCount === 0 && slots.length >= 0;
+  const canPublish = true; // Sempre permitido publicar agora
 
   return { slots, loading, error, fillSlot, clearSlot, openCount, canPublish, refetch: fetchSlots };
 }
@@ -115,23 +115,12 @@ export function usePublishSchedule(scheduleId, canPublish) {
   const [error,      setError]      = useState(null);
 
   const publish = useCallback(async () => {
-    if (!canPublish || !scheduleId) return;
+    if (!scheduleId) return;
     setPublishing(true);
     setError(null);
 
-    // Verificação dupla no servidor antes de publicar
-    const { count } = await supabase
-      .from("freelancer_slots")
-      .select("id", { count: "exact", head: true })
-      .eq("schedule_id", scheduleId)
-      .is("filled_by", null);
-
-    if (count > 0) {
-      setError(`Ainda há ${count} vaga(s) freelancer em aberto.`);
-      setPublishing(false);
-      return;
-    }
-
+    // O usuário solicitou que vagas abertas NÃO impeçam a publicação.
+    // Apenas mostramos um aviso visual no componente.
     const { error: err } = await supabase
       .from("schedules")
       .update({ status: "published", published_at: new Date().toISOString() })
@@ -140,7 +129,7 @@ export function usePublishSchedule(scheduleId, canPublish) {
     if (err) setError(err.message);
     else setPublished(true);
     setPublishing(false);
-  }, [scheduleId, canPublish]);
+  }, [scheduleId]);
 
   return { publish, publishing, published, error };
 }
@@ -168,7 +157,7 @@ function AlertBar({ openCount }) {
         <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
       </svg>
       <span style={{ fontSize: 12, color: "#854F0B", flex: 1 }}>
-        {openCount} vaga{openCount > 1 ? "s" : ""} freelancer em aberto — preencha antes de publicar
+        {openCount} vaga{openCount > 1 ? "s" : ""} freelancer em aberto
       </span>
     </div>
   );
@@ -278,9 +267,9 @@ function FillModal({ slot, onConfirm, onCancel }) {
     <div
       style={{
         position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
-        zIndex: 100,
+        background: "rgba(0,0,0,0.7)", // Escurecido conforme pedido
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 9999, // Garantir que fique por cima de tudo
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
       role="dialog"
@@ -288,11 +277,12 @@ function FillModal({ slot, onConfirm, onCancel }) {
       aria-labelledby="fl-modal-title"
     >
       <div style={{
-        background: "var(--color-background-primary)",
-        borderRadius: "12px 12px 0 0",
-        padding: "20px 16px 40px",
-        width: "100%",
+        background: "#FFFFFF",
+        borderRadius: "12px", // Centralizado e com bordas arredondadas completas
+        padding: "24px",
+        width: "90%",
         maxWidth: 400,
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)",
       }}>
         <h3 id="fl-modal-title" style={{
           fontSize: 15, fontWeight: 500,
@@ -464,8 +454,14 @@ export function FreelancerSlots({ scheduleId, className = "" }) {
   );
 
   const handleFill = async (slotId, nome) => {
-    await fillSlot(slotId, nome);
-    setActiveSlot(null);
+    try {
+      await fillSlot(slotId, nome);
+      setActiveSlot(null);
+      // O refetch já é acionado pelo realtime ou pelo estado local no hook, 
+      // mas vamos garantir a atualização visual.
+    } catch (e) {
+      console.error("Erro ao preencher freelancer:", e);
+    }
   };
 
   const handleClear = async (slotId) => {
