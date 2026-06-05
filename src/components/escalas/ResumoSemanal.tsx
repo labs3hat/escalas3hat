@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
 import SlotModal, { type DayPayload } from './SlotModal'
 
+interface FreelancerSlot {
+  id: string;
+  day_of_week: number;
+  shift_name: string;
+  filled_by: string | null;
+  rule_origin: string;
+}
+
 interface Props {
   employees: Employee[]
   weekDates: Date[]
@@ -15,11 +23,12 @@ interface Props {
   ) => Promise<void>
   store: Store
   isPublished: boolean
+  freelancerSlots?: FreelancerSlot[]
 }
 
 const TODAY = new Date()
 
-export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay, store, isPublished }: Props) {
+export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay, store, isPublished, freelancerSlots = [] }: Props) {
   const [modal, setModal] = useState<{
     emp: Employee; dow: number; date: Date; initial: DayPayload
   } | null>(null)
@@ -130,8 +139,17 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
           const dow = d.getDay()
           const isToday = d.toDateString() === TODAY.toDateString()
           const isWknd = dow === 0 || dow === 6
-          const abCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday?.replace(':','') ?? '10:00') === 'work').length
-          const fcCount = employees.filter(e => getSlot(e.id, dow, '22:00') === 'work').length
+          
+          const abEmpCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday?.replace(':','') ?? '10:00') === 'work').length
+          const fcEmpCount = employees.filter(e => getSlot(e.id, dow, '22:00') === 'work').length
+          
+          const abFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
+          const fcFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
+
+          const abCount = abEmpCount + abFreeCount
+          const fcCount = fcEmpCount + fcFreeCount
+          const fcOk = fcCount >= (store.min_closing_staff ?? 2)
+
           
           // Considerar freelancers no resumo
           // Precisamos dos slots de freelancer passados via props
@@ -157,8 +175,19 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
                 </div>
               </div>
 
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-auto">
+                {/* Freelancers na lista */}
+                {freelancerSlots.filter(s => s.day_of_week === dow && s.filled_by).map(free => (
+                  <div key={free.id} className="px-1.5 py-1 border-b border-gray-100 bg-amber-50/30">
+                    <div className="text-[10px] font-bold truncate leading-tight text-amber-700">
+                      {free.filled_by}
+                    </div>
+                    <span className="inline-block text-[8px] bg-amber-100 text-amber-700 px-1 rounded">Freelancer ({free.shift_name})</span>
+                  </div>
+                ))}
+                
                 {sortedDayEmployees(dow).map(emp => {
+
                   const data = getDayData(emp, dow)
                   return (
                     <div

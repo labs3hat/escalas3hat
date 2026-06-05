@@ -13,12 +13,15 @@ export function useEmployees(storeId: string | null) {
         .from('employees')
         .select('*')
         .eq('store_id', storeId as string)
-        .eq('active', true)
         .order('name')
+      
+      // Filtrar ativos no código se quiser manter a lógica de carregar todos 
+      // para consistência mas mostrar apenas ativos na grade
       setEmployees((data as Employee[]) ?? [])
       setLoading(false)
     }
     load()
+
   }, [storeId])
 
   return { employees, loading, setEmployees }

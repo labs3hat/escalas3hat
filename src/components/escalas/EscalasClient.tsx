@@ -107,7 +107,9 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     }
   }, [selectedStore?.id, weekStart, initialStoreId, initialWeek]);
 
-  const { employees } = useEmployees(selectedStore?.id ?? null);
+  const { employees: allEmployees } = useEmployees(selectedStore?.id ?? null);
+  const employees = useMemo(() => allEmployees.filter(e => e.active), [allEmployees]);
+
   const { schedule, loading, updateDay, publish, copyPreviousWeek, getSlot, reload, validate } = useSchedule(
     selectedStore?.id ?? null,
     weekStart,
@@ -443,7 +445,9 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
               updateDay={updateDayWithAudit}
               store={selectedStore}
               isPublished={schedule?.status === "published"}
+              freelancerSlots={freelancerSlots}
             />
+
           ) : (
             <div className="p-4 max-w-lg h-full overflow-auto">
               {schedule?.id ? (
