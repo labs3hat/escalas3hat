@@ -35,7 +35,7 @@ const RULE_COLORS: Record<string, { bg: string; text: string; border: string }> 
 // =============================================================
 export function useFreelancerSlots(scheduleId: string | null) {
   const [slots, setSlots]       = useState<FreelancerSlot[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading]   = useState(!!scheduleId);
   const [error, setError]       = useState<string | null>(null);
 
   const fetchSlots = useCallback(async () => {
