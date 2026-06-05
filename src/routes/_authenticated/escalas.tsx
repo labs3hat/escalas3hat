@@ -1,15 +1,36 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import EscalasClient from '@/components/escalas/EscalasClient'
 import type { Profile, Store } from '@/types'
 import { z } from 'zod'
+import { ErrorBoundary } from 'react-error-boundary'
 
 const searchSchema = z.object({
   storeId: z.string().optional().catch(undefined),
   week: z.string().optional().catch(undefined),
   tab: z.enum(['grade', 'resumo', 'freelancers']).optional().catch('grade' as const),
 })
+
+function RouteError({ error }: { error: any }) {
+  console.error("Critical error in /escalas route:", error);
+  return (
+    <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+      <h2 className="text-lg font-semibold text-gray-900">Erro ao carregar a página</h2>
+      <p className="text-sm text-gray-500 mt-1">
+        {error?.message || "Ocorreu um problema ao processar os parâmetros da escala."}
+      </p>
+      <button 
+        onClick={() => {
+          window.location.href = '/escalas';
+        }}
+        className="mt-4 px-4 py-2 bg-brand-500 text-white rounded-md text-sm font-medium hover:bg-brand-600 transition-colors"
+      >
+        Tentar novamente
+      </button>
+    </div>
+  );
+}
 
 export const Route = createFileRoute('/_authenticated/escalas')({
   validateSearch: (search: Record<string, unknown>) => {
@@ -20,24 +41,12 @@ export const Route = createFileRoute('/_authenticated/escalas')({
       return { tab: 'grade' as const };
     }
   },
-  component: EscalasPage,
-  errorComponent: ({ error, reset }) => {
-    console.error("Error in /escalas route:", error);
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-        <h2 className="text-lg font-semibold text-gray-900">Erro ao carregar a página</h2>
-        <p className="text-sm text-gray-500 mt-1">Ocorreu um problema ao processar os parâmetros da escala.</p>
-        <button 
-          onClick={() => {
-            window.location.href = '/escalas';
-          }}
-          className="mt-4 px-4 py-2 bg-brand-500 text-white rounded-md text-sm font-medium"
-        >
-          Recarregar Escalas
-        </button>
-      </div>
-    );
-  }
+  component: () => (
+    <ErrorBoundary FallbackComponent={RouteError}>
+      <EscalasPage />
+    </ErrorBoundary>
+  ),
+  errorComponent: ({ error }) => <RouteError error={error as Error} />
 })
 
 function EscalasPage() {
