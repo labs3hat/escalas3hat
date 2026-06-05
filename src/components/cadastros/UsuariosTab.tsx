@@ -25,7 +25,7 @@ export default function UsuariosTab() {
   async function load() {
     setLoading(true)
     const [pRes, sRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('name'),
+      supabase.from('profiles').select('*').order('name', { ascending: true }),
       supabase.from('stores').select('*').eq('active', true).order('name')
     ])
     setProfiles((pRes.data as Profile[]) ?? [])
@@ -184,7 +184,13 @@ export default function UsuariosTab() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {profiles.map(p => (
+            {profiles.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                  Nenhum usuário encontrado.
+                </td>
+              </tr>
+            ) : profiles.map(p => (
               <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-4 py-3">
                   <div className="font-medium text-gray-900">{p.name}</div>
@@ -235,6 +241,10 @@ export default function UsuariosTab() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-4 text-xs text-gray-400">
+        Total de usuários: {profiles.length}
       </div>
 
       <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-xl">

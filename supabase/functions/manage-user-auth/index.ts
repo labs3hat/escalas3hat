@@ -58,13 +58,22 @@ serve(async (req) => {
     }
 
     if (action === 'createUser') {
+      console.log(`Starting createUser for ${email}`)
+      
       // 1. Check if user already exists in Auth
-      const { data: existingAuth } = await supabaseClient.auth.admin.listUsers()
-      const userInAuth = existingAuth?.users.find(u => u.email === email)
+      const { data: existingAuth, error: listError } = await supabaseClient.auth.admin.listUsers()
+      if (listError) {
+        console.error('Error listing users:', listError)
+        throw listError
+      }
+      
+      const userInAuth = existingAuth?.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+      console.log(`User in auth: ${userInAuth ? 'found (' + userInAuth.id + ')' : 'not found'}`)
 
       let authUser
       if (userInAuth) {
         // Update existing auth user metadata and password
+        console.log(`Updating existing auth user ${userInAuth.id}`)
         const { data, error: updateError } = await supabaseClient.auth.admin.updateUserById(
           userInAuth.id,
           { 
@@ -73,33 +82,45 @@ serve(async (req) => {
             email_confirm: true 
           }
         )
-        if (updateError) throw updateError
+        if (updateError) {
+          console.error('Error updating auth user:', updateError)
+          throw updateError
+        }
         authUser = { user: data.user }
       } else {
         // Create new auth user
+        console.log('Creating new auth user')
         const { data, error: authError } = await supabaseClient.auth.admin.createUser({
           email,
           password,
           email_confirm: true,
           user_metadata: { name, role, store_ids }
         })
-        if (authError) throw authError
+        if (authError) {
+          console.error('Error creating auth user:', authError)
+          throw authError
+        }
         authUser = data
       }
 
       // 2. Upsert profile with the correct ID
+      console.log(`Upserting profile for ${email} with ID ${authUser.user.id}`)
       const { error: profileError } = await supabaseClient
         .from('profiles')
         .upsert({
           id: authUser.user.id,
-          email,
+          email: email.toLowerCase(),
           name,
           role,
           store_ids
-        }, { onConflict: 'email' }) // Profile might exist with a different ID, this will fix it
+        }, { onConflict: 'email' })
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('Error upserting profile:', profileError)
+        throw profileError
+      }
 
+      console.log('Successfully processed user creation/sync')
       return new Response(JSON.stringify({ data: authUser }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
