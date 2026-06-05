@@ -15,6 +15,7 @@ function normalizeSlot(slot: ScheduleSlot): ScheduleSlot {
 export function useSchedule(storeId: string | null, weekStart: Date) {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
+  const subscriptionId = useMemo(() => Math.random().toString(36).substring(7), []);
   const [loading, setLoading] = useState(true);
   const weekKey = format(weekStart, "yyyy-MM-dd");
   const loadSeq = useRef(0);
@@ -80,7 +81,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
   useEffect(() => {
     if (!schedule?.id) return;
     const channel = supabase
-      .channel(`schedule-slots-${schedule.id}`)
+      .channel(`schedule-slots-${schedule.id}-${subscriptionId}`)
       .on(
         "postgres_changes",
         {
