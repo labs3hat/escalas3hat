@@ -108,13 +108,13 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   }, [selectedStore?.id, weekStart, initialStoreId, initialWeek]);
 
   const { employees } = useEmployees(selectedStore?.id ?? null);
-  const { schedule, loading, updateDay, publish, copyPreviousWeek, getSlot, reload } = useSchedule(
+  const { schedule, loading, updateDay, publish, copyPreviousWeek, getSlot, reload, validate } = useSchedule(
     selectedStore?.id ?? null,
     weekStart,
   );
 
-  // Freelancers: contagem informativa (NÃO bloqueia publicação)
-  const { openCount } = useFreelancerSlots(schedule?.id ?? null);
+  // Freelancers
+  const { slots: freelancerSlots, openCount } = useFreelancerSlots(schedule?.id ?? null);
 
   const weekLabel = useMemo(() => {
     const s = weekDates[0],
@@ -144,16 +144,18 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     reason?: string
   ) {
     // 1. Validar travas de segurança ANTES de salvar
-    if (type === "day_off") {
-      const offCount = employees.filter(emp => 
-        emp.id !== employeeId && SLOT_KEYS.some(s => getSlot(emp.id, dayOfWeek, s) === "day_off")
-      ).length;
-      const maxOff = employees.length <= 6 ? 1 : 2;
-      
-      if (offCount >= maxOff) {
-        toast.error(`Bloqueio: Máximo de ${maxOff} folgas para esta loja atingido.`);
-        return;
-      }
+    const violations = validate(employees, { employeeId, dayOfWeek, type, payload });
+    const errors = violations.filter(v => v.type === 'error');
+    
+    if (errors.length > 0) {
+      toast.error(errors[0].message);
+      return;
+    }
+
+    const warnings = violations.filter(v => v.type === 'warning');
+    if (warnings.length > 0) {
+      // Avisa mas permite se for gerente ou superior (o sistema já faz isso por estar no componente de edição)
+      toast.warning(warnings[0].message, { duration: 5000 });
     }
 
     if (schedule?.status === "published") {
@@ -430,6 +432,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
                 updateDay={updateDayWithAudit}
                 store={selectedStore}
                 isPublished={schedule?.status === "published"}
+                freelancerSlots={freelancerSlots}
               />
             </div>
           ) : view === "resumo" ? (
@@ -462,6 +465,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         getSlot={getSlot}
         store={selectedStore}
         schedule={schedule}
+        freelancerSlots={freelancerSlots}
       />
 
       {monthlyOpen && (
