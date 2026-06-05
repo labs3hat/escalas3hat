@@ -1,4 +1,6 @@
-// Sync employees from multiple Google Sheets tabs (one per store) into the `employees` table.
+// Sync employees from multiple Google Sheets sources into the `employees` table.
+// Primary source: "FUNCIONÁRIOS" tab for active/inactive status and basic info.
+// Secondary source: Store-specific tabs for scheduling preferences.
 // Reads via Lovable connector gateway (google_sheets). Writes via service role.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -62,6 +64,19 @@ function isYes(value: string): boolean {
   return v === "s" || v === "sim" || v === "y" || v === "yes" || v === "1";
 }
 
+async function fetchSheetRows(sheetName: string, range: string, lovableKey: string, sheetsKey: string): Promise<Row[]> {
+  const url = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName + '!' + range)}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": sheetsKey,
+    },
+  });
+  if (!res.ok) return []; 
+  const json = await res.json();
+  return (json.values ?? []) as Row[];
+}
+
 async function getSheetNames(lovableKey: string, sheetsKey: string): Promise<string[]> {
   const url = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}`;
   const res = await fetch(url, {
@@ -73,21 +88,6 @@ async function getSheetNames(lovableKey: string, sheetsKey: string): Promise<str
   if (!res.ok) throw new Error(`Failed to fetch spreadsheet info: ${await res.text()}`);
   const data = await res.json();
   return data.sheets.map((s: any) => s.properties.title);
-}
-
-async function fetchSheetRows(sheetName: string, lovableKey: string, sheetsKey: string): Promise<Row[]> {
-  // Range: A3:I100 (assuming A1 is "ATIVOS", A2 is headers)
-  const range = `${sheetName}!A3:I100`;
-  const url = `https://connector-gateway.lovable.dev/google_sheets/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": sheetsKey,
-    },
-  });
-  if (!res.ok) return []; // Skip if sheet doesn't exist or error
-  const json = await res.json();
-  return (json.values ?? []) as Row[];
 }
 
 Deno.serve(async (req) => {
@@ -121,106 +121,115 @@ Deno.serve(async (req) => {
     const isAdmin = ["regional", "diretoria", "rh"].includes(profile.role);
 
     // Get active stores
-    const { data: stores } = await admin.from("stores").select("id, code, name").eq("active", true);
-    const allStores = stores ?? [];
+    const { data: dbStores } = await admin.from("stores").select("id, code, name").eq("active", true);
+    const storesMap = new Map<string, any>();
+    for (const s of dbStores ?? []) storesMap.set(s.code.toUpperCase(), s);
     
-    // Filter stores based on user permissions
-    const allowedStores = allStores.filter(s => isAdmin || (profile.store_ids ?? []).includes(s.id));
-    const allowedStoreIds = new Set(allowedStores.map(s => s.id));
-
-    // Get all existing employees for these stores
-    const { data: existing } = await admin.from("employees")
-      .select("id, store_id, name, active")
-      .in("store_id", Array.from(allowedStoreIds));
-    
-    const existingByKey = new Map<string, { id: string; active: boolean }>();
+    // Get all existing employees
+    const { data: existing } = await admin.from("employees").select("id, store_id, name, active");
+    const existingByKey = new Map<string, any>();
     for (const e of existing ?? []) {
-      const key = `${e.store_id}::${(e.name as string).trim().toUpperCase()}`;
-      existingByKey.set(key, { id: e.id, active: e.active });
+      const store = (dbStores ?? []).find(s => s.id === e.store_id);
+      if (!store) continue;
+      const key = `${store.code.toUpperCase()}::${(e.name as string).trim().toUpperCase()}`;
+      existingByKey.set(key, e);
     }
 
-    // Get all sheet names
+    // 1. Fetch main "FUNCIONÁRIOS" sheet (Source of Truth for active/inactive)
+    const mainRows = await fetchSheetRows("FUNCIONÁRIOS", "A2:J2000", lovableKey, sheetsKey);
+    
+    // 2. Fetch all sheet names to find store-specific tabs
     const sheetNames = await getSheetNames(lovableKey, sheetsKey);
 
-    let created = 0, updated = 0, skipped = 0;
-    const touchedKeys = new Set<string>();
-    const touchedStores = new Set<string>();
-
-    // Process each store
-    for (const store of allowedStores) {
-      // Find the sheet that matches the store code
-      // Store code CL2 should match "CL 2 - ..."
-      // We'll normalize the code by adding a space if it's like "CL2" -> "CL 2"
+    // 3. Collect store-specific data
+    const storeSpecificData = new Map<string, any>(); // key: storeCode::employeeName
+    
+    for (const store of dbStores ?? []) {
       const normalizedCode = store.code.replace(/([a-zA-Z]+)(\d+)/, "$1 $2").toUpperCase();
       const targetSheet = sheetNames.find(s => s.toUpperCase().startsWith(normalizedCode));
+      if (!targetSheet) continue;
 
-      if (!targetSheet) {
-        console.log(`No sheet found for store ${store.code} (${normalizedCode})`);
-        continue;
-      }
-
-      touchedStores.add(store.id);
-      const rows = await fetchSheetRows(targetSheet, lovableKey, sheetsKey);
-
+      const rows = await fetchSheetRows(targetSheet, "A3:I100", lovableKey, sheetsKey);
       for (const row of rows) {
-        const name = (row[0] ?? "").trim();
+        const name = (row[0] ?? "").trim().toUpperCase();
         if (!name) continue;
-
-        const role = (row[1] ?? "ATENDENTE 2 - 44H").trim() || "ATENDENTE 2 - 44H";
-        const regime = parseRegime(row[2] ?? "");
-        const fixedDayOff = parseFolga(row[3] ?? "");
-        const responsibilities: string[] = [];
-        if (isYes(row[4] ?? "")) responsibilities.push("estoque");
-        if (isYes(row[5] ?? "")) responsibilities.push("maquina");
-        const { preferred, allowed } = parseShifts(row[6] ?? "");
-        const preferredDayOff = parseFolga(row[7] ?? "");
-        const notes = (row[8] ?? "").trim();
-
-        const key = `${store.id}::${name.toUpperCase()}`;
-        touchedKeys.add(key);
-        const found = existingByKey.get(key);
-
-        const payload: Record<string, unknown> = {
-          store_id: store.id,
-          name,
-          role,
-          work_regime: regime,
-          active: true,
-          fixed_day_off: fixedDayOff,
-          responsibilities,
-          preferred_shift: preferred,
-          allowed_shifts: allowed,
-          preferred_day_off: preferredDayOff,
-          notes: notes
-        };
-
-        if (found) {
-          const { error } = await admin.from("employees").update(payload).eq("id", found.id);
-          if (error) throw new Error(`Update failed for ${name}: ${error.message}`);
-          updated++;
-        } else {
-          payload.color = COLOR_PALETTE[(created + updated) % COLOR_PALETTE.length];
-          const { error } = await admin.from("employees").insert(payload);
-          if (error) throw new Error(`Insert failed for ${name}: ${error.message}`);
-          created++;
-        }
+        storeSpecificData.set(`${store.code.toUpperCase()}::${name}`, {
+          regime: parseRegime(row[2] ?? ""),
+          fixedDayOff: parseFolga(row[3] ?? ""),
+          responsibilities: [
+            ...(isYes(row[4] ?? "") ? ["estoque"] : []),
+            ...(isYes(row[5] ?? "") ? ["maquina"] : [])
+          ],
+          shifts: parseShifts(row[6] ?? ""),
+          preferredDayOff: parseFolga(row[7] ?? ""),
+          notes: (row[8] ?? "").trim()
+        });
       }
     }
 
-    // Deactivate employees in processed stores that no longer appear in the sheets
-    let deactivated = 0;
-    for (const [key, info] of existingByKey) {
-      const [storeId] = key.split("::");
-      if (!touchedStores.has(storeId)) continue;
-      if (touchedKeys.has(key)) continue;
-      if (!info.active) continue;
-      const { error } = await admin.from("employees").update({ active: false }).eq("id", info.id);
-      if (error) throw new Error(`Deactivate failed: ${error.message}`);
-      deactivated++;
+    let created = 0, updated = 0, deactivated = 0;
+    const processedKeys = new Set<string>();
+
+    // 4. Process employees based on "FUNCIONÁRIOS" tab
+    for (const row of mainRows) {
+      const storeCode = (row[0] ?? "").trim().toUpperCase();
+      const name = (row[1] ?? "").trim();
+      if (!storeCode || !name) continue;
+
+      const store = storesMap.get(storeCode);
+      if (!store) continue; // Skip employees from unknown stores
+
+      const key = `${storeCode}::${name.toUpperCase()}`;
+      processedKeys.add(key);
+      
+      const role = (row[2] ?? "Atendente").trim();
+      // Main sheet status/info
+      // Assume anyone in the "FUNCIONÁRIOS" sheet is currently managed
+      // You might have a status column in J or similar if needed
+      
+      const specific = storeSpecificData.get(key);
+      const found = existingByKey.get(key);
+
+      const payload: Record<string, unknown> = {
+        store_id: store.id,
+        name: name,
+        role: role,
+        active: true, // If they are in the main sheet, they are active
+        work_regime: specific?.regime ?? parseRegime(row[3] ?? ""),
+        fixed_day_off: specific?.fixedDayOff ?? parseFolga(row[4] ?? ""),
+        responsibilities: specific?.responsibilities ?? [
+          ...(isYes(row[5] ?? "") ? ["estoque"] : []),
+          ...(isYes(row[6] ?? "") ? ["maquina"] : [])
+        ],
+        preferred_shift: specific?.shifts?.preferred ?? parseShifts(row[7] ?? "").preferred,
+        allowed_shifts: specific?.shifts?.allowed ?? parseShifts(row[7] ?? "").allowed,
+        preferred_day_off: specific?.preferredDayOff,
+        notes: specific?.notes
+      };
+
+      if (found) {
+        const { error } = await admin.from("employees").update(payload).eq("id", found.id);
+        if (error) throw new Error(`Update failed for ${name}: ${error.message}`);
+        updated++;
+      } else {
+        payload.color = COLOR_PALETTE[(created + updated) % COLOR_PALETTE.length];
+        const { error } = await admin.from("employees").insert(payload);
+        if (error) throw new Error(`Insert failed for ${name}: ${error.message}`);
+        created++;
+      }
+    }
+
+    // 5. Deactivate employees not present in the "FUNCIONÁRIOS" sheet
+    for (const [key, emp] of existingByKey) {
+      if (!processedKeys.has(key) && emp.active) {
+        const { error } = await admin.from("employees").update({ active: false }).eq("id", emp.id);
+        if (error) throw new Error(`Deactivate failed for ${emp.name}: ${error.message}`);
+        deactivated++;
+      }
     }
 
     return new Response(
-      JSON.stringify({ created, updated, deactivated, skipped }),
+      JSON.stringify({ created, updated, deactivated }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
