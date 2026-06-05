@@ -59,11 +59,13 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     }
   });
 
-  const [view, setView] = useState<"grade" | "resumo" | "freelancers">("grade");
+  const [view, setView] = useState<"grade" | "resumo" | "freelancers">(initialTab || "grade");
 
   useEffect(() => {
     if (initialTab && ["grade", "resumo", "freelancers"].includes(initialTab)) {
-      setView(initialTab);
+      if (initialTab !== view) {
+        setView(initialTab);
+      }
     }
   }, [initialTab]);
 
@@ -119,10 +121,15 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     if (!selectedStore?.id) return;
     const weekKey = format(weekStart, "yyyy-MM-dd");
     
-    if (initialStoreId !== selectedStore.id || initialWeek !== weekKey || initialTab !== view) {
+    // Only sync if actual values changed and are different from current search params
+    const hasStoreChanged = initialStoreId !== selectedStore.id;
+    const hasWeekChanged = initialWeek !== weekKey;
+    const hasTabChanged = initialTab !== view;
+
+    if (hasStoreChanged || hasWeekChanged || hasTabChanged) {
       syncSearch(selectedStore.id, weekStart, view);
     }
-  }, [selectedStore?.id, weekStart, view]);
+  }, [selectedStore?.id, weekStart, view, initialStoreId, initialWeek, initialTab]);
 
   const { employees: allEmployees } = useEmployees(selectedStore?.id ?? null);
   const employees = useMemo(() => allEmployees.filter(e => e.active), [allEmployees]);
@@ -376,7 +383,14 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
           </div>
         </div>
 
-        <TabBar items={tabItems} activeId={view} onChange={setView} />
+        <TabBar 
+          items={tabItems} 
+          activeId={view} 
+          onChange={(newTab) => {
+            setView(newTab);
+            syncSearch(selectedStore.id, weekStart, newTab);
+          }} 
+        />
 
         <div className="flex-1 min-h-0 overflow-hidden px-6 pt-3 pb-2">
           {loading ? (
