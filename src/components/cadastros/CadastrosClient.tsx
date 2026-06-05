@@ -13,10 +13,8 @@ const ADMIN_ROLES = ['regional', 'rh', 'diretoria']
 
 const BASE_TABS = [
   { id: 'funcionarios', label: 'Funcionários', icon: Users },
-  { id: 'config',       label: 'Config. loja',  icon: Settings },
 ]
 const ADMIN_TABS = [
-  { id: 'usuarios',     label: 'Usuários',      icon: ShieldCheck },
   { id: 'consistencia', label: 'Consistência', icon: GitCompare },
 ]
 
@@ -71,8 +69,6 @@ export default function CadastrosClient({ profile, initialStores }: Props) {
       <div className="flex-1 overflow-auto">
         {tab === 'funcionarios' && <FuncionariosTab store={selectedStore} />}
         {tab === 'turnos'       && <TurnosTab store={selectedStore} />}
-        {tab === 'config'       && <ConfigLojaTab store={selectedStore} />}
-        {tab === 'usuarios'     && isAdmin && <UsuariosTab />}
         {tab === 'consistencia' && isAdmin && <ConsistenciaTab />}
       </div>
     </div>
