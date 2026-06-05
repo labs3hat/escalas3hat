@@ -179,6 +179,13 @@ Deno.serve(async (req) => {
         weekly_hours_5x2: parseNum(row[23], 44),
         active: true,
       };
+
+      if (code === "SJP1") {
+        console.log("SJP1 Row Data:", row);
+        console.log("SJP1 Sunday Closing Raw:", row[11]);
+        console.log("SJP1 Sunday Closing Parsed:", parseTime(row[11]));
+        console.log("SJP1 Payload Sunday Closing:", payload.closing_time_sunday);
+      }
       
       payloads.push(payload);
     }
