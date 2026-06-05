@@ -135,16 +135,22 @@ Deno.serve(async (req) => {
     const payloads: any[] = [];
     let skipped = 0;
 
+    const foundRegions = new Set<string>();
+    const foundTypes = new Set<string>();
+
     for (const row of rows) {
       const code = (row[0] ?? "").trim().toUpperCase();
       const name = (row[1] ?? "").trim();
       if (!code || !name) { skipped++; continue; }
 
-      // Map spreadsheet regions to database regions
+      const type = (row[2] ?? "").trim() || "shopping";
       let region = (row[5] ?? "").trim();
       if (!region) {
         region = "curitiba"; // default fallback
       }
+      
+      foundRegions.add(region);
+      foundTypes.add(type);
 
       const payload = {
         code,
