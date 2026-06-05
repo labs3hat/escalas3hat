@@ -47,18 +47,30 @@ export function useFreelancerSlots(scheduleId) {
 
   // 1. Buscar vagas do schedule
   const fetchSlots = useCallback(async () => {
-    if (!scheduleId) return;
+    if (!scheduleId) {
+      setLoading(false);
+      setSlots([]);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
-    const { data, error: err } = await supabase
-      .from("freelancer_slots")
-      .select("*")
-      .eq("schedule_id", scheduleId)
-      .order("day_of_week")
-      .order("shift_name");
-    if (err) setError(err.message);
-    else setSlots(data ?? []);
-    setLoading(false);
+    try {
+      const { data, error: err } = await supabase
+        .from("freelancer_slots")
+        .select("*")
+        .eq("schedule_id", scheduleId)
+        .order("day_of_week")
+        .order("shift_name");
+      
+      if (err) throw err;
+      setSlots(data ?? []);
+    } catch (err: any) {
+      console.error("Erro ao buscar vagas freelancer:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [scheduleId]);
 
   useEffect(() => { 
