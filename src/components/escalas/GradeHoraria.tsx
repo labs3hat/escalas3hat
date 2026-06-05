@@ -9,6 +9,10 @@ interface FreelancerSlot {
   shift_name: string;
   filled_by: string | null;
   rule_origin: string;
+  start_time?: string;
+  end_time?: string;
+  break_minutes?: number;
+  is_manual?: boolean;
 }
 
 interface Props {
@@ -252,15 +256,22 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                         dayFree.map(s => (
                           <div 
                             key={s.id} 
-                            className={`flex items-center gap-0.5 px-1 py-0.5 rounded text-[7px] font-medium border ${
+                            className={`flex flex-col gap-0 px-1 py-0.5 rounded border ${
                               s.filled_by 
                                 ? 'bg-amber-100 border-amber-200 text-amber-800' 
                                 : 'bg-white border-dashed border-amber-300 text-amber-400'
                             }`}
-                            title={`${s.shift_name}: ${s.filled_by || 'Aguardando'}`}
+                            title={`${s.shift_name}: ${s.filled_by || 'Aguardando'} (${s.start_time || '--:--'} às ${s.end_time || '--:--'})`}
                           >
-                            <User size={6} />
-                            <span className="truncate max-w-[40px]">{s.filled_by || s.shift_name}</span>
+                            <div className="flex items-center gap-0.5">
+                              <User size={6} />
+                              <span className="truncate max-w-[40px] text-[7px] font-bold">{s.filled_by || s.shift_name}</span>
+                            </div>
+                            {s.filled_by && (
+                              <span className="text-[6px] opacity-80 leading-tight">
+                                {s.start_time || '--:--'}-{s.end_time || '--:--'}
+                              </span>
+                            )}
                           </div>
                         ))
                       ) : (
@@ -335,8 +346,16 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 const fcEmpCount = employees.filter(e => getSlot(e.id, dow, fcSlot) === 'work').length
                 
                 // Count freelancers (heuristic: Abertura = opening, Fechamento = closing)
-                const abFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
-                const fcFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
+                const abFreeCount = freelancerSlots.filter(s => {
+                  if (s.day_of_week !== dow || !s.filled_by) return false;
+                  if (s.start_time) return s.start_time <= abSlot;
+                  return s.shift_name === 'Abertura';
+                }).length;
+                const fcFreeCount = freelancerSlots.filter(s => {
+                  if (s.day_of_week !== dow || !s.filled_by) return false;
+                  if (s.end_time) return s.end_time >= fcSlot;
+                  return s.shift_name === 'Fechamento';
+                }).length;
 
                 const abCount = abEmpCount + abFreeCount
                 const fcCount = fcEmpCount + fcFreeCount

@@ -61,53 +61,109 @@ export function useFreelancerSlots(scheduleId) {
     setLoading(false);
   }, [scheduleId]);
 
-  useEffect(() => { fetchSlots(); }, [fetchSlots]);
+  useEffect(() => { 
+    fetchSlots(); 
+    // Inscrever para mudanças em tempo real para manter todas as instâncias sincronizadas
+    const channel = supabase
+      .channel(`freelancer_slots_${scheduleId}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'freelancer_slots',
+        filter: `schedule_id=eq.${scheduleId}`
+      }, () => {
+        fetchSlots();
+      })
+      .subscribe();
 
-  // 2. Preencher vaga com nome do freelancer
-  const fillSlot = useCallback(async (slotId, filledBy) => {
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchSlots, scheduleId]);
+
+  // 2. Preencher vaga com nome do freelancer e horários
+  const fillSlot = useCallback(async (slotId, data) => {
     const { data: { user } } = await supabase.auth.getUser();
     const { error: err } = await supabase
       .from("freelancer_slots")
       .update({
-        filled_by:      filledBy,
+        filled_by:      data.nome,
+        start_time:     data.startTime,
+        end_time:       data.endTime,
+        break_minutes:  data.breakMinutes,
         filled_at:      new Date().toISOString(),
         filled_by_user: user?.id ?? null,
       })
       .eq("id", slotId);
     if (err) throw new Error(err.message);
     
-    toast.success(`Freelancer ${filledBy} salvo com sucesso!`);
+    toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
 
-    // Atualizar estado local sem refetch
     setSlots((prev) =>
       prev.map((s) =>
         s.id === slotId
-          ? { ...s, filled_by: filledBy, filled_at: new Date().toISOString() }
+          ? { ...s, filled_by: data.nome, start_time: data.startTime, end_time: data.endTime, break_minutes: data.breakMinutes, filled_at: new Date().toISOString() }
           : s
       )
     );
   }, []);
 
-  // 3. Limpar nome (desfazer preenchimento)
-  const clearSlot = useCallback(async (slotId) => {
-    const { error: err } = await supabase
+  // 3. Adicionar vaga manual
+  const addManualSlot = useCallback(async (scheduleId, storeId, dayOfWeek, data) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: newSlot, error: err } = await supabase
       .from("freelancer_slots")
-      .update({ filled_by: null, filled_at: null, filled_by_user: null })
-      .eq("id", slotId);
+      .insert({
+        schedule_id:    scheduleId,
+        store_id:       storeId,
+        day_of_week:    dayOfWeek,
+        shift_name:     "Manual",
+        rule_origin:    "Manual",
+        filled_by:      data.nome,
+        start_time:     data.startTime,
+        end_time:       data.endTime,
+        break_minutes:  data.breakMinutes,
+        is_manual:      true,
+        filled_at:      new Date().toISOString(),
+        filled_by_user: user?.id ?? null,
+      })
+      .select()
+      .single();
+    
     if (err) throw new Error(err.message);
-    setSlots((prev) =>
-      prev.map((s) =>
-        s.id === slotId
-          ? { ...s, filled_by: null, filled_at: null }
-          : s
-      )
-    );
+    
+    toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
+    setSlots(prev => [...prev, newSlot]);
+  }, []);
+
+  // 4. Limpar/Excluir vaga
+  const clearSlot = useCallback(async (slotId, isManual) => {
+    if (isManual) {
+      const { error: err } = await supabase
+        .from("freelancer_slots")
+        .delete()
+        .eq("id", slotId);
+      if (err) throw new Error(err.message);
+      setSlots(prev => prev.filter(s => s.id !== slotId));
+      toast.success("Freelancer removido com sucesso!");
+    } else {
+      const { error: err } = await supabase
+        .from("freelancer_slots")
+        .update({ filled_by: null, filled_at: null, filled_by_user: null, start_time: null, end_time: null })
+        .eq("id", slotId);
+      if (err) throw new Error(err.message);
+      setSlots((prev) =>
+        prev.map((s) =>
+          s.id === slotId
+            ? { ...s, filled_by: null, filled_at: null, start_time: null, end_time: null }
+            : s
+        )
+      );
+    }
   }, []);
 
   const openCount  = slots.filter((s) => !s.filled_by).length;
-  const canPublish = true; // Sempre permitido publicar agora
+  const canPublish = true;
 
-  return { slots, loading, error, fillSlot, clearSlot, openCount, canPublish, refetch: fetchSlots };
+  return { slots, loading, error, fillSlot, addManualSlot, clearSlot, openCount, canPublish, refetch: fetchSlots };
 }
 
 // =============================================================
@@ -188,27 +244,40 @@ function FreelancerCell({ slot, onFill, onClear }) {
   if (filled) {
     return (
       <div style={{
-        background: "var(--color-background-info)",
-        border: "0.5px solid var(--color-border-info)",
+        background: slot.is_manual ? "#F5F5F5" : "var(--color-background-info)",
+        border: `0.5px solid ${slot.is_manual ? "#DDD" : "var(--color-border-info)"}`,
         borderRadius: 4,
         padding: "4px 6px",
-        minHeight: 44,
+        minHeight: 54,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
         cursor: "pointer",
+        position: "relative"
       }}
-        onClick={() => onClear(slot.id)}
-        title="Toque para desfazer"
+        onClick={() => onClear(slot)}
+        title="Toque para remover/limpar"
         role="button"
-        aria-label={`Freelancer ${slot.filled_by} — ${slot.shift_name}. Toque para desfazer.`}
       >
-        <span style={{ fontSize: 10, fontWeight: 500, color: "var(--color-text-info)" }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: "var(--color-text-primary)" }}>
           {slot.filled_by}
         </span>
-        <span style={{ fontSize: 9, color: "var(--color-text-secondary)" }}>
-          Freelancer
-        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <span style={{ fontSize: 9, color: "var(--color-text-secondary)" }}>
+            {slot.start_time || "--:--"} às {slot.end_time || "--:--"}
+          </span>
+          <span style={{ fontSize: 8, color: "var(--color-text-tertiary)" }}>
+            Pausa: {slot.break_minutes}m
+          </span>
+        </div>
+        {slot.is_manual && (
+          <span style={{ 
+            position: "absolute", top: 2, right: 2, fontSize: 7, 
+            background: "#EEE", padding: "1px 3px", borderRadius: 2 
+          }}>
+            Manual
+          </span>
+        )}
       </div>
     );
   }
@@ -220,7 +289,7 @@ function FreelancerCell({ slot, onFill, onClear }) {
         border: `1px dashed ${rule.border}`,
         borderRadius: 4,
         padding: "4px 6px",
-        minHeight: 44,
+        minHeight: 54,
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -228,13 +297,12 @@ function FreelancerCell({ slot, onFill, onClear }) {
       }}
       onClick={() => onFill(slot)}
       role="button"
-      aria-label={`Vaga freelancer ${slot.shift_name} — regra ${slot.rule_origin}. Toque para preencher.`}
     >
       <span style={{
         display: "inline-block",
-        fontSize: 9,
-        fontWeight: 500,
-        padding: "1px 5px",
+        fontSize: 8,
+        fontWeight: 600,
+        padding: "1px 4px",
         borderRadius: 3,
         background: rule.border,
         color: rule.text,
@@ -246,7 +314,7 @@ function FreelancerCell({ slot, onFill, onClear }) {
       <span style={{ fontSize: 10, fontWeight: 500, color: rule.text }}>
         {slot.shift_name}
       </span>
-      <span style={{ fontSize: 9, color: rule.text, opacity: 0.8, marginTop: 2 }}>
+      <span style={{ fontSize: 9, color: rule.text, opacity: 0.8, marginTop: 1 }}>
         + preencher
       </span>
     </div>
@@ -257,9 +325,12 @@ function FreelancerCell({ slot, onFill, onClear }) {
 // Modal de preenchimento (bottom sheet)
 // =============================================================
 function FillModal({ slot, onConfirm, onCancel }) {
-  const [nome, setNome]     = useState("");
-  const [saving, setSaving] = useState(false);
-  const [err, setErr]       = useState(null);
+  const [nome, setNome]           = useState(slot.filled_by || "");
+  const [startTime, setStartTime] = useState(slot.start_time || (slot.shift_name === 'Abertura' ? '08:00' : '13:00'));
+  const [endTime, setEndTime]     = useState(slot.end_time || (slot.shift_name === 'Abertura' ? '17:00' : '22:00'));
+  const [breakMin, setBreakMin]   = useState(slot.break_minutes || 60);
+  const [saving, setSaving]       = useState(false);
+  const [err, setErr]             = useState(null);
 
   if (!slot) return null;
 
@@ -268,7 +339,12 @@ function FillModal({ slot, onConfirm, onCancel }) {
     setSaving(true);
     setErr(null);
     try {
-      await onConfirm(slot.id, nome.trim());
+      await onConfirm(slot, {
+        nome: nome.trim(),
+        startTime,
+        endTime,
+        breakMinutes: parseInt(breakMin) || 0
+      });
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -276,95 +352,92 @@ function FillModal({ slot, onConfirm, onCancel }) {
     }
   };
 
-  const handleKey = (e) => { if (e.key === "Enter") handleConfirm(); };
-
   return (
     <div
       style={{
         position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.7)", // Escurecido conforme pedido
+        background: "rgba(0,0,0,0.7)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 9999, // Garantir que fique por cima de tudo
+        zIndex: 9999,
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="fl-modal-title"
     >
       <div style={{
         background: "#FFFFFF",
-        borderRadius: "12px", // Centralizado e com bordas arredondadas completas
+        borderRadius: "12px",
         padding: "24px",
         width: "90%",
         maxWidth: 400,
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)",
+        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
       }}>
-        <h3 id="fl-modal-title" style={{
-          fontSize: 15, fontWeight: 500,
-          color: "var(--color-text-primary)", marginBottom: 4,
-        }}>
-          Preencher vaga freelancer
+        <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+          {slot.is_manual && !slot.id ? "Adicionar Freelancer" : "Editar Freelancer"}
         </h3>
-        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 16 }}>
-          {DAY_LABELS[slot.day_of_week]} · {slot.shift_name} · Regra {slot.rule_origin}
+        <p style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
+          {DAY_LABELS[slot.day_of_week]} · {slot.shift_name}
         </p>
 
-        <input
-          type="text"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Nome do freelancer"
-          autoFocus
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            border: "0.5px solid var(--color-border-secondary)",
-            borderRadius: 6,
-            fontSize: 14,
-            color: "var(--color-text-primary)",
-            background: "var(--color-background-primary)",
-            marginBottom: err ? 8 : 12,
-            outline: "none",
-          }}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 500, color: "#999", display: "block", marginBottom: 4 }}>NOME DO FREELANCER</label>
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex: João Silva"
+              autoFocus
+              style={{
+                width: "100%", padding: "10px", border: "1px solid #DDD", borderRadius: 6, fontSize: 14, outline: "none"
+              }}
+            />
+          </div>
 
-        {err && (
-          <p style={{ fontSize: 11, color: "var(--color-text-danger)", marginBottom: 12 }}>
-            {err}
-          </p>
-        )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 500, color: "#999", display: "block", marginBottom: 4 }}>INÍCIO</label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                style={{ width: "100%", padding: "10px", border: "1px solid #DDD", borderRadius: 6, fontSize: 14 }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 500, color: "#999", display: "block", marginBottom: 4 }}>FIM</label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                style={{ width: "100%", padding: "10px", border: "1px solid #DDD", borderRadius: 6, fontSize: 14 }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 500, color: "#999", display: "block", marginBottom: 4 }}>INTERVALO (MINUTOS)</label>
+            <input
+              type="number"
+              value={breakMin}
+              onChange={(e) => setBreakMin(e.target.value)}
+              style={{ width: "100%", padding: "10px", border: "1px solid #DDD", borderRadius: 6, fontSize: 14 }}
+            />
+          </div>
+        </div>
+
+        {err && <p style={{ fontSize: 11, color: "red", marginBottom: 12 }}>{err}</p>}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <button
-            onClick={onCancel}
-            disabled={saving}
-            style={{
-              padding: 10,
-              borderRadius: 6,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              background: "var(--color-background-secondary)",
-              border: "0.5px solid var(--color-border-tertiary)",
-              color: "var(--color-text-secondary)",
-            }}
-          >
+          <button onClick={onCancel} disabled={saving} style={{ padding: 10, borderRadius: 6, fontSize: 13, background: "#EEE", border: "none" }}>
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={saving || !nome.trim()}
             style={{
-              padding: 10,
-              borderRadius: 6,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: nome.trim() ? "pointer" : "default",
-              background: nome.trim() ? "#BA7517" : "var(--color-background-secondary)",
-              border: "none",
-              color: nome.trim() ? "#fff" : "var(--color-text-tertiary)",
-              transition: "background 0.15s",
+              padding: 10, borderRadius: 6, fontSize: 13, fontWeight: 600,
+              background: nome.trim() ? "#BA7517" : "#CCC", color: "#FFF", border: "none"
             }}
           >
             {saving ? "Salvando..." : "Confirmar"}
@@ -423,10 +496,10 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
 // =============================================================
 // Componente principal — grade de vagas freelancer por dia
 // =============================================================
-export function FreelancerSlots({ scheduleId, className = "" }) {
+export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
   const {
     slots, loading, error,
-    fillSlot, clearSlot,
+    fillSlot, addManualSlot, clearSlot,
     openCount, canPublish,
   } = useFreelancerSlots(scheduleId);
 
@@ -451,79 +524,77 @@ export function FreelancerSlots({ scheduleId, className = "" }) {
     );
   }
 
-  if (slots.length === 0) {
-    return (
-      <PublishButton
-        canPublish={true}
-        openCount={0}
-        onPublish={publish}
-        publishing={publishing}
-        published={published}
-      />
-    );
-  }
+  const handleSave = async (slot, data) => {
+    try {
+      if (slot.id) {
+        await fillSlot(slot.id, data);
+      } else {
+        await addManualSlot(scheduleId, storeId, slot.day_of_week, data);
+      }
+      setActiveSlot(null);
+    } catch (e) {
+      console.error("Erro ao salvar freelancer:", e);
+    }
+  };
+
+  const handleClear = async (slot) => {
+    const action = slot.is_manual ? "Excluir" : "Limpar";
+    if (!window.confirm(`${action} este freelancer?`)) return;
+    await clearSlot(slot.id, slot.is_manual);
+  };
 
   // Agrupar slots por dia da semana
   const byDay = Array.from({ length: 7 }, (_, i) =>
     slots.filter((s) => s.day_of_week === i)
   );
 
-  const handleFill = async (slotId, nome) => {
-    try {
-      await fillSlot(slotId, nome);
-      setActiveSlot(null);
-      // O refetch já é acionado pelo realtime ou pelo estado local no hook, 
-      // mas vamos garantir a atualização visual.
-    } catch (e) {
-      console.error("Erro ao preencher freelancer:", e);
-    }
-  };
-
-  const handleClear = async (slotId) => {
-    if (!window.confirm("Desfazer preenchimento desta vaga?")) return;
-    await clearSlot(slotId);
-  };
-
   return (
     <div className={className}>
       <AlertBar openCount={openCount} />
 
-      {/* Grade por dia da semana */}
       <div style={{ marginBottom: 12 }}>
         <p style={{
           fontSize: 10, fontWeight: 500, color: "var(--color-text-tertiary)",
           textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8,
         }}>
-          Vagas freelancer
+          Gestão de Freelancers
         </p>
 
-        {byDay.map((daySlots, dayIdx) => {
-          if (daySlots.length === 0) return null;
-          return (
-            <div key={dayIdx} style={{ marginBottom: 8 }}>
-              <p style={{
-                fontSize: 11, fontWeight: 500,
-                color: "var(--color-text-secondary)", marginBottom: 4,
-              }}>
+        {byDay.map((daySlots, dayIdx) => (
+          <div key={dayIdx} style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#333" }}>
                 {DAY_LABELS[dayIdx]}
               </p>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
-                gap: 4,
-              }}>
-                {daySlots.map((slot) => (
-                  <FreelancerCell
-                    key={slot.id}
-                    slot={slot}
-                    onFill={setActiveSlot}
-                    onClear={handleClear}
-                  />
-                ))}
-              </div>
+              <button
+                onClick={() => setActiveSlot({ day_of_week: dayIdx, shift_name: 'Manual', is_manual: true })}
+                style={{
+                  fontSize: 10, padding: "2px 6px", borderRadius: 4,
+                  background: "#F0F0F0", border: "0.5px solid #DDD", color: "#666"
+                }}
+              >
+                + Freelancer
+              </button>
             </div>
-          );
-        })}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+              gap: 6,
+            }}>
+              {daySlots.map((slot) => (
+                <FreelancerCell
+                  key={slot.id}
+                  slot={slot}
+                  onFill={setActiveSlot}
+                  onClear={handleClear}
+                />
+              ))}
+              {daySlots.length === 0 && (
+                <p style={{ fontSize: 10, color: "#AAA", fontStyle: "italic" }}>Sem vagas sugeridas</p>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       <PublishButton
@@ -540,11 +611,13 @@ export function FreelancerSlots({ scheduleId, className = "" }) {
         </p>
       )}
 
-      <FillModal
-        slot={activeSlot}
-        onConfirm={handleFill}
-        onCancel={() => setActiveSlot(null)}
-      />
+      {activeSlot && (
+        <FillModal
+          slot={activeSlot}
+          onConfirm={handleSave}
+          onCancel={() => setActiveSlot(null)}
+        />
+      )}
     </div>
   );
 }

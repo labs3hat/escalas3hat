@@ -8,6 +8,10 @@ interface FreelancerSlot {
   shift_name: string;
   filled_by: string | null;
   rule_origin: string;
+  start_time?: string;
+  end_time?: string;
+  break_minutes?: number;
+  is_manual?: boolean;
 }
 
 interface Props {
@@ -143,8 +147,18 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
           const abEmpCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday?.replace(':','') ?? '10:00') === 'work').length
           const fcEmpCount = employees.filter(e => getSlot(e.id, dow, '22:00') === 'work').length
           
-          const abFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
-          const fcFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
+          const abSlot = store.opening_time_weekday || '10:00'
+          const fcSlot = '22:00'
+          const abFreeCount = freelancerSlots.filter(s => {
+            if (s.day_of_week !== dow || !s.filled_by) return false;
+            if (s.start_time) return s.start_time <= abSlot;
+            return s.shift_name === 'Abertura';
+          }).length;
+          const fcFreeCount = freelancerSlots.filter(s => {
+            if (s.day_of_week !== dow || !s.filled_by) return false;
+            if (s.end_time) return s.end_time >= fcSlot;
+            return s.shift_name === 'Fechamento';
+          }).length;
 
           const abCount = abEmpCount + abFreeCount
           const fcCount = fcEmpCount + fcFreeCount
@@ -182,7 +196,12 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
                     <div className="text-[10px] font-bold truncate leading-tight text-amber-700">
                       {free.filled_by}
                     </div>
-                    <span className="inline-block text-[8px] bg-amber-100 text-amber-700 px-1 rounded">Freelancer ({free.shift_name})</span>
+                    <div className="text-[9px] text-amber-600 font-medium">
+                      {free.start_time || "--:--"}–{free.end_time || "--:--"}
+                    </div>
+                    <span className="inline-block text-[8px] bg-amber-100 text-amber-700 px-1 rounded">
+                      Freelancer ({free.is_manual ? 'Manual' : free.shift_name})
+                    </span>
                   </div>
                 ))}
                 

@@ -132,10 +132,25 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
           }
         })
       })
+
+      // R20 — Excesso de contingente (Freelancers manuais)
+      const manualFrees = freelancerSlots.filter(s => s.day_of_week === dow && s.is_manual && s.filled_by)
+      if (manualFrees.length > 0) {
+        const isWeekday = dow >= 1 && dow <= 5
+        const target = isWeekday ? (store.min_weekday_staff ?? 3) : (store.min_weekend_staff ?? 4)
+        const workingEmps = employees.filter(e => SLOT_KEYS.some(s => getSlot(e.id, dow, s) === 'work')).length
+        
+        if (workingEmps + manualFrees.length > target) {
+          al.push({ 
+            type: 'warning', 
+            message: `R20: ${label} — excesso de pessoas (${workingEmps + manualFrees.length}/${target}) devido a freelancer manual` 
+          })
+        }
+      }
     })
 
     return al
-  }, [employees, weekDates, getSlot, store])
+  }, [employees, weekDates, getSlot, store, freelancerSlots])
 
   // Banco de horas — lê de hours_bank (não recalcula)
   const [bankHours, setBankHours] = useState<Record<string, number>>({})

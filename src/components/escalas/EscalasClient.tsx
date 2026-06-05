@@ -451,7 +451,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
           ) : (
             <div className="p-4 max-w-lg h-full overflow-auto">
               {schedule?.id ? (
-                <FreelancerSlots scheduleId={schedule.id} />
+                <FreelancerSlots scheduleId={schedule.id} storeId={selectedStore.id} />
               ) : (
                 <p className="text-sm text-gray-400">
                   Gere a escala primeiro para ver as vagas freelancer.

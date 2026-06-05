@@ -75,41 +75,53 @@ export type Database = {
       }
       freelancer_slots: {
         Row: {
+          break_minutes: number | null
           created_at: string
           day_of_week: number
+          end_time: string | null
           filled_at: string | null
           filled_by: string | null
           filled_by_user: string | null
           id: string
+          is_manual: boolean | null
           rule_origin: string
           schedule_id: string
           shift_name: string
+          start_time: string | null
           store_id: string
           updated_at: string
         }
         Insert: {
+          break_minutes?: number | null
           created_at?: string
           day_of_week: number
+          end_time?: string | null
           filled_at?: string | null
           filled_by?: string | null
           filled_by_user?: string | null
           id?: string
+          is_manual?: boolean | null
           rule_origin: string
           schedule_id: string
           shift_name: string
+          start_time?: string | null
           store_id: string
           updated_at?: string
         }
         Update: {
+          break_minutes?: number | null
           created_at?: string
           day_of_week?: number
+          end_time?: string | null
           filled_at?: string | null
           filled_by?: string | null
           filled_by_user?: string | null
           id?: string
+          is_manual?: boolean | null
           rule_origin?: string
           schedule_id?: string
           shift_name?: string
+          start_time?: string | null
           store_id?: string
           updated_at?: string
         }
