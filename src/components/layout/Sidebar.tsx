@@ -73,7 +73,7 @@ export default function Sidebar({ profile, collapsed }: Props) {
             <Link
               key={href}
               to={targetPath as any}
-              search={search}
+              search={search as any}
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 ${collapsed ? 'justify-center px-0' : 'px-4'} py-2.5 text-sm transition-colors border-l-2 ${
                 active
