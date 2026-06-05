@@ -4,9 +4,12 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Schedule, ScheduleSlot, SlotType, Employee } from "@/types";
 import { validateScheduleRules } from "@/utils/scheduleRules";
+import { scheduleService } from "@/services/schedules";
+import { formatters } from "@/lib/formatters";
+import { handleSupabaseError } from "@/lib/errorHandler";
 
 function normalizeSlot(slot: ScheduleSlot): ScheduleSlot {
-  return { ...slot, slot_time: slot.slot_time.slice(0, 5) };
+  return { ...slot, slot_time: formatters.time(slot.slot_time) };
 }
 
 export function useSchedule(storeId: string | null, weekStart: Date) {
@@ -25,57 +28,43 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
       const seq = ++loadSeq.current;
       setLoading(true);
 
-      let sched: Schedule | null = null;
+      try {
+        let sched: Schedule | null = null;
 
-      if (forceScheduleId) {
-        const { data: forcedSched } = await supabase
-          .from("schedules")
-          .select("*")
-          .eq("id", forceScheduleId)
-          .single();
-        sched = (forcedSched as Schedule | null) ?? null;
-      }
+        if (forceScheduleId) {
+          const { data: forcedSched, error } = await supabase
+            .from("schedules")
+            .select("*")
+            .eq("id", forceScheduleId)
+            .single();
+          if (error) throw error;
+          sched = forcedSched as Schedule;
+        }
 
-      if (!sched) {
-        // busca a escala mais recente da semana (tolera duplicatas)
-        const { data: schedList } = await supabase
-          .from("schedules")
-          .select("*")
-          .eq("store_id", storeId)
-          .eq("week_start", weekKey)
-          .order("created_at", { ascending: false })
-          .limit(1);
+        if (!sched) {
+          sched = await scheduleService.getByStoreAndWeek(storeId, weekKey);
+        }
 
-        sched = (schedList?.[0] as Schedule | null) ?? null;
-      }
+        if (!sched) {
+          const { data: { user } } = await supabase.auth.getUser();
+          sched = await scheduleService.create(storeId, weekKey, user?.id);
+        }
 
-      if (!sched) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        const { data: newSched } = await supabase
-          .from("schedules")
-          .insert({ store_id: storeId, week_start: weekKey, status: "draft", created_by: user?.id })
-          .select()
-          .single();
-        sched = newSched;
-      }
-
-      if (seq !== loadSeq.current) return; // ignora reload obsoleto (corrida com realtime)
-      setSchedule(sched);
-
-      if (sched) {
-        const { data: slotData } = await supabase
-          .from("schedule_slots")
-          .select("*")
-          .eq("schedule_id", sched.id);
         if (seq !== loadSeq.current) return;
-        setSlots(((slotData ?? []) as ScheduleSlot[]).map(normalizeSlot));
-      } else {
-        setSlots([]);
-      }
+        setSchedule(sched);
 
-      setLoading(false);
+        if (sched) {
+          const slotData = await scheduleService.getSlots(sched.id);
+          if (seq !== loadSeq.current) return;
+          setSlots(slotData.map(normalizeSlot));
+        } else {
+          setSlots([]);
+        }
+      } catch (err) {
+        handleSupabaseError(err, "Erro ao carregar escala");
+      } finally {
+        if (seq === loadSeq.current) setLoading(false);
+      }
     },
     [storeId, weekKey],
   );
@@ -84,7 +73,6 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     load();
   }, [load]);
 
-  // Realtime: recarrega quando schedule_slots mudar para a escala atual
   useEffect(() => {
     if (!schedule?.id) return;
     const channel = supabase
@@ -115,59 +103,52 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
   ) {
     if (!schedule) return;
     const typedSlotType = slotType as SlotType;
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    // Normalizar slotTime para garantir consistência (ex: "08:00:00" -> "08:00")
-    const normalizedTime = slotTime.length > 5 ? slotTime.slice(0, 5) : slotTime;
+    const { data: { user } } = await supabase.auth.getUser();
+    const normalizedTime = formatters.time(slotTime);
 
     const existing = slots.find(
-      (s) =>
-        s.employee_id === employeeId && s.day_of_week === dayOfWeek && s.slot_time === normalizedTime,
+      (s) => s.employee_id === employeeId && s.day_of_week === dayOfWeek && s.slot_time === normalizedTime,
     );
 
-    if (existing) {
-      if (typedSlotType === 'empty') {
-        await supabase.from("schedule_slots").delete().eq("id", existing.id);
-        setSlots((prev) => prev.filter((s) => s.id !== existing.id));
-      } else {
-        await supabase
+    try {
+      if (existing) {
+        if (typedSlotType === 'empty') {
+          await supabase.from("schedule_slots").delete().eq("id", existing.id);
+          setSlots((prev) => prev.filter((s) => s.id !== existing.id));
+        } else {
+          await supabase
+            .from("schedule_slots")
+            .update({
+              slot_type: typedSlotType,
+              updated_by: user?.id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existing.id);
+          setSlots((prev) =>
+            prev.map((s) => (s.id === existing.id ? { ...s, slot_type: typedSlotType } : s)),
+          );
+        }
+      } else if (typedSlotType !== 'empty') {
+        const { data: newSlot, error } = await supabase
           .from("schedule_slots")
-          .update({
+          .insert({
+            schedule_id: schedule.id,
+            employee_id: employeeId,
+            day_of_week: dayOfWeek,
+            slot_time: normalizedTime,
             slot_type: typedSlotType,
             updated_by: user?.id,
-            updated_at: new Date().toISOString(),
           })
-          .eq("id", existing.id);
-        setSlots((prev) =>
-          prev.map((s) => (s.id === existing.id ? { ...s, slot_type: typedSlotType } : s)),
-        );
+          .select()
+          .single();
+        if (error) throw error;
+        if (newSlot) setSlots((prev) => [...prev, normalizeSlot(newSlot as ScheduleSlot)]);
       }
-    } else if (typedSlotType !== 'empty') {
-      const { data: newSlot } = await supabase
-        .from("schedule_slots")
-        .insert({
-          schedule_id: schedule.id,
-          employee_id: employeeId,
-          day_of_week: dayOfWeek,
-          slot_time: normalizedTime,
-          slot_type: typedSlotType,
-          updated_by: user?.id,
-        })
-        .select()
-        .single();
-      if (newSlot) setSlots((prev) => [...prev, normalizeSlot(newSlot as ScheduleSlot)]);
+    } catch (err) {
+      handleSupabaseError(err, "Erro ao atualizar slot");
     }
   }
 
-  /**
-   * Recria todos os slots de um funcionário em um dia.
-   *  - dayType 'day_off': apaga tudo e insere 1 slot day_off às 08:00
-   *  - dayType 'empty':   apaga todos os slots do dia
-   *  - dayType 'work':    apaga e recria slots de 30min entre entry e exit;
-   *                       slots dentro de [breakStart, breakEnd) são 'interval', demais 'work'.
-   */
   async function updateDay(
     employeeId: string,
     dayOfWeek: number,
@@ -175,101 +156,70 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
   ) {
     if (!schedule) return;
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    // remover todos os slots desse funcionário nesse dia
-    const { error: delErr } = await supabase
-      .from("schedule_slots")
-      .delete()
-      .eq("schedule_id", schedule.id)
-      .eq("employee_id", employeeId)
-      .eq("day_of_week", dayOfWeek);
-    if (delErr) {
-      toast.error("Não foi possível remover os horários antigos: " + delErr.message);
-      throw delErr;
-    }
+    try {
+      await scheduleService.deleteSlots(schedule.id, employeeId, dayOfWeek);
 
-    const toInsert: Array<{
-      schedule_id: string;
-      employee_id: string;
-      day_of_week: number;
-      slot_time: string;
-      slot_type: SlotType;
-      updated_by?: string;
-    }> = [];
+      const toInsert: any[] = [];
 
-    if (dayType === "day_off") {
-      toInsert.push({
-        schedule_id: schedule.id,
-        employee_id: employeeId,
-        day_of_week: dayOfWeek,
-        slot_time: "08:00",
-        slot_type: "day_off" as SlotType,
-        updated_by: user?.id,
-      });
-    } else if (dayType === "work" && payload) {
-      const toMin = (s: string) => {
-        const [h, m] = s.split(":").map(Number);
-        return h * 60 + m;
-      };
-      const fmt = (mins: number) =>
-        `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
-
-      const entryM = toMin(payload.entry);
-      const exitM = toMin(payload.exit);
-      const bStart = payload.breakStart ? toMin(payload.breakStart) : null;
-      const bEnd = payload.breakEnd ? toMin(payload.breakEnd) : null;
-
-      // alinhar ao bloco de 30 min
-      const startAligned = entryM - (entryM % 30);
-      for (let t = startAligned; t < exitM; t += 30) {
-        const inBreak = bStart !== null && bEnd !== null && t >= bStart && t < bEnd;
+      if (dayType === "day_off") {
         toInsert.push({
           schedule_id: schedule.id,
           employee_id: employeeId,
           day_of_week: dayOfWeek,
-          slot_time: fmt(t),
-          slot_type: (inBreak ? "interval" : "work") as SlotType,
+          slot_time: "08:00",
+          slot_type: "day_off",
           updated_by: user?.id,
         });
-      }
-    }
+      } else if (dayType === "work" && payload) {
+        const toMin = (s: string) => {
+          const [h, m] = s.split(":").map(Number);
+          return h * 60 + m;
+        };
+        const fmt = (mins: number) =>
+          `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
 
-    if (toInsert.length > 0) {
-      const { error: upErr } = await supabase
-        .from("schedule_slots")
-        .upsert(toInsert, { onConflict: "schedule_id,employee_id,day_of_week,slot_time" });
-      if (upErr) {
-        toast.error("Não foi possível salvar os novos horários: " + upErr.message);
-        throw upErr;
-      }
-    }
+        const entryM = toMin(payload.entry);
+        const exitM = toMin(payload.exit);
+        const bStart = payload.breakStart ? toMin(payload.breakStart) : null;
+        const bEnd = payload.breakEnd ? toMin(payload.breakEnd) : null;
 
-    await load();
+        const startAligned = entryM - (entryM % 30);
+        for (let t = startAligned; t < exitM; t += 30) {
+          const inBreak = bStart !== null && bEnd !== null && t >= bStart && t < bEnd;
+          toInsert.push({
+            schedule_id: schedule.id,
+            employee_id: employeeId,
+            day_of_week: dayOfWeek,
+            slot_time: fmt(t),
+            slot_type: inBreak ? "interval" : "work",
+            updated_by: user?.id,
+          });
+        }
+      }
+
+      if (toInsert.length > 0) {
+        await scheduleService.insertSlots(toInsert);
+      }
+
+      await load();
+    } catch (err) {
+      handleSupabaseError(err, "Erro ao atualizar dia");
+    }
   }
-
 
   async function publish() {
     if (!schedule) return;
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    await supabase
-      .from("schedules")
-      .update({
-        status: "published",
-        published_at: new Date().toISOString(),
-        published_by: user?.id,
-      })
-      .eq("id", schedule.id);
-    setSchedule((prev) => (prev ? { ...prev, status: "published" } : prev));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    // We'll skip the generic audit here as we'll handle it in the component if needed, 
-    // or we can add a specific record if the user wants. 
-    // The user didn't explicitly ask for an audit on publication in the NEW module, 
-    // but it's good practice. I'll remove it for now to fix build errors.
+    try {
+      await scheduleService.publish(schedule.id, user.id);
+      setSchedule((prev) => (prev ? { ...prev, status: "published" } : prev));
+    } catch (err) {
+      handleSupabaseError(err, "Erro ao publicar escala");
+    }
   }
 
   async function copyPreviousWeek(employees: { id: string }[]) {
@@ -278,45 +228,34 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     prevWeek.setDate(prevWeek.getDate() - 7);
     const prevKey = format(prevWeek, "yyyy-MM-dd");
 
-    const { data: prevSched } = await supabase
-      .from("schedules")
-      .select("id")
-      .eq("store_id", storeId)
-      .eq("week_start", prevKey)
-      .single();
-    if (!prevSched) return;
+    try {
+      const prevSched = await scheduleService.getByStoreAndWeek(storeId, prevKey);
+      if (!prevSched) return;
 
-    const { data: prevSlots } = await supabase
-      .from("schedule_slots")
-      .select("*")
-      .eq("schedule_id", prevSched.id);
-    if (!prevSlots?.length) return;
+      const prevSlots = await scheduleService.getSlots(prevSched.id);
+      if (!prevSlots?.length) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const newSlots = prevSlots.map((s) => ({
-      schedule_id: schedule.id,
-      employee_id: s.employee_id,
-      day_of_week: s.day_of_week,
-      slot_time: s.slot_time,
-      slot_type: s.slot_type,
-      updated_by: user?.id,
-    }));
+      const { data: { user } } = await supabase.auth.getUser();
+      const newSlots = prevSlots.map((s) => ({
+        schedule_id: schedule.id,
+        employee_id: s.employee_id,
+        day_of_week: s.day_of_week,
+        slot_time: s.slot_time,
+        slot_type: s.slot_type,
+        updated_by: user?.id,
+      }));
 
-    // upsert para não duplicar
-    await supabase.from("schedule_slots").upsert(newSlots, {
-      onConflict: "schedule_id,employee_id,day_of_week,slot_time",
-    });
-
-    await load();
+      await scheduleService.insertSlots(newSlots);
+      await load();
+    } catch (err) {
+      handleSupabaseError(err, "Erro ao copiar semana anterior");
+    }
   }
 
   function getSlot(employeeId: string, dayOfWeek: number, slotTime: string): string {
     return (
       slots.find(
-        (s) =>
-          s.employee_id === employeeId && s.day_of_week === dayOfWeek && s.slot_time === slotTime,
+        (s) => s.employee_id === employeeId && s.day_of_week === dayOfWeek && s.slot_time === slotTime,
       )?.slot_type ?? "empty"
     );
   }
@@ -338,3 +277,4 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     validate
   };
 }
+
