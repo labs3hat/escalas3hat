@@ -5,7 +5,7 @@ import type { Profile } from '@/types'
 
 const navItems = [
   { href: '/escalas',     label: 'Escalas',               icon: Calendar },
-  
+  { href: '/escalas',     label: 'Freelancers',           icon: UserPlus, search: { tab: 'freelancers' } },
   { href: '/cadastros',   label: 'Funcionários',          icon: Users },
   { href: '/config-loja', label: 'Configurações da loja', icon: Settings },
   { href: '/usuarios',    label: 'Usuários',              icon: ShieldCheck },
@@ -65,8 +65,8 @@ export default function Sidebar({ profile, collapsed }: Props) {
         {finalItems.map((item) => {
           const { href, label, icon: Icon } = item
           const targetPath = href
-          const active = pathname === targetPath
           const search = (item as any).search
+          const active = pathname === targetPath && (!search?.tab || (search as any).tab === (item as any).search?.tab)
 
           return (
             <Link
