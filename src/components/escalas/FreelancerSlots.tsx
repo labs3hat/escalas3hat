@@ -53,7 +53,7 @@ export function useFreelancerSlots(scheduleId) {
       
       if (err) throw err;
       setSlots(data ?? []);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro ao buscar vagas freelancer:", err);
       setError(err.message);
     } finally {
@@ -102,7 +102,7 @@ export function useFreelancerSlots(scheduleId) {
       toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
       // Não atualizamos o estado local manualmente aqui para evitar conflitos com o real-time
       // O fetchSlots() será chamado pelo listener do postgres_changes
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro em fillSlot:", err);
       toast.error("Erro ao salvar freelancer: " + err.message);
       throw err;
@@ -138,7 +138,7 @@ export function useFreelancerSlots(scheduleId) {
       
       toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
       // O real-time cuidará de atualizar o estado
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro em addManualSlot:", err);
       toast.error("Erro ao adicionar freelancer: " + err.message);
       throw err;
@@ -171,7 +171,7 @@ export function useFreelancerSlots(scheduleId) {
         toast.success("Vaga de freelancer liberada!");
       }
       // O real-time cuidará de atualizar o estado
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro em clearSlot:", err);
       toast.error("Erro ao remover/limpar: " + err.message);
     }
