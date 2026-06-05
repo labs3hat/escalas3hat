@@ -63,51 +63,91 @@ export function useFreelancerSlots(scheduleId) {
 
   useEffect(() => { fetchSlots(); }, [fetchSlots]);
 
-  // 2. Preencher vaga com nome do freelancer
-  const fillSlot = useCallback(async (slotId, filledBy) => {
+  // 2. Preencher vaga com nome do freelancer e horários
+  const fillSlot = useCallback(async (slotId, data) => {
     const { data: { user } } = await supabase.auth.getUser();
     const { error: err } = await supabase
       .from("freelancer_slots")
       .update({
-        filled_by:      filledBy,
+        filled_by:      data.nome,
+        start_time:     data.startTime,
+        end_time:       data.endTime,
+        break_minutes:  data.breakMinutes,
         filled_at:      new Date().toISOString(),
         filled_by_user: user?.id ?? null,
       })
       .eq("id", slotId);
     if (err) throw new Error(err.message);
     
-    toast.success(`Freelancer ${filledBy} salvo com sucesso!`);
+    toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
 
-    // Atualizar estado local sem refetch
     setSlots((prev) =>
       prev.map((s) =>
         s.id === slotId
-          ? { ...s, filled_by: filledBy, filled_at: new Date().toISOString() }
+          ? { ...s, filled_by: data.nome, start_time: data.startTime, end_time: data.endTime, break_minutes: data.breakMinutes, filled_at: new Date().toISOString() }
           : s
       )
     );
   }, []);
 
-  // 3. Limpar nome (desfazer preenchimento)
-  const clearSlot = useCallback(async (slotId) => {
-    const { error: err } = await supabase
+  // 3. Adicionar vaga manual
+  const addManualSlot = useCallback(async (scheduleId, storeId, dayOfWeek, data) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: newSlot, error: err } = await supabase
       .from("freelancer_slots")
-      .update({ filled_by: null, filled_at: null, filled_by_user: null })
-      .eq("id", slotId);
+      .insert({
+        schedule_id:    scheduleId,
+        store_id:       storeId,
+        day_of_week:    dayOfWeek,
+        shift_name:     "Manual",
+        rule_origin:    "Manual",
+        filled_by:      data.nome,
+        start_time:     data.startTime,
+        end_time:       data.endTime,
+        break_minutes:  data.breakMinutes,
+        is_manual:      true,
+        filled_at:      new Date().toISOString(),
+        filled_by_user: user?.id ?? null,
+      })
+      .select()
+      .single();
+    
     if (err) throw new Error(err.message);
-    setSlots((prev) =>
-      prev.map((s) =>
-        s.id === slotId
-          ? { ...s, filled_by: null, filled_at: null }
-          : s
-      )
-    );
+    
+    toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
+    setSlots(prev => [...prev, newSlot]);
+  }, []);
+
+  // 4. Limpar/Excluir vaga
+  const clearSlot = useCallback(async (slotId, isManual) => {
+    if (isManual) {
+      const { error: err } = await supabase
+        .from("freelancer_slots")
+        .delete()
+        .eq("id", slotId);
+      if (err) throw new Error(err.message);
+      setSlots(prev => prev.filter(s => s.id !== slotId));
+      toast.success("Freelancer removido com sucesso!");
+    } else {
+      const { error: err } = await supabase
+        .from("freelancer_slots")
+        .update({ filled_by: null, filled_at: null, filled_by_user: null, start_time: null, end_time: null })
+        .eq("id", slotId);
+      if (err) throw new Error(err.message);
+      setSlots((prev) =>
+        prev.map((s) =>
+          s.id === slotId
+            ? { ...s, filled_by: null, filled_at: null, start_time: null, end_time: null }
+            : s
+        )
+      );
+    }
   }, []);
 
   const openCount  = slots.filter((s) => !s.filled_by).length;
-  const canPublish = true; // Sempre permitido publicar agora
+  const canPublish = true;
 
-  return { slots, loading, error, fillSlot, clearSlot, openCount, canPublish, refetch: fetchSlots };
+  return { slots, loading, error, fillSlot, addManualSlot, clearSlot, openCount, canPublish, refetch: fetchSlots };
 }
 
 // =============================================================
