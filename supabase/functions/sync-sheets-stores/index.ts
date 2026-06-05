@@ -183,6 +183,9 @@ Deno.serve(async (req) => {
       payloads.push(payload);
     }
 
+    console.log("Found types in sheet:", Array.from(foundTypes));
+    console.log("Found regions in sheet:", Array.from(foundRegions));
+
     if (payloads.length > 0) {
       console.log(`Upserting ${payloads.length} stores...`);
       const { error: upsertError } = await admin
