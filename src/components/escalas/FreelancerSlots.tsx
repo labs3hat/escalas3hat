@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
@@ -37,6 +37,7 @@ export function useFreelancerSlots(scheduleId: string | null) {
   const [slots, setSlots]       = useState<FreelancerSlot[]>([]);
   const [loading, setLoading]   = useState(!!scheduleId);
   const [error, setError]       = useState<string | null>(null);
+  const subscriptionId = useMemo(() => Math.random().toString(36).substring(7), []);
 
   const fetchSlots = useCallback(async () => {
     if (!scheduleId) {
@@ -70,7 +71,7 @@ export function useFreelancerSlots(scheduleId: string | null) {
     if (!scheduleId) return;
 
     const channel = supabase
-      .channel(`freelancer_slots_${scheduleId}`)
+      .channel(`freelancer_slots_${scheduleId}_${subscriptionId}`)
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
