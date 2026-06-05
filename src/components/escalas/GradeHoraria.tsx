@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
 import SlotModal, { type DayPayload } from './SlotModal'
 import { AlertTriangle, User } from 'lucide-react'
