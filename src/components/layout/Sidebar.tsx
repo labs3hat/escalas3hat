@@ -65,8 +65,8 @@ export default function Sidebar({ profile, collapsed }: Props) {
         {finalItems.map((item) => {
           const { href, label, icon: Icon } = item
           const targetPath = href
-          const active = pathname === targetPath && (!search?.tab || (search as any).tab === (item as any).search?.tab)
           const search = (item as any).search
+          const active = pathname === targetPath && (!search?.tab || (search as any).tab === (item as any).search?.tab)
 
           return (
             <Link
