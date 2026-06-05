@@ -402,21 +402,21 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
               {generating ? "Gerando..." : "Gerar escala base"}
             </button>
             <button
-              onClick={handlePublish}
-              disabled={publishing || schedule?.status === "published"}
-              className={`flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-lg font-medium disabled:cursor-not-allowed ${
-                schedule?.status === "published"
-                  ? "bg-emerald-600 text-white opacity-90"
-                  : "bg-brand-500 hover:bg-brand-600 text-white disabled:opacity-50"
-              }`}
+              onClick={handleRefresh}
+              className="flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-lg font-medium bg-brand-500 hover:bg-brand-600 text-white"
             >
-              {schedule?.status === "published" ? <Check size={13} /> : <Send size={13} />}
-              {publishing
-                ? "Publicando..."
-                : schedule?.status === "published"
-                  ? "✓ Publicada"
-                  : "Publicar escala"}
+              <Check size={13} />
+              Atualizar escala
             </button>
+            {schedule?.status !== "published" && (
+              <button
+                onClick={handlePublish}
+                disabled={publishing}
+                className="flex items-center gap-1.5 text-sm px-4 py-1.5 rounded-lg font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {publishing ? "Publicando..." : "Publicar escala"}
+              </button>
+            )}
           </div>
         </div>
 
