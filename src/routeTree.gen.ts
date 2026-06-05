@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthenticatedVisaoRegionalRouteImport } from './routes/_authenticated/visao-regional'
+import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedHorasRouteImport } from './routes/_authenticated/horas'
 import { Route as AuthenticatedEscalasRouteImport } from './routes/_authenticated/escalas'
 import { Route as AuthenticatedConfigLojaRouteImport } from './routes/_authenticated/config-loja'
@@ -45,6 +46,11 @@ const AuthenticatedVisaoRegionalRoute =
     path: '/visao-regional',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHorasRoute = AuthenticatedHorasRouteImport.update({
   id: '/horas',
   path: '/horas',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/config-loja': typeof AuthenticatedConfigLojaRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/horas': typeof AuthenticatedHorasRoute
+  '/usuarios': typeof AuthenticatedUsuariosRoute
   '/visao-regional': typeof AuthenticatedVisaoRegionalRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/config-loja': typeof AuthenticatedConfigLojaRoute
   '/escalas': typeof AuthenticatedEscalasRoute
   '/horas': typeof AuthenticatedHorasRoute
+  '/usuarios': typeof AuthenticatedUsuariosRoute
   '/visao-regional': typeof AuthenticatedVisaoRegionalRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/_authenticated/config-loja': typeof AuthenticatedConfigLojaRoute
   '/_authenticated/escalas': typeof AuthenticatedEscalasRoute
   '/_authenticated/horas': typeof AuthenticatedHorasRoute
+  '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/visao-regional': typeof AuthenticatedVisaoRegionalRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/config-loja'
     | '/escalas'
     | '/horas'
+    | '/usuarios'
     | '/visao-regional'
     | '/auth/login'
     | '/auth/reset-password'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/config-loja'
     | '/escalas'
     | '/horas'
+    | '/usuarios'
     | '/visao-regional'
     | '/auth/login'
     | '/auth/reset-password'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/_authenticated/config-loja'
     | '/_authenticated/escalas'
     | '/_authenticated/horas'
+    | '/_authenticated/usuarios'
     | '/_authenticated/visao-regional'
     | '/auth/login'
     | '/auth/reset-password'
@@ -187,6 +199,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVisaoRegionalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/horas': {
       id: '/_authenticated/horas'
       path: '/horas'
@@ -231,6 +250,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfigLojaRoute: typeof AuthenticatedConfigLojaRoute
   AuthenticatedEscalasRoute: typeof AuthenticatedEscalasRoute
   AuthenticatedHorasRoute: typeof AuthenticatedHorasRoute
+  AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVisaoRegionalRoute: typeof AuthenticatedVisaoRegionalRoute
 }
 
@@ -240,6 +260,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfigLojaRoute: AuthenticatedConfigLojaRoute,
   AuthenticatedEscalasRoute: AuthenticatedEscalasRoute,
   AuthenticatedHorasRoute: AuthenticatedHorasRoute,
+  AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVisaoRegionalRoute: AuthenticatedVisaoRegionalRoute,
 }
 
@@ -255,3 +276,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

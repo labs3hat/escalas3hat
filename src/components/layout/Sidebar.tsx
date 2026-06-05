@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Calendar, RefreshCw, Clock, Users, Map, LogOut, Settings, Timer } from 'lucide-react'
+import { Calendar, RefreshCw, Clock, Users, Map, LogOut, Settings, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import type { Profile } from '@/types'
 
@@ -7,6 +7,7 @@ const navItems = [
   { href: '/escalas',     label: 'Escalas',               icon: Calendar },
   { href: '/cadastros',   label: 'Funcionários',          icon: Users },
   { href: '/config-loja', label: 'Configurações da loja', icon: Settings },
+  { href: '/usuarios',    label: 'Usuários',              icon: ShieldCheck },
   { href: '/alteracoes',  label: 'Alterações',            icon: RefreshCw },
   { href: '/horas',       label: 'Horas',                 icon: Clock },
 ] as const
@@ -29,8 +30,9 @@ export default function Sidebar({ profile, collapsed }: Props) {
     navigate({ to: '/auth/login' })
   }
 
-  const isRegional = profile?.role === 'regional' || profile?.role === 'diretoria'
-  const items = isRegional ? [...navItems, ...regionalItems] : navItems
+  const isAdmin = profile?.role === 'regional' || profile?.role === 'diretoria' || profile?.role === 'rh'
+  const items = isAdmin ? navItems : navItems.filter(i => !['/usuarios', '/config-loja'].includes(i.href))
+  const finalItems = isAdmin ? [...items, ...regionalItems] : items
 
   return (
     <aside
@@ -59,7 +61,7 @@ export default function Sidebar({ profile, collapsed }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 py-2 overflow-y-auto">
-        {items.map(({ href, label, icon: Icon }) => {
+        {finalItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (
             <Link
