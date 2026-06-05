@@ -157,7 +157,16 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     weekStart,
   );
 
-  const { slots: freelancerSlots, openCount } = useFreelancerSlots(schedule?.id ?? null);
+  const { slots: freelancerSlots, openCount, refetch: refetchFreelancers } = useFreelancerSlots(schedule?.id ?? null);
+
+  useEffect(() => {
+    const handleFreelancerUpdate = () => {
+      refetchFreelancers();
+      reload(); // Atualiza a escala (slots normais)
+    };
+    window.addEventListener('freelancer_updated', handleFreelancerUpdate);
+    return () => window.removeEventListener('freelancer_updated', handleFreelancerUpdate);
+  }, [refetchFreelancers, reload]);
 
   const weekLabel = useMemo(() => {
     return formatters.weekRange(weekDates[0], weekDates[6]);
@@ -443,6 +452,11 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
                   scheduleId={schedule.id} 
                   storeId={selectedStore.id} 
                   isEmbed={true}
+                  onRefresh={() => {
+                    refetchFreelancers();
+                    reload();
+                    toast.success("Escala atualizada!");
+                  }}
                 />
               ) : (
                 <EmptyState 
