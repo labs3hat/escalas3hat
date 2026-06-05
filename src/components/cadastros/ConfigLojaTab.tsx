@@ -34,7 +34,7 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
   // Abertura
   const [openWeekday, setOpenWeekday] = useState(store.opening_time_weekday ?? '10:00')
   const [openSaturday, setOpenSaturday] = useState(store.opening_time_saturday ?? '10:00')
-  const [openSunday, setOpenSunday] = useState(store.opening_time_sunday ?? '12:00')
+  const [openSunday, setOpenSunday] = useState(store.opening_time_sunday || '11:00')
   
   // Fechamento
   const [closeWeekday, setCloseWeekday] = useState(store.closing_time_weekday ?? '22:00')
