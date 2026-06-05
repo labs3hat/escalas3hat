@@ -6,9 +6,9 @@ import type { Profile, Store } from '@/types'
 import { z } from 'zod'
 
 const searchSchema = z.object({
-  storeId: z.string().optional(),
-  week: z.string().optional(),
-  tab: z.enum(['grade', 'resumo', 'freelancers']).optional(),
+  storeId: z.string().optional().catch(undefined),
+  week: z.string().optional().catch(undefined),
+  tab: z.enum(['grade', 'resumo', 'freelancers']).optional().catch('grade' as const),
 })
 
 export const Route = createFileRoute('/_authenticated/escalas')({
