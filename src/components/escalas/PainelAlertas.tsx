@@ -11,6 +11,7 @@ interface Props {
   getSlot: (empId: string, dow: number, slot: string) => string
   store: Store
   schedule: Schedule | null
+  freelancerSlots?: any[]
 }
 
 interface Alert {
@@ -18,7 +19,7 @@ interface Alert {
   message: string
 }
 
-export default function PainelAlertas({ employees, weekDates, getSlot, store, schedule }: Props) {
+export default function PainelAlertas({ employees, weekDates, getSlot, store, schedule, freelancerSlots = [] }: Props) {
   const alerts = useMemo<Alert[]>(() => {
     const al: Alert[] = []
 
@@ -29,16 +30,20 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       // R1 — mínimo na abertura
       const abSlots = ['08:00','08:30','09:00','09:30','10:00']
       const abCount = employees.filter(e => abSlots.some(s => getSlot(e.id, dow, s) === 'work')).length
-      if (abCount < (store.min_opening_staff ?? 1)) {
-        al.push({ type: 'critical', message: `R1: ${label} — abertura sem cobertura mínima` })
+      const abFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
+      
+      if (abCount + abFree < (store.min_opening_staff ?? 1)) {
+        al.push({ type: 'critical', message: `R1: ${label} — abertura com ${abCount + abFree} func. (mín. ${store.min_opening_staff ?? 1})` })
       }
 
       // R2 — mínimo no fechamento
       const fcCount = employees.filter(e =>
         ['21:30','22:00'].some(s => getSlot(e.id, dow, s) === 'work')
       ).length
-      if (fcCount < (store.min_closing_staff ?? 2)) {
-        al.push({ type: 'critical', message: `R2: ${label} — fechamento com ${fcCount} func. (mín. ${store.min_closing_staff ?? 2})` })
+      const fcFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
+
+      if (fcCount + fcFree < (store.min_closing_staff ?? 2)) {
+        al.push({ type: 'critical', message: `R2: ${label} — fechamento com ${fcCount + fcFree} func. (mín. ${store.min_closing_staff ?? 2})` })
       }
 
       // R3 — sem folga no sábado
