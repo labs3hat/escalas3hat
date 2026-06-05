@@ -64,7 +64,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   useEffect(() => {
     if (initialTab && ["grade", "resumo", "freelancers"].includes(initialTab)) {
       if (initialTab !== view) {
-        setView(initialTab);
+        setView(initialTab as any);
       }
     }
   }, [initialTab]);
@@ -113,7 +113,12 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     void navigate({
       to: "/escalas",
       replace: true,
-      search: { storeId, week: weekStr, tab: tab as any },
+      search: (prev: any) => ({
+        ...prev,
+        storeId,
+        week: weekStr,
+        tab: (tab || prev.tab || "grade") as any
+      }),
     });
   };
 
@@ -121,12 +126,12 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     if (!selectedStore?.id) return;
     const weekKey = format(weekStart, "yyyy-MM-dd");
     
-    // Only sync if actual values changed and are different from current search params
-    const hasStoreChanged = initialStoreId !== selectedStore.id;
-    const hasWeekChanged = initialWeek !== weekKey;
-    const hasTabChanged = initialTab !== view;
+    // Sync if values changed and are different from current search params
+    const currentWeekKey = initialWeek;
+    const currentStoreId = initialStoreId;
+    const currentTab = initialTab || "grade";
 
-    if (hasStoreChanged || hasWeekChanged || hasTabChanged) {
+    if (selectedStore.id !== currentStoreId || weekKey !== currentWeekKey || view !== currentTab) {
       syncSearch(selectedStore.id, weekStart, view);
     }
   }, [selectedStore?.id, weekStart, view, initialStoreId, initialWeek, initialTab]);
