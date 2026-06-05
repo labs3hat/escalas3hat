@@ -226,8 +226,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
               )}
             </tr>
             {/* Linha de Freelancers (se houver no dia) */}
-            <tr style={{ height: 32 }} className="bg-amber-50/30">
-              <th className="sticky left-0 z-10 bg-amber-50/30 border-b border-r border-gray-200 w-10 h-[32px] text-left px-1 py-0 text-[7px] font-bold uppercase text-amber-700 leading-none align-middle">
+            <tr style={{ height: 32 }} className="bg-gray-50/50">
+              <th className="sticky left-0 z-10 bg-gray-50/50 border-b border-r border-gray-200 w-10 h-[32px] text-left px-1 py-0 text-[7px] font-bold uppercase text-gray-500 leading-none align-middle">
                 Freelancers
               </th>
               {weekDates.map((d, di) => {
@@ -237,7 +237,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                   <th
                     key={`free-header-${di}`}
                     colSpan={employees.length}
-                    className="h-[32px] border-b border-gray-200 text-center py-0.5 bg-amber-50/20 leading-none align-middle"
+                    className="h-[32px] border-b border-gray-200 text-center py-0.5 bg-gray-50/20 leading-none align-middle"
                     style={{ borderLeft: '2px solid #888780' }}
                   >
                     <div className="flex flex-wrap items-center justify-center gap-1 px-1">
@@ -245,19 +245,19 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                         dayFree.map(s => (
                           <div 
                             key={s.id} 
-                            className={`flex flex-col gap-0 px-1 py-0.5 rounded border ${
+                            className={`flex flex-col gap-0 px-1 py-0.5 rounded border transition-colors ${
                               s.filled_by 
                                 ? 'bg-amber-100 border-amber-200 text-amber-800' 
-                                : 'bg-white border-dashed border-amber-300 text-amber-400'
+                                : 'bg-white border-dashed border-amber-300 text-amber-400 opacity-60'
                             }`}
                             title={`${s.shift_name}: ${s.filled_by || 'Aguardando'} (${s.start_time || '--:--'} às ${s.end_time || '--:--'})`}
                           >
                             <div className="flex items-center gap-0.5">
                               <User size={6} />
-                              <span className="truncate max-w-[40px] text-[7px] font-bold">{s.filled_by || s.shift_name}</span>
+                              <span className="truncate max-w-[60px] text-[7px] font-bold">{s.filled_by || s.shift_name}</span>
                             </div>
                             {s.filled_by && (
-                              <span className="text-[6px] opacity-80 leading-tight">
+                              <span className="text-[6px] opacity-80 leading-tight font-medium">
                                 {s.start_time || '--:--'}-{s.end_time || '--:--'}
                               </span>
                             )}
