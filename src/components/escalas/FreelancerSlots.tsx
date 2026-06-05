@@ -631,4 +631,4 @@ export default function FreelancerSlots({ scheduleId, storeId, className = "", i
   );
 }
 
-export default FreelancerSlots;
+
