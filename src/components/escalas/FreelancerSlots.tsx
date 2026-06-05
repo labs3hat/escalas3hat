@@ -159,8 +159,8 @@ export function useFreelancerSlots(scheduleId: string | null) {
             start_time: null, 
             end_time: null,
             break_minutes: 60
-          })
-          .eq("id", slotId) as any);
+          } as any)
+          .eq("id", slotId));
         if (err) throw err;
         toast.success("Vaga de freelancer liberada!");
       }
@@ -194,7 +194,7 @@ export function usePublishSchedule(scheduleId: string | null, canPublish: boolea
       .update({ 
         status: "published", 
         published_at: new Date().toISOString(),
-        notes: "Publicado via módulo de freelancers"
+        notes: "Publicado via módulo de freelancers" as any
       })
       .eq("id", scheduleId);
 

@@ -2,17 +2,7 @@ import { useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
 import SlotModal, { type DayPayload } from './SlotModal'
 
-interface FreelancerSlot {
-  id: string;
-  day_of_week: number;
-  shift_name: string;
-  filled_by: string | null;
-  rule_origin: string;
-  start_time?: string;
-  end_time?: string;
-  break_minutes?: number;
-  is_manual?: boolean;
-}
+import { type FreelancerSlot } from './FreelancerSlots';
 
 interface Props {
   employees: Employee[]
