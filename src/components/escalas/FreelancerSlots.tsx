@@ -480,10 +480,10 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
 // =============================================================
 // Componente principal — grade de vagas freelancer por dia
 // =============================================================
-export function FreelancerSlots({ scheduleId, className = "" }) {
+export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
   const {
     slots, loading, error,
-    fillSlot, clearSlot,
+    fillSlot, addManualSlot, clearSlot,
     openCount, canPublish,
   } = useFreelancerSlots(scheduleId);
 
@@ -508,79 +508,77 @@ export function FreelancerSlots({ scheduleId, className = "" }) {
     );
   }
 
-  if (slots.length === 0) {
-    return (
-      <PublishButton
-        canPublish={true}
-        openCount={0}
-        onPublish={publish}
-        publishing={publishing}
-        published={published}
-      />
-    );
-  }
+  const handleSave = async (slot, data) => {
+    try {
+      if (slot.id) {
+        await fillSlot(slot.id, data);
+      } else {
+        await addManualSlot(scheduleId, storeId, slot.day_of_week, data);
+      }
+      setActiveSlot(null);
+    } catch (e) {
+      console.error("Erro ao salvar freelancer:", e);
+    }
+  };
+
+  const handleClear = async (slot) => {
+    const action = slot.is_manual ? "Excluir" : "Limpar";
+    if (!window.confirm(`${action} este freelancer?`)) return;
+    await clearSlot(slot.id, slot.is_manual);
+  };
 
   // Agrupar slots por dia da semana
   const byDay = Array.from({ length: 7 }, (_, i) =>
     slots.filter((s) => s.day_of_week === i)
   );
 
-  const handleFill = async (slotId, nome) => {
-    try {
-      await fillSlot(slotId, nome);
-      setActiveSlot(null);
-      // O refetch já é acionado pelo realtime ou pelo estado local no hook, 
-      // mas vamos garantir a atualização visual.
-    } catch (e) {
-      console.error("Erro ao preencher freelancer:", e);
-    }
-  };
-
-  const handleClear = async (slotId) => {
-    if (!window.confirm("Desfazer preenchimento desta vaga?")) return;
-    await clearSlot(slotId);
-  };
-
   return (
     <div className={className}>
       <AlertBar openCount={openCount} />
 
-      {/* Grade por dia da semana */}
       <div style={{ marginBottom: 12 }}>
         <p style={{
           fontSize: 10, fontWeight: 500, color: "var(--color-text-tertiary)",
           textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8,
         }}>
-          Vagas freelancer
+          Gestão de Freelancers
         </p>
 
-        {byDay.map((daySlots, dayIdx) => {
-          if (daySlots.length === 0) return null;
-          return (
-            <div key={dayIdx} style={{ marginBottom: 8 }}>
-              <p style={{
-                fontSize: 11, fontWeight: 500,
-                color: "var(--color-text-secondary)", marginBottom: 4,
-              }}>
+        {byDay.map((daySlots, dayIdx) => (
+          <div key={dayIdx} style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#333" }}>
                 {DAY_LABELS[dayIdx]}
               </p>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
-                gap: 4,
-              }}>
-                {daySlots.map((slot) => (
-                  <FreelancerCell
-                    key={slot.id}
-                    slot={slot}
-                    onFill={setActiveSlot}
-                    onClear={handleClear}
-                  />
-                ))}
-              </div>
+              <button
+                onClick={() => setActiveSlot({ day_of_week: dayIdx, shift_name: 'Manual', is_manual: true })}
+                style={{
+                  fontSize: 10, padding: "2px 6px", borderRadius: 4,
+                  background: "#F0F0F0", border: "0.5px solid #DDD", color: "#666"
+                }}
+              >
+                + Freelancer
+              </button>
             </div>
-          );
-        })}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+              gap: 6,
+            }}>
+              {daySlots.map((slot) => (
+                <FreelancerCell
+                  key={slot.id}
+                  slot={slot}
+                  onFill={setActiveSlot}
+                  onClear={handleClear}
+                />
+              ))}
+              {daySlots.length === 0 && (
+                <p style={{ fontSize: 10, color: "#AAA", fontStyle: "italic" }}>Sem vagas sugeridas</p>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       <PublishButton
@@ -597,11 +595,13 @@ export function FreelancerSlots({ scheduleId, className = "" }) {
         </p>
       )}
 
-      <FillModal
-        slot={activeSlot}
-        onConfirm={handleFill}
-        onCancel={() => setActiveSlot(null)}
-      />
+      {activeSlot && (
+        <FillModal
+          slot={activeSlot}
+          onConfirm={handleSave}
+          onCancel={() => setActiveSlot(null)}
+        />
+      )}
     </div>
   );
 }
