@@ -819,6 +819,7 @@ export type Database = {
         | "Curitiba e Região"
         | "Curitiba"
         | "Maringá"
+        | "Maringá e Região"
       store_type:
         | "loja"
         | "quiosque"
@@ -973,6 +974,7 @@ export const Constants = {
         "Curitiba e Região",
         "Curitiba",
         "Maringá",
+        "Maringá e Região",
       ],
       store_type: [
         "loja",
