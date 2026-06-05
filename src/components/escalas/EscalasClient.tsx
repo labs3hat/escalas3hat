@@ -12,8 +12,7 @@ import { useSchedule } from "@/hooks/useSchedule";
 import GradeHoraria from "./GradeHoraria";
 import ResumoSemanal from "./ResumoSemanal";
 import PainelAlertas from "./PainelAlertas";
-import { useFreelancerSlots } from "./FreelancerSlots";
-import FreelancerSlots from "./FreelancerSlots";
+import FreelancerSlots, { useFreelancerSlots, type FreelancerSlot } from "./FreelancerSlots";
 import GerarEscalaMensalModal from "./GerarEscalaMensalModal";
 
 interface Props {

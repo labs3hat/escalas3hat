@@ -1,39 +1,42 @@
-// @ts-nocheck
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // ── Tipos ─────────────────────────────────────────────────────
-// FreelancerSlot {
-//   id: string (uuid)
-//   schedule_id: string
-//   store_id: string
-//   day_of_week: number (0=dom … 6=sáb)
-//   shift_name: "Abertura" | "Intermediário" | "Fechamento"
-//   rule_origin: "R1" | "R2" | "R4" | "R18" | "R19"
-//   filled_by: string | null
-//   filled_at: string | null
-// }
+export interface FreelancerSlot {
+  id: string;
+  schedule_id: string;
+  store_id: string;
+  day_of_week: number;
+  shift_name: string;
+  rule_origin: string;
+  filled_by: string | null;
+  filled_at: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  break_minutes: number | null;
+  is_manual?: boolean;
+}
 
 const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-const RULE_COLORS = {
+const RULE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   R1:  { bg: "#FCEBEB", text: "#A32D2D", border: "#F09595" },
   R2:  { bg: "#FCEBEB", text: "#A32D2D", border: "#F09595" },
   R4:  { bg: "#EEEDFE", text: "#3C3489", border: "#AFA9EC" },
   R18: { bg: "#EAF3DE", text: "#3B6D11", border: "#97C459" },
   R19: { bg: "#E1F5EE", text: "#0F6E56", border: "#5DCAA5" },
+  Manual: { bg: "#F5F5F5", text: "#666", border: "#DDD" }
 };
 
 // =============================================================
 // Hook principal — query + mutation
 // =============================================================
-export function useFreelancerSlots(scheduleId) {
-  const [slots, setSlots]       = useState([]);
+export function useFreelancerSlots(scheduleId: string | null) {
+  const [slots, setSlots]       = useState<FreelancerSlot[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+  const [error, setError]       = useState<string | null>(null);
 
-  // 1. Buscar vagas do schedule
   const fetchSlots = useCallback(async () => {
     if (!scheduleId) {
       setLoading(false);
@@ -52,8 +55,8 @@ export function useFreelancerSlots(scheduleId) {
         .order("shift_name");
       
       if (err) throw err;
-      setSlots(data ?? []);
-    } catch (err) {
+      setSlots((data as any[]) ?? []);
+    } catch (err: any) {
       console.error("Erro ao buscar vagas freelancer:", err);
       setError(err.message);
     } finally {
@@ -63,7 +66,8 @@ export function useFreelancerSlots(scheduleId) {
 
   useEffect(() => { 
     fetchSlots(); 
-    // Inscrever para mudanças em tempo real para manter todas as instâncias sincronizadas
+    if (!scheduleId) return;
+
     const channel = supabase
       .channel(`freelancer_slots_${scheduleId}`)
       .on('postgres_changes', { 
@@ -79,8 +83,7 @@ export function useFreelancerSlots(scheduleId) {
     return () => { supabase.removeChannel(channel); };
   }, [fetchSlots, scheduleId]);
 
-  // 2. Preencher vaga com nome do freelancer e horários
-  const fillSlot = useCallback(async (slotId, data) => {
+  const fillSlot = useCallback(async (slotId: string, data: any) => {
     try {
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr) throw authErr;
@@ -98,27 +101,23 @@ export function useFreelancerSlots(scheduleId) {
         .eq("id", slotId);
       
       if (err) throw err;
-      
       toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
-      // Não atualizamos o estado local manualmente aqui para evitar conflitos com o real-time
-      // O fetchSlots() será chamado pelo listener do postgres_changes
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro em fillSlot:", err);
       toast.error("Erro ao salvar freelancer: " + err.message);
       throw err;
     }
   }, []);
 
-  // 3. Adicionar vaga manual
-  const addManualSlot = useCallback(async (scheduleId, storeId, dayOfWeek, data) => {
+  const addManualSlot = useCallback(async (schedId: string, storeId: string, dayOfWeek: number, data: any) => {
     try {
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr) throw authErr;
 
-      const { data: newSlot, error: err } = await supabase
+      const { error: err } = await supabase
         .from("freelancer_slots")
         .insert({
-          schedule_id:    scheduleId,
+          schedule_id:    schedId,
           store_id:       storeId,
           day_of_week:    dayOfWeek,
           shift_name:     "Manual",
@@ -130,23 +129,18 @@ export function useFreelancerSlots(scheduleId) {
           is_manual:      true,
           filled_at:      new Date().toISOString(),
           filled_by_user: user?.id ?? null,
-        })
-        .select()
-        .single();
+        });
       
       if (err) throw err;
-      
       toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
-      // O real-time cuidará de atualizar o estado
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro em addManualSlot:", err);
       toast.error("Erro ao adicionar freelancer: " + err.message);
       throw err;
     }
   }, []);
 
-  // 4. Limpar/Excluir vaga
-  const clearSlot = useCallback(async (slotId, isManual) => {
+  const clearSlot = useCallback(async (slotId: string, isManual: boolean) => {
     try {
       if (isManual) {
         const { error: err } = await supabase
@@ -156,7 +150,7 @@ export function useFreelancerSlots(scheduleId) {
         if (err) throw err;
         toast.success("Freelancer removido com sucesso!");
       } else {
-        const { error: err } = await supabase
+        const { error: err } = await (supabase
           .from("freelancer_slots")
           .update({ 
             filled_by: null, 
@@ -165,13 +159,12 @@ export function useFreelancerSlots(scheduleId) {
             start_time: null, 
             end_time: null,
             break_minutes: 60
-          })
-          .eq("id", slotId);
+          } as any)
+          .eq("id", slotId));
         if (err) throw err;
         toast.success("Vaga de freelancer liberada!");
       }
-      // O real-time cuidará de atualizar o estado
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro em clearSlot:", err);
       toast.error("Erro ao remover/limpar: " + err.message);
     }
@@ -184,12 +177,12 @@ export function useFreelancerSlots(scheduleId) {
 }
 
 // =============================================================
-// Hook de publicação — valida e publica o schedule
+// Hook de publicação
 // =============================================================
-export function usePublishSchedule(scheduleId, canPublish) {
+export function usePublishSchedule(scheduleId: string | null, canPublish: boolean) {
   const [publishing, setPublishing] = useState(false);
   const [published,  setPublished]  = useState(false);
-  const [error,      setError]      = useState(null);
+  const [error,      setError]      = useState<string | null>(null);
 
   const publish = useCallback(async () => {
     if (!scheduleId) return;
@@ -201,9 +194,8 @@ export function usePublishSchedule(scheduleId, canPublish) {
       .update({ 
         status: "published", 
         published_at: new Date().toISOString(),
-        // Registramos que foi preenchido por freelancer se houver vagas preenchidas
         notes: "Publicado via módulo de freelancers"
-      })
+      } as any)
       .eq("id", scheduleId);
 
     if (err) {
@@ -219,9 +211,9 @@ export function usePublishSchedule(scheduleId, canPublish) {
 }
 
 // =============================================================
-// Componente de alerta — barra de vagas em aberto
+// Componente de alerta
 // =============================================================
-function AlertBar({ openCount }) {
+function AlertBar({ openCount }: { openCount: number }) {
   if (openCount === 0) return null;
   return (
     <div style={{
@@ -250,8 +242,8 @@ function AlertBar({ openCount }) {
 // =============================================================
 // Componente de célula freelancer
 // =============================================================
-function FreelancerCell({ slot, onFill, onClear }) {
-  const rule   = RULE_COLORS[slot.rule_origin] ?? RULE_COLORS.R18;
+function FreelancerCell({ slot, onFill, onClear }: { slot: FreelancerSlot, onFill: (s: any) => void, onClear: (s: any) => void }) {
+  const rule = RULE_COLORS[slot.rule_origin] ?? RULE_COLORS.R18;
   const filled = !!slot.filled_by;
 
   if (filled) {
@@ -335,15 +327,15 @@ function FreelancerCell({ slot, onFill, onClear }) {
 }
 
 // =============================================================
-// Modal de preenchimento (bottom sheet)
+// Modal de preenchimento
 // =============================================================
-function FillModal({ slot, onConfirm, onCancel }) {
+function FillModal({ slot, onConfirm, onCancel }: { slot: any, onConfirm: (s: any, d: any) => void, onCancel: () => void }) {
   const [nome, setNome]           = useState(slot.filled_by || "");
   const [startTime, setStartTime] = useState(slot.start_time || (slot.shift_name === 'Abertura' ? '08:00' : '13:00'));
   const [endTime, setEndTime]     = useState(slot.end_time || (slot.shift_name === 'Abertura' ? '17:00' : '22:00'));
   const [breakMin, setBreakMin]   = useState(slot.break_minutes || 60);
   const [saving, setSaving]       = useState(false);
-  const [err, setErr]             = useState(null);
+  const [err, setErr]             = useState<string | null>(null);
 
   if (!slot) return null;
 
@@ -358,7 +350,7 @@ function FillModal({ slot, onConfirm, onCancel }) {
         endTime,
         breakMinutes: parseInt(breakMin) || 0
       });
-    } catch (e) {
+    } catch (e: any) {
       setErr(e.message);
     } finally {
       setSaving(false);
@@ -464,14 +456,14 @@ function FillModal({ slot, onConfirm, onCancel }) {
 // =============================================================
 // Botão de publicação
 // =============================================================
-function PublishButton({ canPublish, openCount, onPublish, publishing, published }) {
+function PublishButton({ canPublish, openCount, onPublish, publishing, published }: { canPublish: boolean, openCount: number, onPublish: () => void, publishing: boolean, published: boolean }) {
   if (published) {
     return (
       <div style={{
         width: "100%", padding: 12, borderRadius: 6,
-        background: "var(--color-background-success)",
-        border: "0.5px solid var(--color-border-success)",
-        color: "var(--color-text-success)",
+        background: "var(--color-background-success, #ecfdf5)",
+        border: "0.5px solid var(--color-border-success, #10b981)",
+        color: "var(--color-text-success, #065f46)",
         fontSize: 13, fontWeight: 500,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
       }}>
@@ -486,15 +478,14 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
       disabled={!canPublish || publishing}
       style={{
         width: "100%", padding: 12, borderRadius: 6,
-        background: canPublish ? "var(--color-background-primary)" : "var(--color-background-secondary)",
-        border: `0.5px solid ${canPublish ? "var(--color-border-secondary)" : "var(--color-border-tertiary)"}`,
-        color: canPublish ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+        background: canPublish ? "var(--color-background-primary, #BA7517)" : "#EEE",
+        border: `0.5px solid ${canPublish ? "#A66714" : "#DDD"}`,
+        color: canPublish ? "white" : "#999",
         fontSize: 13, fontWeight: 500,
         cursor: canPublish ? "pointer" : "default",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
         marginTop: 12,
       }}
-      aria-disabled={!canPublish}
     >
       {publishing
         ? "Publicando..."
@@ -507,10 +498,10 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
 }
 
 // =============================================================
-// Componente principal — grade de vagas freelancer por dia
+// Componente principal
 // =============================================================
-export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
-  const [activeSlot, setActiveSlot] = useState(null);
+export function FreelancerSlots({ scheduleId, storeId, className = "" }: { scheduleId: string | null, storeId: string, className?: string }) {
+  const [activeSlot, setActiveSlot] = useState<any>(null);
   
   const {
     slots, loading, error,
@@ -537,27 +528,25 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
     );
   }
 
-  const handleSave = async (slot, data) => {
+  const handleSave = async (slot: any, data: any) => {
     try {
       if (slot.id) {
         await fillSlot(slot.id, data);
-      } else {
+      } else if (scheduleId) {
         await addManualSlot(scheduleId, storeId, slot.day_of_week, data);
       }
       setActiveSlot(null);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Erro ao salvar freelancer:", e);
-      toast.error("Erro ao salvar freelancer: " + (e.message || "Erro desconhecido"));
     }
   };
 
-  const handleClear = async (slot) => {
+  const handleClear = async (slot: any) => {
     const action = slot.is_manual ? "Excluir" : "Limpar";
     if (!window.confirm(`${action} este freelancer?`)) return;
-    await clearSlot(slot.id, slot.is_manual);
+    await clearSlot(slot.id, !!slot.is_manual);
   };
 
-  // Agrupar slots por dia da semana
   const byDay = Array.from({ length: 7 }, (_, i) =>
     slots.filter((s) => s.day_of_week === i)
   );
@@ -568,7 +557,7 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
 
       <div style={{ marginBottom: 12 }}>
         <p style={{
-          fontSize: 10, fontWeight: 500, color: "var(--color-text-tertiary)",
+          fontSize: 10, fontWeight: 500, color: "#999",
           textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8,
         }}>
           Gestão de Freelancers
@@ -620,7 +609,7 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
       />
 
       {(pubError || error) && (
-        <p style={{ fontSize: 11, color: "var(--color-text-danger)", marginTop: 6 }}>
+        <p style={{ fontSize: 11, color: "red", marginTop: 6 }}>
           {pubError || error}
         </p>
       )}
