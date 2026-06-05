@@ -577,7 +577,7 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
 
           {byDay.map((daySlots, dayIdx) => (
             <div key={dayIdx} style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyBetween: "space-between", marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "#333" }}>
                   {DAY_LABELS[dayIdx]}
                 </p>
