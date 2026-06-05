@@ -116,8 +116,6 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
     const [h, m] = workSlots[0].split(':').map(Number)
     return h * 60 + m
   }
-
-  // Ordena por horário de entrada do dia: quem entra antes aparece primeiro.
   // Incluímos freelancers preenchidos na lista de ordenação para que fiquem misturados corretamente.
   function getSortedDayEntities(dow: number) {
     const empData = employees.map(emp => ({
