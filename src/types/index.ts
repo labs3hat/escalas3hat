@@ -29,6 +29,9 @@ export interface Store {
   min_weekend_staff: number
   min_sunday_staff: number
   min_sunday_off_per_month: number
+  closing_time_weekday: string | null
+  closing_time_saturday: string | null
+  closing_time_sunday: string | null
   weekly_hours_6x1: number | null
   weekly_hours_5x2: number | null
   active: boolean
