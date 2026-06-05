@@ -225,52 +225,7 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 }),
               )}
             </tr>
-            {/* Linha de Freelancers (se houver no dia) */}
-            <tr style={{ height: 32 }} className="bg-gray-50/50">
-              <th className="sticky left-0 z-10 bg-gray-50/50 border-b border-r border-gray-200 w-10 h-[32px] text-left px-1 py-0 text-[7px] font-bold uppercase text-gray-500 leading-none align-middle">
-                Freelancers
-              </th>
-              {weekDates.map((d, di) => {
-                const dow = d.getDay()
-                const dayFree = freelancerSlots.filter(s => s.day_of_week === dow)
-                return (
-                  <th
-                    key={`free-header-${di}`}
-                    colSpan={employees.length}
-                    className="h-[32px] border-b border-gray-200 text-center py-0.5 bg-gray-50/20 leading-none align-middle"
-                    style={{ borderLeft: '2px solid #888780' }}
-                  >
-                    <div className="flex flex-wrap items-center justify-center gap-1 px-1">
-                      {dayFree.length > 0 ? (
-                        dayFree.map(s => (
-                          <div 
-                            key={s.id} 
-                            className={`flex flex-col gap-0 px-1 py-0.5 rounded border transition-colors ${
-                              s.filled_by 
-                                ? 'bg-amber-100 border-amber-200 text-amber-800' 
-                                : 'bg-white border-dashed border-amber-300 text-amber-400 opacity-60'
-                            }`}
-                            title={`${s.shift_name}: ${s.filled_by || 'Aguardando'} (${s.start_time || '--:--'} às ${s.end_time || '--:--'})`}
-                          >
-                            <div className="flex items-center gap-0.5">
-                              <User size={6} />
-                              <span className="truncate max-w-[60px] text-[7px] font-bold">{s.filled_by || s.shift_name}</span>
-                            </div>
-                            {s.filled_by && (
-                              <span className="text-[6px] opacity-80 leading-tight font-medium">
-                                {s.start_time || '--:--'}-{s.end_time || '--:--'}
-                              </span>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <span className="text-[7px] text-gray-300 font-normal italic">Nenhum</span>
-                      )}
-                    </div>
-                  </th>
-                )
-              })}
-            </tr>
+            {/* Removida a faixa de freelancers conforme solicitado pelo usuário */}
           </thead>
 
 
@@ -323,11 +278,50 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
               )
             })}
 
-            {/* Linhas extras para Freelancers Preenchidos (opcional: mostrar como "funcionários" extras) */}
-            {/* Por enquanto, já mostramos o resumo no cabeçalho. 
-                Se o usuário quiser que eles apareçam exatamente como funcionários, 
-                precisaríamos de uma lógica mais complexa para alinhar as colunas.
-                A linha de resumo no topo e no resumo diário deve ser o suficiente se funcionar bem. */}
+            {/* Linhas para Freelancers Preenchidos: agora aparecem como colaboradores na grade */}
+            {Array.from({ length: Math.max(0, ...weekDates.map(d => freelancerSlots.filter(s => s.day_of_week === d.getDay() && s.filled_by).length)) }).map((_, freeIdx) => (
+              <tr key={`free-row-${freeIdx}`} style={{ height: rowH }}>
+                <td className="sticky left-0 z-5 bg-amber-50 border-r border-t border-amber-200 px-1 text-left align-middle leading-none">
+                  <span className="text-[7px] font-bold text-amber-600 uppercase">Free</span>
+                </td>
+                {weekDates.map((d, di) => {
+                  const dow = d.getDay()
+                  const dayFilledFrees = freelancerSlots.filter(s => s.day_of_week === dow && s.filled_by)
+                  const slot = dayFilledFrees[freeIdx]
+                  
+                  return employees.map((_, ei) => {
+                    const isFirstEmp = ei === 0
+                    const borderLeft = isFirstEmp ? '2px solid #888780' : '0.5px solid #E5E5E0'
+                    
+                    if (!slot || ei !== 0) {
+                      return <td key={`${di}-${ei}`} style={{ borderLeft, borderTop: '1.5px solid #F1F0EC' }} className="bg-white/50" />
+                    }
+
+                    // Para o freelancer, ocupamos a primeira "coluna de funcionário" do dia com a cor dele
+                    // e as demais ficam vazias ou poderíamos fazer um colSpan se não quebrasse o layout da grade
+                    return (
+                      <td 
+                        key={`${di}-${ei}`} 
+                        colSpan={employees.length}
+                        className="relative border-t border-amber-100 bg-amber-50/30 overflow-hidden"
+                        style={{ borderLeft, height: rowH }}
+                        title={`${slot.filled_by} (${slot.start_time} - ${slot.end_time})`}
+                      >
+                         <div className="absolute inset-y-0.5 left-1 right-1 rounded-sm bg-amber-400 flex items-center px-1">
+                            <span className="text-[8px] font-bold text-white truncate">
+                              {slot.filled_by} ({slot.start_time}-{slot.end_time})
+                            </span>
+                         </div>
+                      </td>
+                    )
+                  }).filter((col, idx) => {
+                    // Se usamos colSpan, precisamos remover as outras células que ele ocuparia
+                    if (slot && idx > 0) return false
+                    return true
+                  })
+                })}
+              </tr>
+            ))}
 
 
             <tr ref={footerRef} className="bg-gray-50 border-t border-gray-300">
