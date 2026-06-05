@@ -501,8 +501,8 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
 // =============================================================
 // Componente principal
 // =============================================================
-export function FreelancerSlots({ scheduleId, storeId, className = "", isEmbed = false }: { scheduleId: string | null, storeId: string, className?: string, isEmbed?: boolean }) {
-  const [activeSlot, setActiveSlot] = useState<any>(null);
+export default function FreelancerSlots({ scheduleId, storeId, className = "", isEmbed = false }: { scheduleId: string | null, storeId: string, className?: string, isEmbed?: boolean }) {
+  const [activeSlot, setActiveSlot] = useState<FreelancerSlot | { day_of_week: number, shift_name: string, is_manual: boolean } | null>(null);
   
   const {
     slots, loading, error,
