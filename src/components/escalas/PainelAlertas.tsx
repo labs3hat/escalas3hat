@@ -131,7 +131,6 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
             })
           }
         })
-        })
       })
 
       // R20 — Excesso de contingente (Freelancers manuais)
@@ -151,7 +150,7 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
     })
 
     return al
-  }, [employees, weekDates, getSlot, store])
+  }, [employees, weekDates, getSlot, store, freelancerSlots])
 
   // Banco de horas — lê de hours_bank (não recalcula)
   const [bankHours, setBankHours] = useState<Record<string, number>>({})
