@@ -112,7 +112,8 @@ serve(async (req) => {
           email: email.toLowerCase(),
           name,
           role,
-          store_ids
+          store_ids,
+          has_auth: true
         }, { onConflict: 'email' })
 
       if (profileError) {
