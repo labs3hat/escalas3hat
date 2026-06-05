@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Mail, Shield, Store, Loader2, RefreshCw, Key, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, Mail, Shield, Store, Loader2, RefreshCw, Key, AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import type { Profile, UserRole, Store as StoreType } from '@/types'
+import { useProfile } from '@/hooks/useProfile'
+
 
 const ROLE_LABELS: Record<UserRole, string> = {
   gerente: 'Gerente',
@@ -12,11 +14,14 @@ const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 export default function UsuariosTab() {
+  const { profile: currentUser } = useProfile()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [stores, setStores] = useState<StoreType[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
+
 
   useEffect(() => {
     load()
@@ -88,12 +93,18 @@ export default function UsuariosTab() {
       toast.success(`Senha de ${email} alterada para: ${newPassword}`)
     } catch (error: any) {
       toast.error(`Erro ao resetar senha: ${error.message}`)
-    } finally {
-      setSaving(false)
     }
   }
 
+  const togglePasswordVisibility = (userId: string) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }))
+  }
+
   if (loading) return <div className="p-5 flex justify-center h-64 items-center"><Loader2 className="animate-spin text-brand-500" /></div>
+
 
   return (
     <div className="p-5">
@@ -228,15 +239,18 @@ export default function UsuariosTab() {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button 
-                    onClick={() => handleResetPassword(p.id, p.email)}
-                    disabled={saving}
-                    className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
-                    title="Alterar Senha Manualmente"
-                  >
-                    <Key size={16} />
-                  </button>
+                  <div className="flex items-center justify-end gap-1">
+                    <button 
+                      onClick={() => handleResetPassword(p.id, p.email)}
+                      disabled={saving}
+                      className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
+                      title="Alterar Senha Manualmente"
+                    >
+                      <Key size={16} />
+                    </button>
+                  </div>
                 </td>
+
               </tr>
             ))}
           </tbody>
