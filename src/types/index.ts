@@ -58,7 +58,7 @@ export interface Profile {
   name: string
   role: UserRole
   store_ids: string[]
-  has_auth?: boolean
+  has_auth?: boolean | null
   created_at: string
 }
 
