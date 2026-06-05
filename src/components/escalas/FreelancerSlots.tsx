@@ -512,138 +512,128 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
 export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
   const [activeSlot, setActiveSlot] = useState(null);
   
-  try {
-    const {
-      slots, loading, error,
-      fillSlot, addManualSlot, clearSlot,
-      openCount, canPublish,
-    } = useFreelancerSlots(scheduleId);
+  const {
+    slots, loading, error,
+    fillSlot, addManualSlot, clearSlot,
+    openCount, canPublish,
+  } = useFreelancerSlots(scheduleId);
 
-    const { publish, publishing, published, error: pubError } =
-      usePublishSchedule(scheduleId, canPublish);
+  const { publish, publishing, published, error: pubError } =
+    usePublishSchedule(scheduleId, canPublish);
 
-    if (loading) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-          <p className="text-sm">Carregando vagas freelancer...</p>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 text-red-500">
-          <p className="text-sm">Erro ao carregar: {error}</p>
-        </div>
-      );
-    }
-
-    const handleSave = async (slot, data) => {
-      try {
-        if (slot.id) {
-          await fillSlot(slot.id, data);
-        } else {
-          await addManualSlot(scheduleId, storeId, slot.day_of_week, data);
-        }
-        setActiveSlot(null);
-      } catch (e) {
-        console.error("Erro ao salvar freelancer:", e);
-        toast.error("Erro ao salvar freelancer: " + (e.message || "Erro desconhecido"));
-      }
-    };
-
-    const handleClear = async (slot) => {
-      const action = slot.is_manual ? "Excluir" : "Limpar";
-      if (!window.confirm(`${action} este freelancer?`)) return;
-      await clearSlot(slot.id, slot.is_manual);
-    };
-
-    // Agrupar slots por dia da semana
-    const byDay = Array.from({ length: 7 }, (_, i) =>
-      slots.filter((s) => s.day_of_week === i)
-    );
-
+  if (loading) {
     return (
-      <div className={className}>
-        <AlertBar openCount={openCount} />
-
-        <div style={{ marginBottom: 12 }}>
-          <p style={{
-            fontSize: 10, fontWeight: 500, color: "var(--color-text-tertiary)",
-            textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8,
-          }}>
-            Gestão de Freelancers
-          </p>
-
-          {byDay.map((daySlots, dayIdx) => (
-            <div key={dayIdx} style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#333" }}>
-                  {DAY_LABELS[dayIdx]}
-                </p>
-                <button
-                  onClick={() => setActiveSlot({ day_of_week: dayIdx, shift_name: 'Manual', is_manual: true })}
-                  style={{
-                    fontSize: 10, padding: "2px 6px", borderRadius: 4,
-                    background: "#F0F0F0", border: "0.5px solid #DDD", color: "#666"
-                  }}
-                >
-                  + Freelancer
-                </button>
-              </div>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
-                gap: 6,
-              }}>
-                {daySlots.map((slot) => (
-                  <FreelancerCell
-                    key={slot.id}
-                    slot={slot}
-                    onFill={setActiveSlot}
-                    onClear={handleClear}
-                  />
-                ))}
-                {daySlots.length === 0 && (
-                  <p style={{ fontSize: 10, color: "#AAA", fontStyle: "italic" }}>Sem vagas sugeridas</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <PublishButton
-          canPublish={canPublish}
-          openCount={openCount}
-          onPublish={publish}
-          publishing={publishing}
-          published={published}
-        />
-
-        {(pubError || error) && (
-          <p style={{ fontSize: 11, color: "var(--color-text-danger)", marginTop: 6 }}>
-            {pubError || error}
-          </p>
-        )}
-
-        {activeSlot && (
-          <FillModal
-            slot={activeSlot}
-            onConfirm={handleSave}
-            onCancel={() => setActiveSlot(null)}
-          />
-        )}
-      </div>
-    );
-  } catch (e) {
-    console.error("Crash em FreelancerSlots:", e);
-    return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-        <h2 className="font-bold">Erro no Componente Freelancer</h2>
-        <pre className="text-xs mt-2 overflow-auto">{e.stack || e.message}</pre>
+      <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+        <p className="text-sm">Carregando vagas freelancer...</p>
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-red-500">
+        <p className="text-sm">Erro ao carregar: {error}</p>
+      </div>
+    );
+  }
+
+  const handleSave = async (slot, data) => {
+    try {
+      if (slot.id) {
+        await fillSlot(slot.id, data);
+      } else {
+        await addManualSlot(scheduleId, storeId, slot.day_of_week, data);
+      }
+      setActiveSlot(null);
+    } catch (e) {
+      console.error("Erro ao salvar freelancer:", e);
+      toast.error("Erro ao salvar freelancer: " + (e.message || "Erro desconhecido"));
+    }
+  };
+
+  const handleClear = async (slot) => {
+    const action = slot.is_manual ? "Excluir" : "Limpar";
+    if (!window.confirm(`${action} este freelancer?`)) return;
+    await clearSlot(slot.id, slot.is_manual);
+  };
+
+  // Agrupar slots por dia da semana
+  const byDay = Array.from({ length: 7 }, (_, i) =>
+    slots.filter((s) => s.day_of_week === i)
+  );
+
+  return (
+    <div className={className}>
+      <AlertBar openCount={openCount} />
+
+      <div style={{ marginBottom: 12 }}>
+        <p style={{
+          fontSize: 10, fontWeight: 500, color: "var(--color-text-tertiary)",
+          textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8,
+        }}>
+          Gestão de Freelancers
+        </p>
+
+        {byDay.map((daySlots, dayIdx) => (
+          <div key={dayIdx} style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#333" }}>
+                {DAY_LABELS[dayIdx]}
+              </p>
+              <button
+                onClick={() => setActiveSlot({ day_of_week: dayIdx, shift_name: 'Manual', is_manual: true })}
+                style={{
+                  fontSize: 10, padding: "2px 6px", borderRadius: 4,
+                  background: "#F0F0F0", border: "0.5px solid #DDD", color: "#666"
+                }}
+              >
+                + Freelancer
+              </button>
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+              gap: 6,
+            }}>
+              {daySlots.map((slot) => (
+                <FreelancerCell
+                  key={slot.id}
+                  slot={slot}
+                  onFill={setActiveSlot}
+                  onClear={handleClear}
+                />
+              ))}
+              {daySlots.length === 0 && (
+                <p style={{ fontSize: 10, color: "#AAA", fontStyle: "italic" }}>Sem vagas sugeridas</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <PublishButton
+        canPublish={canPublish}
+        openCount={openCount}
+        onPublish={publish}
+        publishing={publishing}
+        published={published}
+      />
+
+      {(pubError || error) && (
+        <p style={{ fontSize: 11, color: "var(--color-text-danger)", marginTop: 6 }}>
+          {pubError || error}
+        </p>
+      )}
+
+      {activeSlot && (
+        <FillModal
+          slot={activeSlot}
+          onConfirm={handleSave}
+          onCancel={() => setActiveSlot(null)}
+        />
+      )}
+    </div>
+  );
 }
 
 export default FreelancerSlots;
