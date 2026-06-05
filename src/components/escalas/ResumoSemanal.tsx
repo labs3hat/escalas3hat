@@ -116,7 +116,7 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
     const [h, m] = workSlots[0].split(':').map(Number)
     return h * 60 + m
   }
-  // Incluímos freelancers preenchidos na lista de ordenação para que fiquem misturados corretamente.
+
   function getSortedDayEntities(dow: number) {
     const empData = employees.map(emp => ({
       type: 'employee' as const,
@@ -150,7 +150,10 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
         };
       });
 
-    return [...empData, ...freeData].sort((a, b) => {
+    // Filtra funcionários sem dados (sem escala) se necessário, ou mantém todos
+    const entities = [...empData, ...freeData].filter(e => e.data.type !== 'empty');
+
+    return entities.sort((a, b) => {
       if (a.rank !== b.rank) return a.rank - b.rank;
       return a.name.localeCompare(b.name);
     });
