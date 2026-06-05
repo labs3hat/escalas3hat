@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
-export const Route = createFileRoute('/_authenticated/freelancers' as any)({
+export const Route = createFileRoute('/freelancers' as any)({
   component: FreelancersRedirect,
 })
 
@@ -16,9 +16,5 @@ function FreelancersRedirect() {
     })
   }, [navigate])
 
-  return (
-    <div className="flex items-center justify-center h-full text-sm text-gray-400">
-      Redirecionando...
-    </div>
-  )
+  return null
 }
