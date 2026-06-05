@@ -150,7 +150,7 @@ export function useFreelancerSlots(scheduleId: string | null) {
         if (err) throw err;
         toast.success("Freelancer removido com sucesso!");
       } else {
-        await (supabase
+        const { error: err } = await (supabase
           .from("freelancer_slots")
           .update({ 
             filled_by: null, 
@@ -194,8 +194,8 @@ export function usePublishSchedule(scheduleId: string | null, canPublish: boolea
       .update({ 
         status: "published", 
         published_at: new Date().toISOString(),
-        notes: "Publicado via módulo de freelancers" as any
-      })
+        notes: "Publicado via módulo de freelancers"
+      } as any)
       .eq("id", scheduleId);
 
     if (err) {
