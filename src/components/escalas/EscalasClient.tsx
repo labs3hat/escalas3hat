@@ -115,10 +115,11 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   useEffect(() => {
     if (!selectedStore?.id) return;
     const weekKey = format(weekStart, "yyyy-MM-dd");
+    
     if (initialStoreId !== selectedStore.id || initialWeek !== weekKey || initialTab !== view) {
       syncSearch(selectedStore.id, weekStart, view);
     }
-  }, [selectedStore?.id, weekStart, initialStoreId, initialWeek, view, initialTab]);
+  }, [selectedStore?.id, weekStart, view]);
 
   const { employees: allEmployees } = useEmployees(selectedStore?.id ?? null);
   const employees = useMemo(() => allEmployees.filter(e => e.active), [allEmployees]);
