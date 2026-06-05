@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { addDays, startOfWeek, format, subWeeks, addWeeks, differenceInWeeks, parseISO } from "date-fns";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Copy, Send, Check, AlertTriangle, Wand2, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, Send, Check, AlertTriangle, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Profile, Store } from "@/types";
@@ -70,8 +70,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   }, [initialTab]);
 
   const [publishing, setPublishing] = useState(false);
-  const [copying, setCopying] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
 
@@ -280,44 +278,6 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     }
   }
 
-  async function handleCopy() {
-    setCopying(true);
-    try {
-      await copyPreviousWeek(employees);
-      toast.success("Semana anterior copiada!");
-    } catch (err) {
-      handleSupabaseError(err, "Erro ao copiar semana");
-    } finally {
-      setCopying(false);
-    }
-  }
-
-  async function handleGenerate() {
-    if (!selectedStore) return;
-    const currentStore = selectedStore;
-    setGenerating(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const weekKey = format(weekStart, "yyyy-MM-dd");
-      const { data, error } = await supabase.rpc("generate_base_schedule", {
-        p_store_id: currentStore.id,
-        p_week_start: weekKey,
-        p_created_by: user?.id,
-      });
-      const result = data as { success?: boolean; error?: string; slots_created?: number } | null;
-      if (error || result?.success === false) {
-        toast.error((error?.message ?? result?.error) || "Erro ao gerar escala");
-        return;
-      }
-      toast.success(`Escala gerada: ${result?.slots_created ?? 0} slots`);
-      await reload();
-      setRefreshKey((k) => k + 1);
-    } catch (err) {
-      handleSupabaseError(err, "Erro ao gerar escala base");
-    } finally {
-      setGenerating(false);
-    }
-  }
 
   if (!selectedStore) {
     return <EmptyState title="Nenhuma loja disponível" />;
@@ -379,27 +339,11 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
               </span>
             )}
             <button
-              onClick={handleCopy}
-              disabled={copying}
-              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-            >
-              <Copy size={13} />
-              {copying ? "Copiando..." : "Copiar semana anterior"}
-            </button>
-            <button
               onClick={() => setMonthlyOpen(true)}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-brand-200 rounded-lg text-brand-700 bg-brand-50 hover:bg-brand-100 disabled:opacity-50"
             >
               <CalendarDays size={13} />
               Gerar Escala Mensal
-            </button>
-            <button
-              onClick={handleGenerate}
-              disabled={generating}
-              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              <Wand2 size={13} />
-              {generating ? "Gerando..." : "Gerar escala base"}
             </button>
             <button
               onClick={handleRefresh}
