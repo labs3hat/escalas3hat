@@ -330,8 +330,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
               </td>
               {weekDates.map((d, di) => {
                 const dow = d.getDay()
-                const abSlot = store.opening_time_weekday || '10:00'
-                const fcSlot = '22:00'
+                const abSlot = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
+                const fcSlot = (dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday)) || '22:00'
                 
                 // Count employees
                 const abEmpCount = employees.filter(e => getSlot(e.id, dow, abSlot) === 'work').length

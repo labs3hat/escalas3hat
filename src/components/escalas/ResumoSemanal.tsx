@@ -175,11 +175,11 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
           const isToday = d.toDateString() === TODAY.toDateString()
           const isWknd = dow === 0 || dow === 6
           
-          const abEmpCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday ?? '10:00') === 'work').length
-          const fcEmpCount = employees.filter(e => getSlot(e.id, dow, '22:00') === 'work').length
+          const abSlot = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
+          const fcSlot = (dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday)) || '22:00'
           
-          const abSlot = store.opening_time_weekday || '10:00'
-          const fcSlot = '22:00'
+          const abEmpCount = employees.filter(e => getSlot(e.id, dow, abSlot) === 'work').length
+          const fcEmpCount = employees.filter(e => getSlot(e.id, dow, fcSlot) === 'work').length
           const abFreeCount = freelancerSlots.filter(s => {
             if (s.day_of_week !== dow || !s.filled_by) return false;
             if (s.start_time) return s.start_time <= abSlot;
