@@ -49,6 +49,8 @@ export default function SlotModal({ emp, dow, date, initial, isPublished, onClos
   const calculatedExit = fmt(toMin(defEntry) + bruta)
   const defExit = initial.exit ?? calculatedExit
   
+  // Sugestão de intervalo automática (pelo menos 4h após entrada, ou 12h se abertura, 18h se fechamento)
+  // O usuário quer que quem entra antes saia antes, mas aqui no modal individual sugerimos o padrão.
   const defBs = initial.breakStart ?? (isFc ? '18:00' : '12:00')
   // Intervalo é sempre de 1 hora
   const defBe = fmt(toMin(defBs) + 60)

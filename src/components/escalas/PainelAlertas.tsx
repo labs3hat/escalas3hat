@@ -68,7 +68,7 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
         })
       }
 
-      // R16 — intervalos simultâneos
+      // R16 — intervalos simultâneos (regra estrutural: max 1 por vez)
       SLOT_KEYS.forEach(slot => {
         const onInterval = employees.filter(e => getSlot(e.id, dow, slot) === 'interval')
         if (onInterval.length >= 2) {
@@ -78,6 +78,16 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
           })
         }
       })
+    })
+
+    // R17 — Folgas excessivas por dia (máximo 2 por dia sugerido para manter cobertura)
+    weekDates.forEach(d => {
+      const dow = d.getDay()
+      const offCount = employees.filter(emp => SLOT_KEYS.some(s => getSlot(emp.id, dow, s) === 'day_off')).length
+      if (offCount > 2) {
+        const label = `${DAY_NAMES[dow]} ${d.getDate()}/${d.getMonth()+1}`
+        al.push({ type: 'warning', message: `R17: ${label} — concentração de ${offCount} folgas (ideal max 2)` })
+      }
     })
 
     return al
