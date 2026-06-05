@@ -119,15 +119,23 @@ export function usePublishSchedule(scheduleId, canPublish) {
     setPublishing(true);
     setError(null);
 
-    // O usuário solicitou que vagas abertas NÃO impeçam a publicação.
-    // Apenas mostramos um aviso visual no componente.
     const { error: err } = await supabase
       .from("schedules")
-      .update({ status: "published", published_at: new Date().toISOString() })
+      .update({ 
+        status: "published", 
+        published_at: new Date().toISOString(),
+        // Registramos que foi preenchido por freelancer se houver vagas preenchidas
+        notes: "Publicado via módulo de freelancers"
+      })
       .eq("id", scheduleId);
 
-    if (err) setError(err.message);
-    else setPublished(true);
+    if (err) {
+      setError(err.message);
+    } else {
+      setPublished(true);
+      // Forçar um recarregamento da página para refletir o status
+      window.location.reload();
+    }
     setPublishing(false);
   }, [scheduleId]);
 

@@ -143,6 +143,19 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     payload?: { entry: string; exit: string; breakStart?: string; breakEnd?: string },
     reason?: string
   ) {
+    // 1. Validar travas de segurança ANTES de salvar
+    if (type === "day_off") {
+      const offCount = employees.filter(emp => 
+        emp.id !== employeeId && SLOT_KEYS.some(s => getSlot(emp.id, dayOfWeek, s) === "day_off")
+      ).length;
+      const maxOff = employees.length <= 6 ? 1 : 2;
+      
+      if (offCount >= maxOff) {
+        toast.error(`Bloqueio: Máximo de ${maxOff} folgas para esta loja atingido.`);
+        return;
+      }
+    }
+
     if (schedule?.status === "published") {
       if (!reason || reason.trim().length < 10) {
         toast.error("Motivo obrigatório (mín. 10 caracteres) para editar escala publicada.");
@@ -171,32 +184,43 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
       }
       let oldBreak: string | null = intervalSlots.length > 0 ? intervalSlots[0] : null;
 
-      await updateDay(employeeId, dayOfWeek, type, payload);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      await supabase.from("schedule_changes").insert({
-        schedule_id: schedule.id,
-        store_id: selectedStore.id,
-        employee_id: employeeId,
-        day_of_week: dayOfWeek,
-        reason: reason.trim(),
-        changed_by: user?.id,
-        ciencia_funcionario: true,
-        ciencia_at: new Date().toISOString(),
-        old_slot_type: oldType,
-        new_slot_type: type,
-        old_entry_time: oldEntry,
-        new_entry_time: payload?.entry || null,
-        old_exit_time: oldExit,
-        new_exit_time: payload?.exit || null,
-        old_break_start: oldBreak,
-        new_break_start: payload?.breakStart || null,
-      });
-      
-      toast.success("Alteração registrada com sucesso");
+      try {
+        await updateDay(employeeId, dayOfWeek, type, payload);
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        await supabase.from("schedule_changes").insert({
+          schedule_id: schedule.id,
+          store_id: selectedStore.id,
+          employee_id: employeeId,
+          day_of_week: dayOfWeek,
+          reason: reason.trim(),
+          changed_by: user?.id,
+          ciencia_funcionario: true,
+          ciencia_at: new Date().toISOString(),
+          old_slot_type: oldType,
+          new_slot_type: type,
+          old_entry_time: oldEntry,
+          new_entry_time: payload?.entry || null,
+          old_exit_time: oldExit,
+          new_exit_time: payload?.exit || null,
+          old_break_start: oldBreak,
+          new_break_start: payload?.breakStart || null,
+        });
+        
+        toast.success("Alteração registrada e salva com sucesso");
+      } catch (err) {
+        console.error("Erro ao salvar alteração auditada:", err);
+        toast.error("Erro ao salvar a alteração.");
+      }
     } else {
-      await updateDay(employeeId, dayOfWeek, type, payload);
+      try {
+        await updateDay(employeeId, dayOfWeek, type, payload);
+        toast.success("Escala atualizada");
+      } catch (err) {
+        console.error("Erro ao atualizar escala:", err);
+        toast.error("Erro ao atualizar escala.");
+      }
     }
   }
 
