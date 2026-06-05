@@ -108,8 +108,19 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   );
 
   const syncSearch = (storeId: string, week: Date, tab?: string) => {
-    if (!storeId) return;
+    if (!storeId || !week) return;
     const weekStr = format(week, "yyyy-MM-dd");
+    
+    // Only navigate if actually different to avoid redundant history/renders
+    const currentSearch = new URLSearchParams(window.location.search);
+    if (
+      currentSearch.get('storeId') === storeId && 
+      currentSearch.get('week') === weekStr && 
+      (currentSearch.get('tab') || 'grade') === (tab || 'grade')
+    ) {
+      return;
+    }
+
     void navigate({
       to: "/escalas",
       replace: true,
@@ -123,16 +134,18 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   };
 
   useEffect(() => {
-    if (!selectedStore?.id) return;
+    if (!selectedStore?.id || !weekStart) return;
     const weekKey = format(weekStart, "yyyy-MM-dd");
     
-    // Sync if values changed and are different from current search params
     const currentWeekKey = initialWeek;
     const currentStoreId = initialStoreId;
     const currentTab = initialTab || "grade";
 
     if (selectedStore.id !== currentStoreId || weekKey !== currentWeekKey || view !== currentTab) {
-      syncSearch(selectedStore.id, weekStart, view);
+      const timer = setTimeout(() => {
+        syncSearch(selectedStore.id, weekStart, view);
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [selectedStore?.id, weekStart, view, initialStoreId, initialWeek, initialTab]);
 
