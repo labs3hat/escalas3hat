@@ -30,9 +30,31 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
 
   const [lavarDays, setLavarDays] = useState<number[]>(store.machine_wash_days ?? [2,4,6])
   const [estoqueDays, setEstoqueDays] = useState<number[]>(store.stock_count_days ?? [1])
+  
+  // Abertura
   const [openWeekday, setOpenWeekday] = useState(store.opening_time_weekday ?? '10:00')
   const [openSaturday, setOpenSaturday] = useState(store.opening_time_saturday ?? '10:00')
   const [openSunday, setOpenSunday] = useState(store.opening_time_sunday ?? '12:00')
+  
+  // Fechamento
+  const [closeWeekday, setCloseWeekday] = useState(store.closing_time_weekday ?? '22:00')
+  const [closeSaturday, setCloseSaturday] = useState(store.closing_time_saturday ?? '22:00')
+  const [closeSunday, setCloseSunday] = useState(store.closing_time_sunday ?? '20:00')
+
+  // Equipe Mínima
+  const [minOpen, setMinOpen] = useState(store.min_opening_staff ?? 1)
+  const [minClose, setMinClose] = useState(store.min_closing_staff ?? 2)
+  const [minWeekday, setMinWeekday] = useState(store.min_weekday_staff ?? 4)
+  const [minWeekend, setMinWeekend] = useState(store.min_weekend_staff ?? 8)
+  const [minSunday, setMinSunday] = useState(store.min_sunday_staff ?? 8)
+  const [minOpenWknd, setMinOpenWknd] = useState(store.min_opening_weekend ?? 1)
+  const [minCloseWknd, setMinCloseWknd] = useState(store.min_closing_weekend ?? 2)
+
+  // Equipe Ideal
+  const [idealOpen, setIdealOpen] = useState(store.ideal_opening_staff ?? 1)
+  const [idealClose, setIdealClose] = useState(store.ideal_closing_staff ?? 2)
+  const [idealTotal, setIdealTotal] = useState(store.ideal_staff ?? 8)
+
   const [saving, setSaving] = useState(false)
   const [changed, setChanged] = useState(false)
 
@@ -49,14 +71,27 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
       opening_time_weekday: openWeekday,
       opening_time_saturday: openSaturday,
       opening_time_sunday: openSunday,
-    }).eq('id', store.id)
+      closing_time_weekday: closeWeekday,
+      closing_time_saturday: closeSaturday,
+      closing_time_sunday: closeSunday,
+      min_opening_staff: minOpen,
+      min_closing_staff: minClose,
+      min_weekday_staff: minWeekday,
+      min_weekend_staff: minWeekend,
+      min_sunday_staff: minSunday,
+      min_opening_weekend: minOpenWknd,
+      min_closing_weekend: minCloseWknd,
+      ideal_opening_staff: idealOpen,
+      ideal_closing_staff: idealClose,
+      ideal_staff: idealTotal,
+    } as any).eq('id', store.id)
     toast.success('Configurações salvas')
     setSaving(false)
     setChanged(false)
   }
 
   return (
-    <div className="p-5 max-w-lg">
+    <div className="p-5 max-w-2xl">
       <div className="flex items-center justify-between mb-5">
         <div className="text-sm font-medium text-gray-700">Configurações — {store.name}</div>
         {canSync && (

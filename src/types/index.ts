@@ -34,6 +34,11 @@ export interface Store {
   closing_time_sunday: string | null
   weekly_hours_6x1: number | null
   weekly_hours_5x2: number | null
+  ideal_opening_staff: number | null
+  ideal_closing_staff: number | null
+  ideal_staff: number | null
+  min_opening_weekend: number | null
+  min_closing_weekend: number | null
   active: boolean
   created_at: string
 }
