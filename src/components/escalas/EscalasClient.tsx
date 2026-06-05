@@ -49,7 +49,14 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     }
   });
 
-  const [view, setView] = useState<"grade" | "resumo" | "freelancers">(initialTab ?? "grade");
+  const [view, setView] = useState<"grade" | "resumo" | "freelancers">(initialTab || "grade");
+
+  // Sincronizar estado local com props de navegação
+  useEffect(() => {
+    if (initialTab) {
+      setView(initialTab);
+    }
+  }, [initialTab]);
   const [publishing, setPublishing] = useState(false);
   const [copying, setCopying] = useState(false);
   const [generating, setGenerating] = useState(false);
