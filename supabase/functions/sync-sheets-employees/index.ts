@@ -189,7 +189,11 @@ Deno.serve(async (req) => {
       // You might have a status column in J or similar if needed
       
       const specific = storeSpecificData.get(key);
-      const found = existingByKey.get(key);
+      const candidates = existingByKey.get(key) ?? [];
+      
+      // If we have multiple candidates, pick the one that was already active, or just the first one.
+      // We will deactivate/delete the others later.
+      const found = candidates.find(c => c.active) || candidates[0];
 
       const payload: Record<string, unknown> = {
         store_id: store.id,
@@ -220,12 +224,27 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Deactivate employees not present in the "FUNCIONÁRIOS" sheet
-    for (const [key, emp] of existingByKey) {
-      if (!processedKeys.has(key) && emp.active) {
-        const { error } = await admin.from("employees").update({ active: false }).eq("id", emp.id);
-        if (error) throw new Error(`Deactivate failed for ${emp.name}: ${error.message}`);
-        deactivated++;
+    // 5. Cleanup: Deactivate OR remove duplicates
+    for (const [key, emps] of existingByKey) {
+      if (processedKeys.has(key)) {
+        // If they ARE in the sheet, but we have multiple records in DB,
+        // we already updated ONE to active=true. Deactivate the others.
+        const mainEmp = emps.find(e => e.active) || emps[0]; // Logic matches loop above
+        for (const emp of emps) {
+          if (emp.id !== mainEmp.id && emp.active) {
+            await admin.from("employees").update({ active: false }).eq("id", emp.id);
+            deactivated++;
+          }
+        }
+      } else {
+        // Not in the sheet at all - deactivate all records for this name/store
+        for (const emp of emps) {
+          if (emp.active) {
+            const { error } = await admin.from("employees").update({ active: false }).eq("id", emp.id);
+            if (error) throw new Error(`Deactivate failed for ${emp.name}: ${error.message}`);
+            deactivated++;
+          }
+        }
       }
     }
 
