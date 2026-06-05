@@ -77,7 +77,15 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
     const exitTotal = lh * 60 + lm + 30
 
     const netMin = workSlots.length * 30
-    const hrs = `${Math.floor(netMin / 60)}h${netMin % 60 ? String(netMin % 60).padStart(2,'0') : ''}`
+    let hrs = `${Math.floor(netMin / 60)}h${netMin % 60 ? String(netMin % 60).padStart(2,'0') : ''}`
+    
+    // Ajuste visual para exibir a jornada contratual correta para turnos cheios (44h semanais)
+    // No sistema de slots de 30min, 6x1 usa 15 slots (7h30) e 5x2 usa 18 slots (9h)
+    if (emp.work_regime === '6x1' && workSlots.length === 15) {
+      hrs = '7h20'
+    } else if (emp.work_regime === '5x2' && workSlots.length === 18) {
+      hrs = '8h48'
+    }
     const xh = Math.floor(exitTotal / 60)
     const xm = exitTotal % 60
     const fmt = (h: number, m: number) => `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
