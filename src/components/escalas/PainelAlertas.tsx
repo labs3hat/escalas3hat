@@ -78,16 +78,55 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
           })
         }
       })
-    })
 
-    // R17 — Folgas excessivas por dia (máximo 2 por dia sugerido para manter cobertura)
-    weekDates.forEach(d => {
-      const dow = d.getDay()
+      // R17 — Limite de folgas simultâneas (TRAVA CRÍTICA)
       const offCount = employees.filter(emp => SLOT_KEYS.some(s => getSlot(emp.id, dow, s) === 'day_off')).length
-      if (offCount > 2) {
-        const label = `${DAY_NAMES[dow]} ${d.getDate()}/${d.getMonth()+1}`
-        al.push({ type: 'warning', message: `R17: ${label} — concentração de ${offCount} folgas (ideal max 2)` })
+      const maxOff = employees.length <= 6 ? 1 : 2;
+      if (offCount > maxOff) {
+        al.push({ 
+          type: 'critical', 
+          message: `R17: ${label} — ${offCount} folgas excede o limite (máx ${maxOff} para esta loja)` 
+        })
       }
+
+      // R18 — Carga horária máxima contínua (6h sem intervalo)
+      employees.forEach(emp => {
+        const slots = SLOT_KEYS.map(s => getSlot(emp.id, dow, s))
+        let continuousWork = 0
+        slots.forEach((type, idx) => {
+          if (type === 'work') {
+            continuousWork += 30
+          } else {
+            continuousWork = 0
+          }
+          if (continuousWork > 360) { // 6 horas
+            const time = SLOT_KEYS[idx]
+            al.push({ 
+              type: 'critical', 
+              message: `R18: ${emp.name.split(' ')[0]} — ${label} trabalhou >6h seguidas às ${time}` 
+            })
+          }
+        })
+      })
+
+      // R19 — Preferência de Saída (Abertura sai primeiro)
+      const staffWork = employees
+        .map(emp => {
+          const work = SLOT_KEYS.filter(s => getSlot(emp.id, dow, s) === 'work')
+          return { name: emp.name.split(' ')[0], entry: work[0], exit: work[work.length - 1] }
+        })
+        .filter(s => s.entry)
+
+      staffWork.forEach(p1 => {
+        staffWork.forEach(p2 => {
+          if (p1.entry < p2.entry && p1.exit > p2.exit) {
+            al.push({ 
+              type: 'warning', 
+              message: `R19: ${label} — ${p1.name} entrou antes mas sai depois de ${p2.name}` 
+            })
+          }
+        })
+      })
     })
 
     return al
