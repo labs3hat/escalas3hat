@@ -237,9 +237,42 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
         </div>
       </div>
 
+      {/* Resumo das Regras */}
+      <div className="mb-8 pt-6 border-t border-gray-100">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Resumo das Regras ("R"s)</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+          {[
+            { code: 'R1',  desc: 'Mínimo obrigatório na abertura' },
+            { code: 'R2',  desc: 'Mínimo obrigatório no fechamento' },
+            { code: 'R3',  desc: 'Proibição de folga no Sábado' },
+            { code: 'R5',  desc: 'Estoque não folga na Segunda' },
+            { code: 'R6',  desc: 'Responsável pela máquina não folga em dias de lavagem' },
+            { code: 'R8',  desc: 'Entrada antecipada (2h antes) em dias de lavagem/estoque' },
+            { code: 'R9',  desc: 'Entrada antecipada (1h antes) em dias comuns' },
+            { code: 'R10', desc: 'Mínimo obrigatório aos Domingos' },
+            { code: 'R12', desc: 'Mínimo obrigatório em dias de semana' },
+            { code: 'R13', desc: 'Mínimo obrigatório aos finais de semana' },
+            { code: 'R16', desc: 'Proibição de intervalos simultâneos' },
+            { code: 'R17', desc: 'Limite de folgas simultâneas por unidade' },
+            { code: 'R18', desc: 'Máximo de 6h de trabalho contínuo sem intervalo' },
+            { code: 'R19', desc: 'Preferência de saída: quem entra primeiro, sai primeiro' },
+          ].map(r => (
+            <div key={r.code} className="flex gap-2 items-start text-[11px]">
+              <span className="font-bold text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded min-w-[32px] text-center">{r.code}</span>
+              <span className="text-gray-600 leading-snug">{r.desc}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
+          <p className="text-[11px] text-amber-800 leading-relaxed">
+            <strong>Nota sobre Prioridade:</strong> Conforme solicitado, as regras de <strong>Cobertura (R1, R2, R10, R12, R13)</strong> são prioritárias e devem ser cumpridas mesmo que gerem horas extras ou necessidade de freelancers.
+          </p>
+        </div>
+      </div>
+
       {changed && (
         <button onClick={handleSave} disabled={saving}
-          className="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium py-2.5 rounded-lg text-sm disabled:opacity-60">
+          className="w-full bg-brand-500 hover:bg-brand-600 text-white font-medium py-2.5 rounded-lg text-sm shadow-sm disabled:opacity-60 transition-all">
           {saving ? 'Salvando...' : 'Salvar configurações'}
         </button>
       )}
