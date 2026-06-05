@@ -346,8 +346,16 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 const fcEmpCount = employees.filter(e => getSlot(e.id, dow, fcSlot) === 'work').length
                 
                 // Count freelancers (heuristic: Abertura = opening, Fechamento = closing)
-                const abFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
-                const fcFreeCount = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
+                const abFreeCount = freelancerSlots.filter(s => {
+                  if (s.day_of_week !== dow || !s.filled_by) return false;
+                  if (s.start_time) return s.start_time <= abSlot;
+                  return s.shift_name === 'Abertura';
+                }).length;
+                const fcFreeCount = freelancerSlots.filter(s => {
+                  if (s.day_of_week !== dow || !s.filled_by) return false;
+                  if (s.end_time) return s.end_time >= fcSlot;
+                  return s.shift_name === 'Fechamento';
+                }).length;
 
                 const abCount = abEmpCount + abFreeCount
                 const fcCount = fcEmpCount + fcFreeCount
