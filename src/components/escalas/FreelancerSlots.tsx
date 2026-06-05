@@ -193,11 +193,7 @@ export function usePublishSchedule(scheduleId, canPublish) {
       setError(err.message);
     } else {
       setPublished(true);
-      // Forçar um recarregamento da página para refletir o status
-      window.location.reload();
-      // Em vez de reload, o ideal é o EscalasClient detectar a mudança via realtime
-      // ou callback, mas o reload resolve o sumiço imediato relatado.
-
+      toast.success("Escala publicada com sucesso!");
     }
     setPublishing(false);
   }, [scheduleId]);
@@ -510,17 +506,17 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
 
   if (loading) {
     return (
-      <p style={{ fontSize: 13, color: "var(--color-text-tertiary)", padding: "12px 0" }}>
-        Carregando vagas freelancer...
-      </p>
+      <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+        <p className="text-sm">Carregando vagas freelancer...</p>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <p style={{ fontSize: 13, color: "var(--color-text-danger)", padding: "12px 0" }}>
-        Erro: {error}
-      </p>
+      <div className="flex flex-col items-center justify-center py-12 text-red-500">
+        <p className="text-sm">Erro: {error}</p>
+      </div>
     );
   }
 
@@ -534,6 +530,7 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
       setActiveSlot(null);
     } catch (e) {
       console.error("Erro ao salvar freelancer:", e);
+      toast.error("Erro ao salvar freelancer: " + (e.message || "Erro desconhecido"));
     }
   };
 
