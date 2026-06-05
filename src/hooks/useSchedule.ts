@@ -60,8 +60,12 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
         } else {
           setSlots([]);
         }
-      } catch (err) {
+      } catch (err: any) {
         handleSupabaseError(err, "Erro ao carregar escala");
+        // Se falhar ao carregar/criar a escala, não podemos continuar
+        if (err.message?.includes("multiple rows") || err.message?.includes("PGRST116")) {
+          toast.error("Erro crítico: Foram encontradas múltiplas escalas para esta semana. Por favor, contate o suporte.");
+        }
       } finally {
         if (seq === loadSeq.current) setLoading(false);
       }

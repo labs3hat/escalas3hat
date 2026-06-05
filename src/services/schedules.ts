@@ -16,6 +16,10 @@ export const scheduleService = {
   },
 
   async create(storeId: string, weekKey: string, userId?: string): Promise<Schedule> {
+    // Double check if it exists before trying to create, to avoid race conditions
+    const existing = await this.getByStoreAndWeek(storeId, weekKey);
+    if (existing) return existing;
+
     const { data, error } = await supabase
       .from("schedules")
       .insert({ 
@@ -25,9 +29,15 @@ export const scheduleService = {
         created_by: userId 
       })
       .select()
-      .single();
+      .maybeSingle(); // Use maybeSingle to avoid 406 if race condition still happens
     
     if (error) throw error;
+    if (!data) {
+      // If insert returned nothing, check again if it was created by another process
+      const reCheck = await this.getByStoreAndWeek(storeId, weekKey);
+      if (reCheck) return reCheck;
+      throw new Error("Falha ao criar escala: Nenhuma linha retornada.");
+    }
     return data as Schedule;
   },
 
