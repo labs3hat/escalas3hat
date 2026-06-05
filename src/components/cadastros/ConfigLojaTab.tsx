@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
@@ -8,7 +8,7 @@ import type { Store } from '@/types'
 const DAY_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
 const ADMIN_ROLES = ['regional', 'rh', 'diretoria']
 
-export default function ConfigLojaTab({ store }: { store: Store }) {
+export default function ConfigLojaTab({ store, onSync }: { store: Store; onSync?: () => void }) {
   const { profile } = useProfile()
   const canSync = profile && ADMIN_ROLES.includes(profile.role)
   const [syncing, setSyncing] = useState(false)
@@ -18,9 +18,9 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
     try {
       const { data, error } = await supabase.functions.invoke('sync-sheets-stores')
       if (error) throw error
-      const c = data?.created ?? 0
-      const u = data?.updated ?? 0
-      toast.success(`${u} lojas atualizadas, ${c} criadas`)
+      const total = data?.total ?? 0
+      toast.success(`${total} lojas processadas`)
+      onSync?.()
     } catch (e: any) {
       toast.error(`Erro ao sincronizar lojas: ${e?.message ?? 'desconhecido'}`)
     } finally {
@@ -57,6 +57,29 @@ export default function ConfigLojaTab({ store }: { store: Store }) {
 
   const [saving, setSaving] = useState(false)
   const [changed, setChanged] = useState(false)
+
+  // Sync state with props when store changes
+  useEffect(() => {
+    setLavarDays(store.machine_wash_days ?? [2,4,6])
+    setEstoqueDays(store.stock_count_days ?? [1])
+    setOpenWeekday(store.opening_time_weekday ?? '10:00')
+    setOpenSaturday(store.opening_time_saturday ?? '10:00')
+    setOpenSunday(store.opening_time_sunday || '11:00')
+    setCloseWeekday(store.closing_time_weekday ?? '22:00')
+    setCloseSaturday(store.closing_time_saturday ?? '22:00')
+    setCloseSunday(store.closing_time_sunday ?? '20:00')
+    setMinOpen(store.min_opening_staff ?? 1)
+    setMinClose(store.min_closing_staff ?? 2)
+    setMinWeekday(store.min_weekday_staff ?? 4)
+    setMinWeekend(store.min_weekend_staff ?? 8)
+    setMinSunday(store.min_sunday_staff ?? 8)
+    setMinOpenWknd(store.min_opening_weekend ?? 1)
+    setMinCloseWknd(store.min_closing_weekend ?? 2)
+    setIdealOpen(store.ideal_opening_staff ?? 1)
+    setIdealClose(store.ideal_closing_staff ?? 2)
+    setIdealTotal(store.ideal_staff ?? 8)
+    setChanged(false)
+  }, [store])
 
   function toggleDay(day: number, list: number[], setList: (v: number[]) => void) {
     setList(list.includes(day) ? list.filter(d => d !== day) : [...list, day].sort())

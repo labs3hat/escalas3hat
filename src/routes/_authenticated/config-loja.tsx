@@ -37,7 +37,7 @@ function ConfigLojaPage() {
 
   return (
     <StandaloneStorePage title="Configurações da loja" subtitle="Horários, dias de lavagem e estoque" stores={stores}>
-      {(store) => <ConfigLojaTab store={store} />}
+      {(store) => <ConfigLojaTab store={store} onSync={load} />}
     </StandaloneStorePage>
   )
 }
