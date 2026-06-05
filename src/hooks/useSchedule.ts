@@ -227,35 +227,6 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     }
   }
 
-  async function copyPreviousWeek(employees: { id: string }[]) {
-    if (!schedule || !storeId) return;
-    const prevWeek = new Date(weekStart);
-    prevWeek.setDate(prevWeek.getDate() - 7);
-    const prevKey = format(prevWeek, "yyyy-MM-dd");
-
-    try {
-      const prevSched = await scheduleService.getByStoreAndWeek(storeId, prevKey);
-      if (!prevSched) return;
-
-      const prevSlots = await scheduleService.getSlots(prevSched.id);
-      if (!prevSlots?.length) return;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      const newSlots = prevSlots.map((s) => ({
-        schedule_id: schedule.id,
-        employee_id: s.employee_id,
-        day_of_week: s.day_of_week,
-        slot_time: s.slot_time,
-        slot_type: s.slot_type,
-        updated_by: user?.id,
-      }));
-
-      await scheduleService.insertSlots(newSlots);
-      await load();
-    } catch (err) {
-      handleSupabaseError(err, "Erro ao copiar semana anterior");
-    }
-  }
 
   function getSlot(employeeId: string, dayOfWeek: number, slotTime: string): string {
     return (
@@ -276,7 +247,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
     updateSlot, 
     updateDay, 
     publish, 
-    copyPreviousWeek, 
+     
     getSlot, 
     reload: load,
     validate
