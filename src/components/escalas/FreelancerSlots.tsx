@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // ── Tipos ─────────────────────────────────────────────────────
 // FreelancerSlot {
@@ -74,6 +75,9 @@ export function useFreelancerSlots(scheduleId) {
       })
       .eq("id", slotId);
     if (err) throw new Error(err.message);
+    
+    toast.success(`Freelancer ${filledBy} salvo com sucesso!`);
+
     // Atualizar estado local sem refetch
     setSlots((prev) =>
       prev.map((s) =>
