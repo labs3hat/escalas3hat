@@ -5,7 +5,7 @@ import type { Profile } from '@/types'
 
 const navItems = [
   { href: '/escalas',     label: 'Escalas',               icon: Calendar },
-  { href: '/escalas', label: 'Freelancers', icon: UserPlus, search: { tab: 'freelancers' } },
+  
   { href: '/cadastros',   label: 'Funcionários',          icon: Users },
   { href: '/config-loja', label: 'Configurações da loja', icon: Settings },
   { href: '/usuarios',    label: 'Usuários',              icon: ShieldCheck },

@@ -12,7 +12,8 @@ import { useSchedule } from "@/hooks/useSchedule";
 import GradeHoraria from "./GradeHoraria";
 import ResumoSemanal from "./ResumoSemanal";
 import PainelAlertas from "./PainelAlertas";
-import FreelancerSlots, { useFreelancerSlots, type FreelancerSlot } from "./FreelancerSlots";
+import FreelancerSlots from "./FreelancerSlots";
+import { useFreelancerSlots } from "./FreelancerSlots";
 import GerarEscalaMensalModal from "./GerarEscalaMensalModal";
 
 interface Props {
@@ -34,7 +35,10 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   const navigate = useNavigate();
   const [selectedStore, setSelectedStore] = useState<Store>(() => {
     const preferredStoreId = initialStoreId ?? getSavedStoreId();
-    if (preferredStoreId) return initialStores.find(s => s.id === preferredStoreId) || initialStores[0];
+    if (preferredStoreId) {
+      const found = initialStores.find(s => s.id === preferredStoreId);
+      if (found) return found;
+    }
     return initialStores[0];
   });
 
@@ -49,11 +53,11 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     }
   });
 
-  const [view, setView] = useState<"grade" | "resumo" | "freelancers">(initialTab || "grade");
+  const [view, setView] = useState<"grade" | "resumo" | "freelancers">("grade");
 
   // Sincronizar estado local com props de navegação
   useEffect(() => {
-    if (initialTab) {
+    if (initialTab && ["grade", "resumo", "freelancers"].includes(initialTab)) {
       setView(initialTab);
     }
   }, [initialTab]);
@@ -99,10 +103,12 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   );
 
   const syncSearch = (storeId: string, week: Date, tab?: string) => {
+    if (!storeId) return;
+    const weekStr = format(week, "yyyy-MM-dd");
     void navigate({
       to: "/escalas",
       replace: true,
-      search: { storeId, week: format(week, "yyyy-MM-dd"), tab: tab as any },
+      search: { storeId, week: weekStr, tab: tab as any },
     });
   };
 
