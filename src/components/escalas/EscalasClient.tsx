@@ -465,6 +465,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         getSlot={getSlot}
         store={selectedStore}
         schedule={schedule}
+        freelancerSlots={freelancerSlots}
       />
 
       {monthlyOpen && (
