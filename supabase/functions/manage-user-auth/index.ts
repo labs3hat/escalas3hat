@@ -58,17 +58,36 @@ serve(async (req) => {
     }
 
     if (action === 'createUser') {
-      // 1. Create auth user
-      const { data: authUser, error: authError } = await supabaseClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { name, role, store_ids }
-      })
+      // 1. Check if user already exists in Auth
+      const { data: existingAuth } = await supabaseClient.auth.admin.listUsers()
+      const userInAuth = existingAuth?.users.find(u => u.email === email)
 
-      if (authError) throw authError
+      let authUser
+      if (userInAuth) {
+        // Update existing auth user metadata and password
+        const { data, error: updateError } = await supabaseClient.auth.admin.updateUserById(
+          userInAuth.id,
+          { 
+            password,
+            user_metadata: { name, role, store_ids },
+            email_confirm: true 
+          }
+        )
+        if (updateError) throw updateError
+        authUser = { user: data.user }
+      } else {
+        // Create new auth user
+        const { data, error: authError } = await supabaseClient.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { name, role, store_ids }
+        })
+        if (authError) throw authError
+        authUser = data
+      }
 
-      // 2. Update profile (trigger might have created it with defaults)
+      // 2. Upsert profile with the correct ID
       const { error: profileError } = await supabaseClient
         .from('profiles')
         .upsert({
@@ -77,7 +96,7 @@ serve(async (req) => {
           name,
           role,
           store_ids
-        })
+        }, { onConflict: 'email' }) // Profile might exist with a different ID, this will fix it
 
       if (profileError) throw profileError
 
