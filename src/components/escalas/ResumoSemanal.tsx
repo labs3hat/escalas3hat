@@ -144,7 +144,7 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
           const isToday = d.toDateString() === TODAY.toDateString()
           const isWknd = dow === 0 || dow === 6
           
-          const abEmpCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday?.replace(':','') ?? '10:00') === 'work').length
+          const abEmpCount = employees.filter(e => getSlot(e.id, dow, store.opening_time_weekday ?? '10:00') === 'work').length
           const fcEmpCount = employees.filter(e => getSlot(e.id, dow, '22:00') === 'work').length
           
           const abSlot = store.opening_time_weekday || '10:00'

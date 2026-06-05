@@ -1,17 +1,5 @@
 // @ts-nocheck
-// =============================================================
-// 3HAT ESCALAS — FreelancerSlots.jsx
-// Componente completo: query + mutation + validação de publicação
-//
-// Como usar no Lovable:
-//   1. Colar este arquivo em src/components/schedule/FreelancerSlots.jsx
-//   2. Importar e usar dentro da grade de escala semanal:
-//      <FreelancerSlots scheduleId={schedule.id} onAllFilled={setCanPublish} />
-//   3. O hook useFreelancerSlots também pode ser usado diretamente
-//      para bloquear o botão de publicação no componente pai.
-// =============================================================
-
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -65,7 +53,7 @@ export function useFreelancerSlots(scheduleId) {
       
       if (err) throw err;
       setSlots(data ?? []);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro ao buscar vagas freelancer:", err);
       setError(err.message);
     } finally {
@@ -114,7 +102,7 @@ export function useFreelancerSlots(scheduleId) {
       toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
       // Não atualizamos o estado local manualmente aqui para evitar conflitos com o real-time
       // O fetchSlots() será chamado pelo listener do postgres_changes
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro em fillSlot:", err);
       toast.error("Erro ao salvar freelancer: " + err.message);
       throw err;
@@ -150,7 +138,7 @@ export function useFreelancerSlots(scheduleId) {
       
       toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
       // O real-time cuidará de atualizar o estado
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro em addManualSlot:", err);
       toast.error("Erro ao adicionar freelancer: " + err.message);
       throw err;
@@ -183,7 +171,7 @@ export function useFreelancerSlots(scheduleId) {
         toast.success("Vaga de freelancer liberada!");
       }
       // O real-time cuidará de atualizar o estado
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro em clearSlot:", err);
       toast.error("Erro ao remover/limpar: " + err.message);
     }
@@ -522,6 +510,8 @@ function PublishButton({ canPublish, openCount, onPublish, publishing, published
 // Componente principal — grade de vagas freelancer por dia
 // =============================================================
 export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
+  const [activeSlot, setActiveSlot] = useState(null);
+  
   const {
     slots, loading, error,
     fillSlot, addManualSlot, clearSlot,
@@ -530,8 +520,6 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
 
   const { publish, publishing, published, error: pubError } =
     usePublishSchedule(scheduleId, canPublish);
-
-  const [activeSlot, setActiveSlot] = useState(null);
 
   if (loading) {
     return (
@@ -544,7 +532,7 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-red-500">
-        <p className="text-sm">Erro: {error}</p>
+        <p className="text-sm">Erro ao carregar: {error}</p>
       </div>
     );
   }
@@ -631,9 +619,9 @@ export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
         published={published}
       />
 
-      {pubError && (
+      {(pubError || error) && (
         <p style={{ fontSize: 11, color: "var(--color-text-danger)", marginTop: 6 }}>
-          {pubError}
+          {pubError || error}
         </p>
       )}
 
