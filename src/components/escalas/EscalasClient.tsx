@@ -113,7 +113,12 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
     void navigate({
       to: "/escalas",
       replace: true,
-      search: { storeId, week: weekStr, tab: tab as any },
+      search: (prev: any) => ({
+        ...prev,
+        storeId,
+        week: weekStr,
+        tab: (tab || prev.tab || "grade") as any
+      }),
     });
   };
 
