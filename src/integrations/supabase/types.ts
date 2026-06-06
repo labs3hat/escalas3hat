@@ -88,7 +88,7 @@ export type Database = {
           schedule_id: string
           shift_name: string
           start_time: string | null
-          store_id: string
+          store_id: string | null
           updated_at: string
         }
         Insert: {
@@ -105,7 +105,7 @@ export type Database = {
           schedule_id: string
           shift_name: string
           start_time?: string | null
-          store_id: string
+          store_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -122,7 +122,7 @@ export type Database = {
           schedule_id?: string
           shift_name?: string
           start_time?: string | null
-          store_id?: string
+          store_id?: string | null
           updated_at?: string
         }
         Relationships: [
