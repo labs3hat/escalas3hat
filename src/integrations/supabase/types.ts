@@ -84,7 +84,7 @@ export type Database = {
           filled_by_user: string | null
           id: string
           is_manual: boolean | null
-          rule_origin: string
+          rule_origin: string | null
           schedule_id: string
           shift_name: string
           start_time: string | null
@@ -101,7 +101,7 @@ export type Database = {
           filled_by_user?: string | null
           id?: string
           is_manual?: boolean | null
-          rule_origin: string
+          rule_origin?: string | null
           schedule_id: string
           shift_name: string
           start_time?: string | null
@@ -118,7 +118,7 @@ export type Database = {
           filled_by_user?: string | null
           id?: string
           is_manual?: boolean | null
-          rule_origin?: string
+          rule_origin?: string | null
           schedule_id?: string
           shift_name?: string
           start_time?: string | null
