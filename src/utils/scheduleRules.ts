@@ -102,6 +102,42 @@ export function validateScheduleRules(
     });
   });
 
+  // Validação de total de folgas na semana por regime
+  employees.forEach(emp => {
+    const empWeekSlots = days.map(dow => {
+      const isOff = slots.some(s => s.employee_id === emp.id && s.day_of_week === dow && s.slot_type === 'day_off');
+      // Considera mudança pendente se houver
+      if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
+        return newChange.type === 'day_off';
+      }
+      return isOff;
+    });
+
+    const offCount = empWeekSlots.filter(Boolean).length;
+    const hasSundayOff = empWeekSlots[0]; // dow 0 is Sunday
+    
+    let targetOffs = 1;
+    if (emp.work_regime === '5x2') {
+      targetOffs = 2;
+    } else if (emp.work_regime === '6x1') {
+      targetOffs = hasSundayOff ? 2 : 1;
+    }
+
+    if (offCount < targetOffs) {
+      violations.push({
+        type: 'warning',
+        dayOfWeek: -1, // -1 indica erro semanal/geral
+        message: `${emp.name.split(' ')[0]} possui apenas ${offCount} folga(s). O regime ${emp.work_regime}${hasSundayOff && emp.work_regime === '6x1' ? ' (com domingo de folga)' : ''} exige ${targetOffs} folgas na semana.`
+      });
+    } else if (offCount > targetOffs) {
+      violations.push({
+        type: 'warning',
+        dayOfWeek: -1,
+        message: `${emp.name.split(' ')[0]} possui ${offCount} folgas, excedendo o alvo de ${targetOffs} para o regime ${emp.work_regime}.`
+      });
+    }
+  });
+
   return violations;
 }
 
