@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
+import { calcLiquidHours } from '@/lib/schedule'
 import SlotModal, { type DayPayload } from './SlotModal'
 
 import { type FreelancerSlot } from './FreelancerSlots';
@@ -76,8 +77,7 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
     const [lh, lm] = lastWork.split(':').map(Number)
     const exitTotal = lh * 60 + lm + 30
 
-    const netMin = workSlots.length * 30
-    let hrs = `${Math.floor(netMin / 60)}h${netMin % 60 ? String(netMin % 60).padStart(2,'0') : ''}`
+    const hrs = calcLiquidHours(workSlots.length)
     
     // Ajuste visual para exibir a jornada contratual correta para turnos cheios (44h semanais)
     // No sistema de slots de 30min, 6x1 usa 15 slots (7h30) e 5x2 usa 18 slots (9h)

@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { SLOT_KEYS, DAY_NAMES, type Employee, type Store, type Schedule } from '@/types'
+import { calcLiquidHours, weeklyLimit, SLOT_DURATION_H } from '@/lib/schedule'
 import { getContractWeeklyHours } from '@/lib/utils'
 
 interface Props {
@@ -265,9 +266,9 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
         <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Horas / semana</div>
         <div className="flex flex-col gap-2">
           {weekHours.map(({ emp, total }) => {
-            const contract = getContractWeeklyHours(emp, store)
-            const pct = Math.min(100, Math.round(total / contract * 100))
-            const over = total > contract
+            const limit = weeklyLimit(emp.role)
+            const pct = Math.min(100, Math.round(total / limit * 100))
+            const over = total > limit
             return (
               <div key={emp.id} className="flex items-center gap-1.5">
                 <div className="text-[9px] font-medium w-14 truncate" style={{ color: emp.color }}>
@@ -280,7 +281,7 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
                   />
                 </div>
                 <div className={`text-[9px] min-w-[34px] text-right font-medium ${over ? 'text-red-600' : 'text-gray-400'}`}>
-                  {fmtHours(total)}
+                  {fmtHours(total)} / {weeklyLimit(emp.role)}h
                 </div>
               </div>
             )
