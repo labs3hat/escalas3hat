@@ -93,7 +93,8 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
       try {
         const { error } = await supabase.rpc('generate_base_schedule', {
           p_store_id: item.store_id,
-          p_week_start: format(weekStart, 'yyyy-MM-dd')
+          p_week_start: format(weekStart, 'yyyy-MM-dd'),
+          p_created_by: (await supabase.auth.getUser()).data.user?.id
         });
 
         if (error) throw error;
