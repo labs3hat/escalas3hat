@@ -9,12 +9,12 @@ import TurnosTab from './TurnosTab'
 const REGIME_LABELS = { '6x1': '6×1', '5x2': '5×2' }
 const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']
 const DAY_OPTIONS = [
-  { value: 1, label: 'Seg' },
-  { value: 2, label: 'Ter' },
-  { value: 3, label: 'Qua' },
-  { value: 4, label: 'Qui' },
-  { value: 5, label: 'Sex' },
-  { value: 0, label: 'Não' }
+  { value: 0, label: 'Seg' },
+  { value: 1, label: 'Ter' },
+  { value: 2, label: 'Qua' },
+  { value: 3, label: 'Qui' },
+  { value: 4, label: 'Sex' },
+  { value: '', label: 'Não' }
 ]
 
 
