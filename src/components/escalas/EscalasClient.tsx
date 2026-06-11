@@ -181,7 +181,8 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   }
 
   async function handlePublish() {
-    if (!freelancerOk) {
+    // freelancerOk não existe neste escopo, vamos verificar se há vagas abertas
+    if (openCount > 0) {
       toast.error(`Preencha as ${openCount} vaga(s) freelancer antes de publicar.`)
       setView('freelancers')
       return

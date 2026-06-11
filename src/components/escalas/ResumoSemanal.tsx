@@ -77,7 +77,8 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
     const [lh, lm] = lastWork.split(':').map(Number)
     const exitTotal = lh * 60 + lm + 30
 
-    const hrs = calcLiquidHours(workSlots.length)
+    let hrsValue = calcLiquidHours(workSlots.length)
+    let hrs = `${Math.floor(hrsValue)}h${(hrsValue % 1) * 60 ? String(Math.round((hrsValue % 1) * 60)).padStart(2,'0') : ''}`
     
     // Ajuste visual para exibir a jornada contratual correta para turnos cheios (44h semanais)
     // No sistema de slots de 30min, 6x1 usa 15 slots (7h30) e 5x2 usa 18 slots (9h)
