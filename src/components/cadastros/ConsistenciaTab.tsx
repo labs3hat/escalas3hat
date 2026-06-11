@@ -3,7 +3,7 @@ import { RefreshCw, CheckCircle2, AlertTriangle, Plus, Minus, Loader2 } from 'lu
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
-const DAY_NAMES = ['Não', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex']
+const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']
 
 type Diff = { field: string; db: unknown; sheet: unknown }
 type StoreRow = { status: 'equal'|'diff'|'new'|'inactive'; code: string; name: string; diffs?: Diff[]; sheet?: any }
