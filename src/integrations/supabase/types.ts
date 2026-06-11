@@ -84,7 +84,7 @@ export type Database = {
           filled_by_user: string | null
           id: string
           is_manual: boolean | null
-          rule_origin: string | null
+          rule_origin: string
           schedule_id: string
           shift_name: string
           start_time: string | null
@@ -101,7 +101,7 @@ export type Database = {
           filled_by_user?: string | null
           id?: string
           is_manual?: boolean | null
-          rule_origin?: string | null
+          rule_origin: string
           schedule_id: string
           shift_name: string
           start_time?: string | null
@@ -118,7 +118,7 @@ export type Database = {
           filled_by_user?: string | null
           id?: string
           is_manual?: boolean | null
-          rule_origin?: string | null
+          rule_origin?: string
           schedule_id?: string
           shift_name?: string
           start_time?: string | null
@@ -778,7 +778,11 @@ export type Database = {
     }
     Functions: {
       generate_base_schedule: {
-        Args: { p_created_by: string; p_store_id: string; p_week_start: string }
+        Args: {
+          p_created_by?: string
+          p_store_id: string
+          p_week_start: string
+        }
         Returns: Json
       }
       generate_monthly_schedule: {
@@ -790,7 +794,6 @@ export type Database = {
         }
         Returns: Json
       }
-      generate_schedule_v2: { Args: { p_schedule_id: string }; Returns: Json }
       get_regional_overview: {
         Args: { p_store_ids?: string[]; p_week_start: string }
         Returns: Json

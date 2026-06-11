@@ -13,7 +13,7 @@ export function useStores(storeIds?: string[]) {
         query = query.in('id', storeIds)
       }
       const { data } = await query
-      setStores((data as unknown as Store[]) ?? [])
+      setStores(data ?? [])
       setLoading(false)
     }
     load()
