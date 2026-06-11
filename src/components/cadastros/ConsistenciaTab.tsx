@@ -44,8 +44,7 @@ function fmt(v: unknown, field?: string): string {
     }
     return v.join(', ') || '—'
   }
-  if (field === 'fixed_day_off' && typeof v === 'number') {
-    if (v === 0) return 'Não'
+  if ((field === 'fixed_day_off' || field === 'preferred_day_off') && typeof v === 'number') {
     return DAY_NAMES[v] ?? String(v)
   }
   if (typeof v === 'boolean') return v ? 'Sim' : 'Não'
