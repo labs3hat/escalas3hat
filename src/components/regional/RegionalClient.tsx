@@ -89,11 +89,19 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
     targets.forEach(t => progress[t.store_id] = 'loading');
     setGenerationProgress(progress);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      setGeneratingAll(false);
+      return;
+    }
+
     for (const item of targets) {
       try {
         const { error } = await supabase.rpc('generate_base_schedule', {
           p_store_id: item.store_id,
-          p_week_start: format(weekStart, 'yyyy-MM-dd')
+          p_week_start: format(weekStart, 'yyyy-MM-dd'),
+          p_created_by: user.id
         });
 
         if (error) throw error;

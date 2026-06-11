@@ -244,10 +244,16 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
         data: { user },
       } = await supabase.auth.getUser();
       const weekKey = format(weekStart, "yyyy-MM-dd");
+      
+      if (!user) {
+        toast.error("Usuário não autenticado");
+        return;
+      }
+
       const { data, error } = await supabase.rpc("generate_base_schedule", {
         p_store_id: currentStore.id,
         p_week_start: weekKey,
-        p_created_by: user?.id,
+        p_created_by: user.id,
       });
       const result = data as { success?: boolean; error?: string; slots_created?: number } | null;
       if (error || result?.success === false) {
