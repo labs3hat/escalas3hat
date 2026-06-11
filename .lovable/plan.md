@@ -1,28 +1,26 @@
-A proposta é migrar a lógica de sincronização (leitura e escrita) da aba consolidada "FUNCIONÁRIOS" para as abas individuais de cada loja. Isso garante que o sistema reflita os dados originais e que as atualizações feitas no sistema cheguem às fontes primárias, mantendo a integridade das fórmulas na aba consolidada.
+A revisão da lógica de geração de escala será realizada em duas frentes: Banco de Dados (SQL) e Frontend (React). O objetivo é garantir que as folgas sejam distribuídas proporcionalmente de segunda a sexta, respeitando as regras de escala 6x1 e 5x2, além da cobertura mínima por turno definida nas configurações da loja (sincronizadas via Google Sheets).
 
-### Etapas de Implementação
+### Alterações Propostas
 
-1.  **Mapeamento de Abas**: Associar cada loja do sistema à sua respectiva aba na planilha (ex: Loja CL2 -> Aba "CL 2 - Outlet Campo Largo").
-2.  **Refatoração do `sync-sheets-employees`**: 
-    *   Alterar a função para percorrer todas as abas de lojas identificadas.
-    *   Adaptar o mapeamento de colunas (a estrutura das abas de lojas é ligeiramente diferente da aba FUNCIONÁRIOS).
-    *   Manter a regra de "Somente Planilha" para Loja, Nome, Cargo e Regime, e "Bidirecional" para Folgas, Responsabilidades e Turnos.
-3.  **Refatoração do `update-sheet-employee`**:
-    *   Alterar a função para identificar em qual aba o funcionário está baseado na loja vinculada.
-    *   Localizar e atualizar a linha correta na aba específica da loja.
-4.  **Validação**: Testar a sincronização em ambas as direções para garantir que os dados fluam corretamente.
+#### 1. Banco de Dados (PostgreSQL)
+*   **Atualização da Função `generate_base_schedule`**:
+    *   Refatorar a lógica de escolha do dia de folga na semana. Atualmente, a função usa um fallback simples (Quarta/Quinta/Sexta) que causa o acúmulo de folgas no mesmo dia.
+    *   Implementar um sistema de "rodízio" ou distribuição baseada no índice do funcionário na equipe (`v_emp_index % 5`) para espalhar as folgas de Segunda a Sexta.
+    *   Garantir que na escala 5x2, o funcionário tenha exatamente 2 folgas na semana, sendo que se uma for no Domingo (conforme `monthly_sunday_off`), ele terá apenas mais uma entre Segunda e Sexta.
+    *   Garantir que na escala 6x1, se o funcionário folgar no Domingo, ele NÃO tenha outra folga na mesma semana.
+    *   Ajustar a verificação de cobertura mínima (`min_opening_staff`, `min_closing_staff`, `min_weekday_staff`) para gerar alertas ou criar slots de freelancer automaticamente se o mínimo não for atingido após a distribuição das folgas.
+
+#### 2. Frontend (React)
+*   **Componente `ResumoSemanal.tsx`**:
+    *   Ajustar a exibição da contagem de abertura (`Ab`) e fechamento (`Fc`) para considerar tanto funcionários quanto freelancers.
+    *   Adicionar alertas visuais quando a cobertura mínima diária (`min_weekday_staff`, `min_weekend_staff`, `min_sunday_staff`) não for atingida.
+*   **Componente `GerarEscalaMensalModal.tsx`**:
+    *   Melhorar a interface de atribuição de domingos para facilitar a visualização do equilíbrio da equipe.
+
+#### 3. Sincronização e Configuração
+*   **Validação de Regras**: Garantir que as regras sincronizadas do Google Sheets (através da Edge Function `sync-sheets-stores`) sejam a base absoluta para as travas de segurança na geração.
 
 ### Detalhes Técnicos
-
-*   **Identificação de Abas**: Usaremos o prefixo do código da loja (ex: "CL 2", "CTBA 11") para localizar a aba correspondente.
-*   **Estrutura de Colunas (Abas de Loja)**: 
-    *   Coluna A: Nome
-    *   Coluna B: Cargo
-    *   Coluna C: Regime
-    *   Coluna D: Folga fixa
-    *   Coluna E: Estoque
-    *   Coluna F: Máquina
-    *   Coluna G: Turnos possíveis
-    *   Coluna H: Dias de restrição (Preferencia)
-    *   Coluna I: Observação
-*   **Preservação de Dados**: As atualizações no Sheets via API usarão `valueInputOption=USER_ENTERED` para garantir que o formato de data e texto seja mantido conforme a interface do Google Sheets.
+*   **SQL**: Modificar `generate_base_schedule` para calcular dinamicamente o dia de folga: `v_off_day := (v_emp_index % 5) + 1` (onde 1=Segunda, 5=Sexta).
+*   **RLS**: Verificar se as políticas de segurança permitem a inserção correta dos novos registros de rastreamento de folgas.
+*   **Performance**: A função continuará operando via RPC para garantir rapidez na geração do mês completo.
