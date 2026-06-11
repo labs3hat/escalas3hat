@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { History, Calendar, User, MapPin } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { DAY_NAMES_FULL } from '@/types'
 interface Props { profile: Profile | null; initialStores: Store[] }
 
 export default function AlteracoesClient({ profile, initialStores }: Props) {
+  const subscriptionId = useMemo(() => Math.random().toString(36).substring(7), [])
   const [selectedStoreId, setSelectedStoreId] = useState<string>(initialStores[0]?.id || 'all')
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all')
   const [changes, setChanges] = useState<ScheduleChange[]>([])
@@ -23,7 +24,7 @@ export default function AlteracoesClient({ profile, initialStores }: Props) {
     load()
 
     const channel = supabase
-      .channel('alteracoes-changes')
+      .channel(`alteracoes-changes-${subscriptionId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_changes' }, () => {
         load()
       })
