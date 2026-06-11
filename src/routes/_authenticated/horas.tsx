@@ -12,6 +12,7 @@ import {
 import { ChevronLeft, ChevronRight, Users, Clock, TrendingDown, Zap, Loader2 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { MONTHS } from '@/types'
+import { weeklyLimit } from '@/lib/schedule'
 import { getContractWeeklyHours } from '@/lib/utils'
 
 export const Route = createFileRoute('/_authenticated/horas')({
@@ -311,7 +312,7 @@ function WeekTable({ employees, bank, store }: { employees: EmpLite[]; bank: Rec
       <tbody className="divide-y divide-gray-100">
         {employees.map(emp => {
           const rec = bank[emp.id]
-          const contract = contractWeekly(emp, store)
+          const limit = weeklyLimit(emp.role)
           return (
             <tr key={emp.id} className="hover:bg-gray-50">
               <td className="px-4 py-3">
@@ -324,13 +325,13 @@ function WeekTable({ employees, bank, store }: { employees: EmpLite[]; bank: Rec
                 </div>
               </td>
               <td className="px-4 py-3 text-center text-sm text-gray-600">{emp.work_regime}</td>
-              <td className="px-4 py-3 text-center text-sm text-gray-600">{contract}h</td>
+              <td className="px-4 py-3 text-center text-sm text-gray-600">{limit}h</td>
               <td className="px-4 py-3 text-center text-sm text-gray-700 font-medium">{rec ? fmtH(rec.scheduled) : '—'}</td>
               <td className="px-4 py-3 text-center text-sm font-medium">
                 {rec && rec.extra > 0 ? <span className="text-red-600">{fmtH(rec.extra)}</span> : <span className="text-gray-300">—</span>}
               </td>
               <td className="px-4 py-3 text-center">
-                <WeekStatus rec={rec} contract={contract} />
+                <WeekStatus rec={rec} contract={limit} />
               </td>
             </tr>
           )
@@ -366,7 +367,8 @@ function MonthTable({ employees, bank, store, weeks }: { employees: EmpLite[]; b
       <tbody className="divide-y divide-gray-100">
         {employees.map(emp => {
           const rec = bank[emp.id]
-          const contractMonth = contractWeekly(emp, store) * weeks
+          const limit = weeklyLimit(emp.role)
+          const contractMonth = limit * weeks
           return (
             <tr key={emp.id} className="hover:bg-gray-50">
               <td className="px-4 py-3">

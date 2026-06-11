@@ -181,14 +181,20 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   }
 
   async function handlePublish() {
-    setPublishing(true);
+    // freelancerOk não existe neste escopo, vamos verificar se há vagas abertas
+    if (openCount > 0) {
+      toast.error(`Preencha as ${openCount} vaga(s) freelancer antes de publicar.`)
+      setView('freelancers')
+      return
+    }
+    setPublishing(true)
     try {
-      await publish();
-      toast.success("Escala publicada com sucesso");
-    } catch (e: any) {
-      handleSupabaseError(e, "Erro ao publicar escala");
+      await publish()
+      toast.success('Escala publicada!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao publicar escala.')
     } finally {
-      setPublishing(false);
+      setPublishing(false)
     }
   }
 

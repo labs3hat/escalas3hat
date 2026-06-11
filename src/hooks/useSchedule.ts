@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Schedule, ScheduleSlot, SlotType, Employee } from "@/types";
+import { SLOT_KEYS } from "@/types";
 import { validateScheduleRules } from "@/utils/scheduleRules";
 import { scheduleService } from "@/services/schedules";
 import { formatters } from "@/lib/formatters";
@@ -216,6 +217,30 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
 
   async function publish() {
     if (!schedule) return;
+
+    // Validação: sábado nunca pode ter folga
+    const saturdaySlots = slots.filter(
+      s => s.day_of_week === 6 && s.slot_type === 'day_off'
+    )
+    if (saturdaySlots.length > 0) {
+      throw new Error(
+        `Não é possível publicar: ${saturdaySlots.length} slot(s) de folga no sábado. ` +
+        `Corrija antes de publicar.`
+      )
+    }
+
+    // Validação: nenhum slot com horário quebrado (:02, :32, etc.)
+    const brokenSlots = slots.filter(s => {
+      const minutes = s.slot_time?.split(':')[1]
+      return minutes !== '00' && minutes !== '30'
+    })
+    if (brokenSlots.length > 0) {
+      throw new Error(
+        `Não é possível publicar: ${brokenSlots.length} slot(s) com horário inválido. ` +
+        `Regere a escala para corrigir.`
+      )
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
