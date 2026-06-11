@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
 import { calcLiquidHours } from '@/lib/schedule'
 import SlotModal, { type DayPayload } from './SlotModal'
-
+import { AlertTriangle } from 'lucide-react'
 import { type FreelancerSlot } from './FreelancerSlots';
 
 interface Props {
@@ -179,42 +179,41 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
           const abSlot = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
           const fcSlot = (dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday)) || '22:00'
           
-          const abEmpCount = employees.filter(e => getSlot(e.id, dow, abSlot) === 'work').length
-          const fcEmpCount = employees.filter(e => getSlot(e.id, dow, fcSlot) === 'work').length
-          const abFreeCount = freelancerSlots.filter(s => {
-            if (s.day_of_week !== dow || !s.filled_by) return false;
-            if (s.start_time) return s.start_time <= abSlot;
-            return s.shift_name === 'Abertura';
-          }).length;
-          const fcFreeCount = freelancerSlots.filter(s => {
-            if (s.day_of_week !== dow || !s.filled_by) return false;
-            if (s.end_time) return s.end_time >= fcSlot;
-            return s.shift_name === 'Fechamento';
-          }).length;
-
-          const abCount = abEmpCount + abFreeCount
-          const fcCount = fcEmpCount + fcFreeCount
-          const fcOk = fcCount >= (store.min_closing_staff ?? 2)
-
+          const entities = getSortedDayEntities(dow)
           
-          // Considerar freelancers no resumo
-          // Precisamos dos slots de freelancer passados via props
-          // Mas como não estão nas props, vamos adicionar ou usar via hook se necessário.
-          // Por enquanto, vamos deixar marcado para o EscalasClient passar.
+          const abCount = entities.filter(e => {
+            if (e.type === 'employee') return getSlot(e.id, dow, abSlot) === 'work'
+            const free = e.original as FreelancerSlot
+            return free.start_time ? free.start_time <= abSlot : free.shift_name === 'Abertura'
+          }).length
 
+          const fcCount = entities.filter(e => {
+            if (e.type === 'employee') return getSlot(e.id, dow, fcSlot) === 'work'
+            const free = e.original as FreelancerSlot
+            return free.end_time ? free.end_time >= fcSlot : free.shift_name === 'Fechamento'
+          }).length
+
+          const minClosing = (isWknd ? store.min_closing_weekend : store.min_closing_staff) ?? 2
+          const fcOk = fcCount >= minClosing
+          
+          const minDaily = (dow === 0 ? store.min_sunday_staff : (isWknd ? store.min_weekend_staff : store.min_weekday_staff)) ?? 0
+          const dailyOk = entities.length >= minDaily
 
           return (
             <div
               key={di}
               className={`border rounded-lg overflow-hidden flex flex-col min-h-0 ${
                 isToday ? 'border-brand-300' : 'border-gray-200'
-              }`}
+              } ${!dailyOk ? 'ring-1 ring-red-200' : ''}`}
             >
               <div className={`px-1.5 py-1 border-b flex-shrink-0 ${
                 isToday ? 'bg-brand-50 border-brand-200' : isWknd ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-100'
               }`}>
-                <div className={`text-[10px] font-medium leading-tight ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>
-                  {DAY_NAMES[dow]}
+                <div className="flex items-center justify-between">
+                  <div className={`text-[10px] font-medium leading-tight ${isToday ? 'text-brand-600' : 'text-gray-400'}`}>
+                    {DAY_NAMES[dow]}
+                  </div>
+                  {!dailyOk && <AlertTriangle size={10} className="text-red-500" />}
                 </div>
                 <div className={`text-xs font-semibold leading-tight ${isToday ? 'text-brand-700' : 'text-gray-800'}`}>
                   {d.getDate()}/{String(d.getMonth()+1).padStart(2,'0')}
@@ -222,7 +221,7 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
               </div>
 
               <div className="flex-1 overflow-auto">
-                {getSortedDayEntities(dow).map(item => {
+                {entities.map(item => {
                   if (item.type === 'freelancer') {
                     return (
                       <div key={item.id} className="px-1.5 py-1 border-b border-gray-100 bg-amber-50/40">
@@ -279,11 +278,18 @@ export default function ResumoSemanal({ employees, weekDates, getSlot, updateDay
                 })}
               </div>
 
-              <div className="px-1.5 py-1 bg-gray-50 border-t border-gray-100 flex justify-between flex-shrink-0">
-                <span className="text-[9px] text-gray-400">Ab:{abCount}</span>
-                <span className={`text-[9px] font-medium ${fcOk ? 'text-brand-600' : 'text-red-600'}`}>
-                  Fc:{fcCount}{fcOk ? '✓' : '⚠'}
-                </span>
+              <div className="px-1.5 py-1 bg-gray-50 border-t border-gray-100 flex flex-col gap-0.5 flex-shrink-0">
+                <div className="flex justify-between">
+                  <span className="text-[9px] text-gray-400">Ab:{abCount}</span>
+                  <span className={`text-[9px] font-medium ${fcOk ? 'text-brand-600' : 'text-red-600'}`}>
+                    Fc:{fcCount}{fcOk ? '✓' : '⚠'}
+                  </span>
+                </div>
+                {!dailyOk && (
+                  <div className="text-[8px] text-red-500 font-bold flex items-center gap-0.5">
+                    Mín:{minDaily} (Faltam {minDaily - entities.length})
+                  </div>
+                )}
               </div>
             </div>
           )
