@@ -1,1 +1,0 @@
-ALTER TABLE public.freelancer_slots ALTER COLUMN rule_origin DROP NOT NULL;
