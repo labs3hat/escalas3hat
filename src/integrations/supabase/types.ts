@@ -88,7 +88,7 @@ export type Database = {
           schedule_id: string
           shift_name: string
           start_time: string | null
-          store_id: string | null
+          store_id: string
           updated_at: string
         }
         Insert: {
@@ -105,7 +105,7 @@ export type Database = {
           schedule_id: string
           shift_name: string
           start_time?: string | null
-          store_id?: string | null
+          store_id: string
           updated_at?: string
         }
         Update: {
@@ -122,7 +122,7 @@ export type Database = {
           schedule_id?: string
           shift_name?: string
           start_time?: string | null
-          store_id?: string | null
+          store_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -813,20 +813,8 @@ export type Database = {
       schedule_status: "draft" | "published" | "frozen"
       severity_type: "critical" | "warning"
       slot_type: "work" | "interval" | "day_off" | "empty"
-      store_region:
-        | "curitiba"
-        | "maringa"
-        | "Curitiba e Região"
-        | "Curitiba"
-        | "Maringá"
-        | "Maringá e Região"
-      store_type:
-        | "loja"
-        | "quiosque"
-        | "Loja"
-        | "Quiosque"
-        | "shopping"
-        | "Shopping"
+      store_region: "curitiba" | "maringa"
+      store_type: "loja" | "quiosque"
       user_role: "gerente" | "regional" | "diretoria" | "rh"
       work_regime: "6x1" | "5x2"
     }
@@ -968,22 +956,8 @@ export const Constants = {
       schedule_status: ["draft", "published", "frozen"],
       severity_type: ["critical", "warning"],
       slot_type: ["work", "interval", "day_off", "empty"],
-      store_region: [
-        "curitiba",
-        "maringa",
-        "Curitiba e Região",
-        "Curitiba",
-        "Maringá",
-        "Maringá e Região",
-      ],
-      store_type: [
-        "loja",
-        "quiosque",
-        "Loja",
-        "Quiosque",
-        "shopping",
-        "Shopping",
-      ],
+      store_region: ["curitiba", "maringa"],
+      store_type: ["loja", "quiosque"],
       user_role: ["gerente", "regional", "diretoria", "rh"],
       work_regime: ["6x1", "5x2"],
     },
