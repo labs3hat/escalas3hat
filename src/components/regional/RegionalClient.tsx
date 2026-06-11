@@ -91,13 +91,9 @@ export default function RegionalClient({ stores }: { stores: Store[] }) {
 
     for (const item of targets) {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Usuário não autenticado');
-
         const { error } = await supabase.rpc('generate_base_schedule', {
           p_store_id: item.store_id,
-          p_week_start: format(weekStart, 'yyyy-MM-dd'),
-          p_created_by: user.id
+          p_week_start: format(weekStart, 'yyyy-MM-dd')
         });
 
         if (error) throw error;

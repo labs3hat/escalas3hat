@@ -3,7 +3,6 @@ import { format } from 'date-fns'
 import { AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { SLOT_KEYS, DAY_NAMES, type Employee, type Store, type Schedule } from '@/types'
-import { calcLiquidHours, weeklyLimit, SLOT_DURATION_H } from '@/lib/schedule'
 import { getContractWeeklyHours } from '@/lib/utils'
 
 interface Props {
@@ -29,8 +28,8 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       const label = `${DAY_NAMES[dow]} ${d.getDate()}/${d.getMonth()+1}`
 
       // R1 — mínimo na abertura
-      const openingTime = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
-      const abCount = employees.filter(e => getSlot(e.id, dow, openingTime) === 'work').length
+      const abSlots = ['08:00','08:30','09:00','09:30','10:00']
+      const abCount = employees.filter(e => abSlots.some(s => getSlot(e.id, dow, s) === 'work')).length
       const abFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
       
       if (abCount + abFree < (store.min_opening_staff ?? 1)) {
@@ -38,8 +37,9 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       }
 
       // R2 — mínimo no fechamento
-      const closingTime = (dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday)) || '22:00'
-      const fcCount = employees.filter(e => getSlot(e.id, dow, closingTime) === 'work').length
+      const fcCount = employees.filter(e =>
+        ['21:30','22:00'].some(s => getSlot(e.id, dow, s) === 'work')
+      ).length
       const fcFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
 
       if (fcCount + fcFree < (store.min_closing_staff ?? 2)) {
@@ -266,9 +266,9 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
         <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Horas / semana</div>
         <div className="flex flex-col gap-2">
           {weekHours.map(({ emp, total }) => {
-            const limit = weeklyLimit(emp.role)
-            const pct = Math.min(100, Math.round(total / limit * 100))
-            const over = total > limit
+            const contract = getContractWeeklyHours(emp, store)
+            const pct = Math.min(100, Math.round(total / contract * 100))
+            const over = total > contract
             return (
               <div key={emp.id} className="flex items-center gap-1.5">
                 <div className="text-[9px] font-medium w-14 truncate" style={{ color: emp.color }}>
@@ -281,7 +281,7 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
                   />
                 </div>
                 <div className={`text-[9px] min-w-[34px] text-right font-medium ${over ? 'text-red-600' : 'text-gray-400'}`}>
-                  {fmtHours(total)} / {weeklyLimit(emp.role)}h
+                  {fmtHours(total)}
                 </div>
               </div>
             )

@@ -1,5 +1,4 @@
 import { SLOT_KEYS, type Employee, type ScheduleSlot } from "@/types";
-import { BUSINESS_RULES } from "@/constants";
 
 export interface RuleViolation {
   employeeId?: string;
@@ -26,13 +25,17 @@ export function validateScheduleRules(
 ): RuleViolation[] {
   const violations: RuleViolation[] = [];
 
+  // Agrupar slots por dia para validações diárias
   const days = [0, 1, 2, 3, 4, 5, 6];
 
   days.forEach(dow => {
+    // 1. Validação de Folgas Simultâneas
     const offEmps = employees.filter(emp => {
+      // Se for o funcionário sendo alterado agora
       if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
         return newChange.type === 'day_off';
       }
+      // Senão verifica os slots existentes
       return slots.some(s => s.employee_id === emp.id && s.day_of_week === dow && s.slot_type === 'day_off');
     });
 
@@ -45,6 +48,8 @@ export function validateScheduleRules(
       });
     }
 
+    // 2. Validação de Intervalos Simultâneos
+    // Verifica se mais de uma pessoa está em intervalo no mesmo slot
     SLOT_KEYS.forEach(slotTime => {
       const inBreak = employees.filter(emp => {
         if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
@@ -63,8 +68,10 @@ export function validateScheduleRules(
       }
     });
 
+    // 3. Validação de Carga Horária Contínua (Máx 6h sem pausa)
     employees.forEach(emp => {
       let currentWork = 0;
+      let hasBreak = false;
       
       const empSlots = SLOT_KEYS.map(slotTime => {
         if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
@@ -83,14 +90,15 @@ export function validateScheduleRules(
 
       empSlots.forEach(type => {
         if (type === 'work') {
-          currentWork += BUSINESS_RULES.SLOT_DURATION_MINS;
+          currentWork += 30;
         } else if (type === 'interval') {
+          hasBreak = true;
           currentWork = 0;
         } else {
           currentWork = 0;
         }
 
-        if (currentWork > BUSINESS_RULES.MAX_WORK_BEFORE_BREAK_MINS) {
+        if (currentWork > 360) { // 6 horas = 360 minutos
           violations.push({
             employeeId: emp.id,
             dayOfWeek: dow,
@@ -102,42 +110,5 @@ export function validateScheduleRules(
     });
   });
 
-  // Validação de total de folgas na semana por regime
-  employees.forEach(emp => {
-    const empWeekSlots = days.map(dow => {
-      const isOff = slots.some(s => s.employee_id === emp.id && s.day_of_week === dow && s.slot_type === 'day_off');
-      // Considera mudança pendente se houver
-      if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
-        return newChange.type === 'day_off';
-      }
-      return isOff;
-    });
-
-    const offCount = empWeekSlots.filter(Boolean).length;
-    const hasSundayOff = empWeekSlots[0]; // dow 0 is Sunday
-    
-    let targetOffs = 1;
-    if (emp.work_regime === '5x2') {
-      targetOffs = 2;
-    } else if (emp.work_regime === '6x1') {
-      targetOffs = hasSundayOff ? 2 : 1;
-    }
-
-    if (offCount < targetOffs) {
-      violations.push({
-        type: 'warning',
-        dayOfWeek: -1, // -1 indica erro semanal/geral
-        message: `${emp.name.split(' ')[0]} possui apenas ${offCount} folga(s). O regime ${emp.work_regime}${hasSundayOff && emp.work_regime === '6x1' ? ' (com domingo de folga)' : ''} exige ${targetOffs} folgas na semana.`
-      });
-    } else if (offCount > targetOffs) {
-      violations.push({
-        type: 'warning',
-        dayOfWeek: -1,
-        message: `${emp.name.split(' ')[0]} possui ${offCount} folgas, excedendo o alvo de ${targetOffs} para o regime ${emp.work_regime}.`
-      });
-    }
-  });
-
   return violations;
 }
-

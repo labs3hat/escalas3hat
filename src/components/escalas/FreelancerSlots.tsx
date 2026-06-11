@@ -1,44 +1,51 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+// @ts-nocheck
+// =============================================================
+// 3HAT ESCALAS — FreelancerSlots.jsx
+// Componente completo: query + mutation + validação de publicação
+//
+// Como usar no Lovable:
+//   1. Colar este arquivo em src/components/schedule/FreelancerSlots.jsx
+//   2. Importar e usar dentro da grade de escala semanal:
+//      <FreelancerSlots scheduleId={schedule.id} onAllFilled={setCanPublish} />
+//   3. O hook useFreelancerSlots também pode ser usado diretamente
+//      para bloquear o botão de publicação no componente pai.
+// =============================================================
+
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
 
 // ── Tipos ─────────────────────────────────────────────────────
-export interface FreelancerSlot {
-  id: string;
-  schedule_id: string;
-  store_id: string;
-  day_of_week: number;
-  shift_name: string;
-  rule_origin: string;
-  filled_by: string | null;
-  filled_at: string | null;
-  start_time: string | null;
-  end_time: string | null;
-  break_minutes: number | null;
-  is_manual?: boolean;
-}
+// FreelancerSlot {
+//   id: string (uuid)
+//   schedule_id: string
+//   store_id: string
+//   day_of_week: number (0=dom … 6=sáb)
+//   shift_name: "Abertura" | "Intermediário" | "Fechamento"
+//   rule_origin: "R1" | "R2" | "R4" | "R18" | "R19"
+//   filled_by: string | null
+//   filled_at: string | null
+// }
 
 const DAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-const RULE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+const RULE_COLORS = {
   R1:  { bg: "#FCEBEB", text: "#A32D2D", border: "#F09595" },
   R2:  { bg: "#FCEBEB", text: "#A32D2D", border: "#F09595" },
   R4:  { bg: "#EEEDFE", text: "#3C3489", border: "#AFA9EC" },
   R18: { bg: "#EAF3DE", text: "#3B6D11", border: "#97C459" },
   R19: { bg: "#E1F5EE", text: "#0F6E56", border: "#5DCAA5" },
-  Manual: { bg: "#F5F5F5", text: "#666", border: "#DDD" }
 };
 
 // =============================================================
 // Hook principal — query + mutation
 // =============================================================
-export function useFreelancerSlots(scheduleId: string | null) {
-  const [slots, setSlots]       = useState<FreelancerSlot[]>([]);
-  const [loading, setLoading]   = useState(!!scheduleId);
-  const [error, setError]       = useState<string | null>(null);
-  const subscriptionId = useMemo(() => Math.random().toString(36).substring(7), []);
+export function useFreelancerSlots(scheduleId) {
+  const [slots, setSlots]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
 
+  // 1. Buscar vagas do schedule
   const fetchSlots = useCallback(async () => {
     if (!scheduleId) {
       setLoading(false);
@@ -57,7 +64,7 @@ export function useFreelancerSlots(scheduleId: string | null) {
         .order("shift_name");
       
       if (err) throw err;
-      setSlots((data as any[]) ?? []);
+      setSlots(data ?? []);
     } catch (err: any) {
       console.error("Erro ao buscar vagas freelancer:", err);
       setError(err.message);
@@ -68,10 +75,9 @@ export function useFreelancerSlots(scheduleId: string | null) {
 
   useEffect(() => { 
     fetchSlots(); 
-    if (!scheduleId) return;
-
+    // Inscrever para mudanças em tempo real para manter todas as instâncias sincronizadas
     const channel = supabase
-      .channel(`freelancer_slots_${scheduleId}_${subscriptionId}`)
+      .channel(`freelancer_slots_${scheduleId}`)
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -80,18 +86,13 @@ export function useFreelancerSlots(scheduleId: string | null) {
       }, () => {
         fetchSlots();
       })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`Subscribed to freelancer_slots for schedule ${scheduleId}`);
-        }
-      });
+      .subscribe();
 
-    return () => { 
-      supabase.removeChannel(channel); 
-    };
-  }, [fetchSlots, scheduleId, subscriptionId]);
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchSlots, scheduleId]);
 
-  const fillSlot = useCallback(async (slotId: string, data: any) => {
+  // 2. Preencher vaga com nome do freelancer e horários
+  const fillSlot = useCallback(async (slotId, data) => {
     try {
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr) throw authErr;
@@ -106,16 +107,13 @@ export function useFreelancerSlots(scheduleId: string | null) {
           filled_at:      new Date().toISOString(),
           filled_by_user: user?.id ?? null,
         })
-        .eq("id", slotId)
-        .select()
-        .single();
+        .eq("id", slotId);
       
       if (err) throw err;
+      
       toast.success(`Freelancer ${data.nome} salvo com sucesso!`);
-      // Refetch imediato para garantir consistência
-      await fetchSlots();
-      // Forçar atualização do estado global se necessário
-      window.dispatchEvent(new CustomEvent('freelancer_updated'));
+      // Não atualizamos o estado local manualmente aqui para evitar conflitos com o real-time
+      // O fetchSlots() será chamado pelo listener do postgres_changes
     } catch (err: any) {
       console.error("Erro em fillSlot:", err);
       toast.error("Erro ao salvar freelancer: " + err.message);
@@ -123,15 +121,16 @@ export function useFreelancerSlots(scheduleId: string | null) {
     }
   }, []);
 
-  const addManualSlot = useCallback(async (schedId: string, storeId: string, dayOfWeek: number, data: any) => {
+  // 3. Adicionar vaga manual
+  const addManualSlot = useCallback(async (scheduleId, storeId, dayOfWeek, data) => {
     try {
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr) throw authErr;
 
-      const { error: err } = await supabase
+      const { data: newSlot, error: err } = await supabase
         .from("freelancer_slots")
         .insert({
-          schedule_id:    schedId,
+          schedule_id:    scheduleId,
           store_id:       storeId,
           day_of_week:    dayOfWeek,
           shift_name:     "Manual",
@@ -148,9 +147,9 @@ export function useFreelancerSlots(scheduleId: string | null) {
         .single();
       
       if (err) throw err;
+      
       toast.success(`Freelancer ${data.nome} adicionado com sucesso!`);
-      await fetchSlots();
-      window.dispatchEvent(new CustomEvent('freelancer_updated'));
+      // O real-time cuidará de atualizar o estado
     } catch (err: any) {
       console.error("Erro em addManualSlot:", err);
       toast.error("Erro ao adicionar freelancer: " + err.message);
@@ -158,7 +157,8 @@ export function useFreelancerSlots(scheduleId: string | null) {
     }
   }, []);
 
-  const clearSlot = useCallback(async (slotId: string, isManual: boolean) => {
+  // 4. Limpar/Excluir vaga
+  const clearSlot = useCallback(async (slotId, isManual) => {
     try {
       if (isManual) {
         const { error: err } = await supabase
@@ -167,10 +167,8 @@ export function useFreelancerSlots(scheduleId: string | null) {
           .eq("id", slotId);
         if (err) throw err;
         toast.success("Freelancer removido com sucesso!");
-        await fetchSlots();
-        window.dispatchEvent(new CustomEvent('freelancer_updated'));
       } else {
-        const { error: err } = await (supabase
+        const { error: err } = await supabase
           .from("freelancer_slots")
           .update({ 
             filled_by: null, 
@@ -179,13 +177,12 @@ export function useFreelancerSlots(scheduleId: string | null) {
             start_time: null, 
             end_time: null,
             break_minutes: 60
-          } as any)
-          .eq("id", slotId));
+          })
+          .eq("id", slotId);
         if (err) throw err;
         toast.success("Vaga de freelancer liberada!");
-        await fetchSlots();
-        window.dispatchEvent(new CustomEvent('freelancer_updated'));
       }
+      // O real-time cuidará de atualizar o estado
     } catch (err: any) {
       console.error("Erro em clearSlot:", err);
       toast.error("Erro ao remover/limpar: " + err.message);
@@ -199,12 +196,12 @@ export function useFreelancerSlots(scheduleId: string | null) {
 }
 
 // =============================================================
-// Hook de publicação
+// Hook de publicação — valida e publica o schedule
 // =============================================================
-export function usePublishSchedule(scheduleId: string | null, canPublish: boolean) {
+export function usePublishSchedule(scheduleId, canPublish) {
   const [publishing, setPublishing] = useState(false);
   const [published,  setPublished]  = useState(false);
-  const [error,      setError]      = useState<string | null>(null);
+  const [error,      setError]      = useState(null);
 
   const publish = useCallback(async () => {
     if (!scheduleId) return;
@@ -216,8 +213,9 @@ export function usePublishSchedule(scheduleId: string | null, canPublish: boolea
       .update({ 
         status: "published", 
         published_at: new Date().toISOString(),
+        // Registramos que foi preenchido por freelancer se houver vagas preenchidas
         notes: "Publicado via módulo de freelancers"
-      } as any)
+      })
       .eq("id", scheduleId);
 
     if (err) {
@@ -233,17 +231,39 @@ export function usePublishSchedule(scheduleId: string | null, canPublish: boolea
 }
 
 // =============================================================
-// Componente de alerta
+// Componente de alerta — barra de vagas em aberto
 // =============================================================
-function AlertBar({ openCount }: { openCount: number }) {
-  return null;
+function AlertBar({ openCount }) {
+  if (openCount === 0) return null;
+  return (
+    <div style={{
+      background: "#FAEEDA",
+      border: "0.5px solid #BA7517",
+      borderRadius: 8,
+      padding: "8px 12px",
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 12,
+    }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="#854F0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        aria-hidden="true">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span style={{ fontSize: 12, color: "#854F0B", flex: 1 }}>
+        {openCount} vaga{openCount > 1 ? "s" : ""} freelancer em aberto
+      </span>
+    </div>
+  );
 }
 
 // =============================================================
 // Componente de célula freelancer
 // =============================================================
-function FreelancerCell({ slot, onFill, onClear }: { slot: FreelancerSlot, onFill: (s: FreelancerSlot) => void, onClear: (s: FreelancerSlot) => void }) {
-  const rule = RULE_COLORS[slot.rule_origin] ?? RULE_COLORS.R18;
+function FreelancerCell({ slot, onFill, onClear }) {
+  const rule   = RULE_COLORS[slot.rule_origin] ?? RULE_COLORS.R18;
   const filled = !!slot.filled_by;
 
   if (filled) {
@@ -327,15 +347,15 @@ function FreelancerCell({ slot, onFill, onClear }: { slot: FreelancerSlot, onFil
 }
 
 // =============================================================
-// Modal de preenchimento
+// Modal de preenchimento (bottom sheet)
 // =============================================================
-function FillModal({ slot, onConfirm, onCancel }: { slot: any, onConfirm: (s: any, d: any) => void, onCancel: () => void }) {
+function FillModal({ slot, onConfirm, onCancel }) {
   const [nome, setNome]           = useState(slot.filled_by || "");
   const [startTime, setStartTime] = useState(slot.start_time || (slot.shift_name === 'Abertura' ? '08:00' : '13:00'));
   const [endTime, setEndTime]     = useState(slot.end_time || (slot.shift_name === 'Abertura' ? '17:00' : '22:00'));
   const [breakMin, setBreakMin]   = useState(slot.break_minutes || 60);
   const [saving, setSaving]       = useState(false);
-  const [err, setErr]             = useState<string | null>(null);
+  const [err, setErr]             = useState(null);
 
   if (!slot) return null;
 
@@ -350,7 +370,7 @@ function FillModal({ slot, onConfirm, onCancel }: { slot: any, onConfirm: (s: an
         endTime,
         breakMinutes: parseInt(breakMin) || 0
       });
-    } catch (e: any) {
+    } catch (e) {
       setErr(e.message);
     } finally {
       setSaving(false);
@@ -456,66 +476,52 @@ function FillModal({ slot, onConfirm, onCancel }: { slot: any, onConfirm: (s: an
 // =============================================================
 // Botão de publicação
 // =============================================================
-function PublishButton({ canPublish, openCount, onPublish, publishing, published, onRefresh }: { canPublish: boolean, openCount: number, onPublish: () => void, publishing: boolean, published: boolean, onRefresh?: () => void }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-      <button
-        onClick={onRefresh}
-        style={{
-          width: "100%", padding: 12, borderRadius: 6,
-          background: "#BA7517",
-          border: "0.5px solid #A66714",
-          color: "white",
-          fontSize: 13, fontWeight: 500,
-          cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-        }}
-      >
-        Atualizar escala
-      </button>
+function PublishButton({ canPublish, openCount, onPublish, publishing, published }) {
+  if (published) {
+    return (
+      <div style={{
+        width: "100%", padding: 12, borderRadius: 6,
+        background: "var(--color-background-success)",
+        border: "0.5px solid var(--color-border-success)",
+        color: "var(--color-text-success)",
+        fontSize: 13, fontWeight: 500,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+      }}>
+        ✓ Escala publicada
+      </div>
+    );
+  }
 
-      {published ? (
-        <div style={{
-          width: "100%", padding: 12, borderRadius: 6,
-          background: "var(--color-background-success, #ecfdf5)",
-          border: "0.5px solid var(--color-border-success, #10b981)",
-          color: "var(--color-text-success, #065f46)",
-          fontSize: 13, fontWeight: 500,
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-        }}>
-          ✓ Escala publicada
-        </div>
-      ) : (
-        <button
-          onClick={canPublish ? onPublish : undefined}
-          disabled={!canPublish || publishing}
-          style={{
-            width: "100%", padding: 12, borderRadius: 6,
-            background: "#f3f4f6",
-            border: "0.5px solid #e5e7eb",
-            color: "#6b7280",
-            fontSize: 13, fontWeight: 500,
-            cursor: canPublish ? "pointer" : "default",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            opacity: canPublish ? 1 : 0.6
-          }}
-        >
-          {publishing
-            ? "Publicando..."
-            : "Publicar escala →"
-          }
-        </button>
-      )}
-    </div>
+  return (
+    <button
+      onClick={canPublish ? onPublish : undefined}
+      disabled={!canPublish || publishing}
+      style={{
+        width: "100%", padding: 12, borderRadius: 6,
+        background: canPublish ? "var(--color-background-primary)" : "var(--color-background-secondary)",
+        border: `0.5px solid ${canPublish ? "var(--color-border-secondary)" : "var(--color-border-tertiary)"}`,
+        color: canPublish ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+        fontSize: 13, fontWeight: 500,
+        cursor: canPublish ? "pointer" : "default",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        marginTop: 12,
+      }}
+      aria-disabled={!canPublish}
+    >
+      {publishing
+        ? "Publicando..."
+        : canPublish
+          ? "Publicar escala →"
+          : `Publicar escala — ${openCount} vaga${openCount > 1 ? "s" : ""} em aberto`
+      }
+    </button>
   );
 }
 
 // =============================================================
-// Componente principal
+// Componente principal — grade de vagas freelancer por dia
 // =============================================================
-export default function FreelancerSlots({ scheduleId, storeId, className = "", isEmbed = false, onRefresh }: { scheduleId: string | null, storeId: string, className?: string, isEmbed?: boolean, onRefresh?: () => void }) {
-  const [activeSlot, setActiveSlot] = useState<FreelancerSlot | { day_of_week: number, shift_name: string, is_manual: boolean } | null>(null);
-  
+export function FreelancerSlots({ scheduleId, storeId, className = "" }) {
   const {
     slots, loading, error,
     fillSlot, addManualSlot, clearSlot,
@@ -524,6 +530,8 @@ export default function FreelancerSlots({ scheduleId, storeId, className = "", i
 
   const { publish, publishing, published, error: pubError } =
     usePublishSchedule(scheduleId, canPublish);
+
+  const [activeSlot, setActiveSlot] = useState(null);
 
   if (loading) {
     return (
@@ -536,51 +544,48 @@ export default function FreelancerSlots({ scheduleId, storeId, className = "", i
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-red-500">
-        <p className="text-sm">Erro ao carregar: {error}</p>
+        <p className="text-sm">Erro: {error}</p>
       </div>
     );
   }
 
-  const handleSave = async (slot: any, data: any) => {
+  const handleSave = async (slot, data) => {
     try {
       if (slot.id) {
         await fillSlot(slot.id, data);
-      } else if (scheduleId) {
+      } else {
         await addManualSlot(scheduleId, storeId, slot.day_of_week, data);
       }
       setActiveSlot(null);
-    } catch (e: any) {
+    } catch (e) {
       console.error("Erro ao salvar freelancer:", e);
+      toast.error("Erro ao salvar freelancer: " + (e.message || "Erro desconhecido"));
     }
   };
 
-  const handleClear = async (slot: any) => {
+  const handleClear = async (slot) => {
     const action = slot.is_manual ? "Excluir" : "Limpar";
     if (!window.confirm(`${action} este freelancer?`)) return;
-    await clearSlot(slot.id, !!slot.is_manual);
+    await clearSlot(slot.id, slot.is_manual);
   };
 
+  // Agrupar slots por dia da semana
   const byDay = Array.from({ length: 7 }, (_, i) =>
     slots.filter((s) => s.day_of_week === i)
   );
 
   return (
-    <div className={`${className} ${!isEmbed ? 'max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 p-6 shadow-sm' : ''}`}>
-      {!isEmbed && (
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-          <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
-            <UserPlus size={20} />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 leading-tight">Gestão de Freelancers</h2>
-            <p className="text-xs text-gray-500">Controle de vagas e coberturas extras</p>
-          </div>
-        </div>
-      )}
-
+    <div className={className}>
       <AlertBar openCount={openCount} />
 
       <div style={{ marginBottom: 12 }}>
+        <p style={{
+          fontSize: 10, fontWeight: 500, color: "var(--color-text-tertiary)",
+          textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8,
+        }}>
+          Gestão de Freelancers
+        </p>
+
         {byDay.map((daySlots, dayIdx) => (
           <div key={dayIdx} style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
@@ -624,12 +629,11 @@ export default function FreelancerSlots({ scheduleId, storeId, className = "", i
         onPublish={publish}
         publishing={publishing}
         published={published}
-        onRefresh={onRefresh || (() => window.location.reload())}
       />
 
-      {(pubError || error) && (
-        <p style={{ fontSize: 11, color: "red", marginTop: 6 }}>
-          {pubError || error}
+      {pubError && (
+        <p style={{ fontSize: 11, color: "var(--color-text-danger)", marginTop: 6 }}>
+          {pubError}
         </p>
       )}
 
@@ -644,4 +648,4 @@ export default function FreelancerSlots({ scheduleId, storeId, className = "", i
   );
 }
 
-
+export default FreelancerSlots;
