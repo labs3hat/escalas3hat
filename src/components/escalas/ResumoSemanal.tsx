@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { DAY_NAMES, SLOT_KEYS, type Employee, type Store } from '@/types'
 import { calcLiquidHours } from '@/lib/schedule'
 import SlotModal, { type DayPayload } from './SlotModal'
-
+import { AlertTriangle } from 'lucide-react'
 import { type FreelancerSlot } from './FreelancerSlots';
 
 interface Props {
