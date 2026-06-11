@@ -1,11 +1,10 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Calendar, RefreshCw, Clock, Users, Map, LogOut, Settings, ShieldCheck, UserPlus } from 'lucide-react'
+import { Calendar, RefreshCw, Clock, Users, Map, LogOut, Settings, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import type { Profile } from '@/types'
 
 const navItems = [
   { href: '/escalas',     label: 'Escalas',               icon: Calendar },
-  
   { href: '/cadastros',   label: 'Funcionários',          icon: Users },
   { href: '/config-loja', label: 'Configurações da loja', icon: Settings },
   { href: '/usuarios',    label: 'Usuários',              icon: ShieldCheck },
@@ -62,17 +61,12 @@ export default function Sidebar({ profile, collapsed }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 py-2 overflow-y-auto">
-        {finalItems.map((item) => {
-          const { href, label, icon: Icon } = item
-          const targetPath = href
-          const search = (item as any).search
-          const active = pathname === targetPath && (!search?.tab || (search as any).tab === (item as any).search?.tab)
-
+        {finalItems.map(({ href, label, icon: Icon }) => {
+          const active = pathname.startsWith(href)
           return (
             <Link
-              key={href + (search?.tab || '')}
-              to={targetPath as any}
-              search={search as any}
+              key={href}
+              to={href}
               title={collapsed ? label : undefined}
               className={`flex items-center gap-3 ${collapsed ? 'justify-center px-0' : 'px-4'} py-2.5 text-sm transition-colors border-l-2 ${
                 active
