@@ -778,11 +778,7 @@ export type Database = {
     }
     Functions: {
       generate_base_schedule: {
-        Args: {
-          p_created_by?: string
-          p_store_id: string
-          p_week_start: string
-        }
+        Args: { p_created_by: string; p_store_id: string; p_week_start: string }
         Returns: Json
       }
       generate_monthly_schedule: {
