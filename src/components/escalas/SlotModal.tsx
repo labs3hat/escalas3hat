@@ -72,10 +72,17 @@ export default function SlotModal({ emp, dow, date, initial, isPublished, onClos
   const netLabel = useMemo(() => {
     const dur = toMin(exit) - toMin(entry) - Math.max(0, breakMin)
     if (!Number.isFinite(dur) || dur <= 0) return '—'
+    
+    // Ajuste visual para turnos cheios (44h semanais)
+    // 6x1: 7h30 (450min) -> 7h20
+    // 5x2: 9h00 (540min) -> 8h48
+    if (emp.work_regime === '6x1' && dur === 450) return '7h20'
+    if (emp.work_regime === '5x2' && dur === 540) return '8h48'
+
     const h = Math.floor(dur / 60)
     const m = dur % 60
     return `${h}h${String(m).padStart(2, '0')}`
-  }, [entry, exit, breakMin])
+  }, [entry, exit, breakMin, emp.work_regime])
 
   const canSave = (type !== 'work' || breakOk) && (!isPublished || reason.trim().length >= 10)
 

@@ -1,5 +1,5 @@
-export type StoreType = 'loja' | 'quiosque'
-export type StoreRegion = 'curitiba' | 'maringa'
+export type StoreType = 'loja' | 'quiosque' | 'shopping' | 'Loja' | 'Quiosque' | 'Shopping'
+export type StoreRegion = 'curitiba' | 'maringa' | 'Curitiba e Região' | 'Curitiba' | 'Maringá' | 'Maringá e Região'
 export type WorkRegime = '6x1' | '5x2'
 export type UserRole = 'gerente' | 'regional' | 'diretoria' | 'rh'
 export type ScheduleStatus = 'draft' | 'published' | 'frozen'
@@ -29,8 +29,16 @@ export interface Store {
   min_weekend_staff: number
   min_sunday_staff: number
   min_sunday_off_per_month: number
+  closing_time_weekday: string | null
+  closing_time_saturday: string | null
+  closing_time_sunday: string | null
   weekly_hours_6x1: number | null
   weekly_hours_5x2: number | null
+  ideal_opening_staff: number | null
+  ideal_closing_staff: number | null
+  ideal_staff: number | null
+  min_opening_weekend: number | null
+  min_closing_weekend: number | null
   active: boolean
   created_at: string
 }
