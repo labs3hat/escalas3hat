@@ -4,6 +4,7 @@ import { AlertTriangle, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { SLOT_KEYS, DAY_NAMES, type Employee, type Store, type Schedule } from '@/types'
 import { getContractWeeklyHours } from '@/lib/utils'
+import { formatters } from '@/lib/formatters'
 
 interface Props {
   employees: Employee[]
@@ -28,7 +29,8 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       const label = `${DAY_NAMES[dow]} ${d.getDate()}/${d.getMonth()+1}`
 
       // R1 — mínimo na abertura
-      const openingTime = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
+      const rawOpening = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
+      const openingTime = formatters.time(rawOpening)
       const abCount = employees.filter(e => getSlot(e.id, dow, openingTime) === 'work').length
       const abFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
       
@@ -37,8 +39,17 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       }
 
       // R2 — mínimo no fechamento
-      const closingTime = (dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday)) || '22:00'
-      const fcCount = employees.filter(e => getSlot(e.id, dow, closingTime) === 'work').length
+      const rawClosing = (dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday)) || '22:00'
+      const closingTime = formatters.time(rawClosing)
+      
+      // Para o fechamento, verificamos o slot IMEDIATAMENTE ANTERIOR ao horário de saída, 
+      // pois às 22:00 (por exemplo) o funcionário já encerrou.
+      const [h, m] = closingTime.split(':').map(Number)
+      const dateRef = new Date(2000, 0, 1, h, m)
+      dateRef.setMinutes(dateRef.getMinutes() - 30)
+      const checkClosing = `${String(dateRef.getHours()).padStart(2, '0')}:${String(dateRef.getMinutes()).padStart(2, '0')}`
+      
+      const fcCount = employees.filter(e => getSlot(e.id, dow, checkClosing) === 'work').length
       const fcFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
 
       if (fcCount + fcFree < (store.min_closing_staff ?? 2)) {
@@ -97,18 +108,21 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       employees.forEach(emp => {
         const slots = SLOT_KEYS.map(s => getSlot(emp.id, dow, s))
         let continuousWork = 0
+        let alertTriggered = false
         slots.forEach((type, idx) => {
           if (type === 'work') {
             continuousWork += 30
           } else {
             continuousWork = 0
           }
-          if (continuousWork > 360) { // 6 horas
+          
+          if (continuousWork > 360 && !alertTriggered) { // 6 horas
             const time = SLOT_KEYS[idx]
             al.push({ 
               type: 'critical', 
               message: `R18: ${emp.name.split(' ')[0]} — ${label} trabalhou >6h seguidas às ${time}` 
             })
+            alertTriggered = true
           }
         })
       })
