@@ -83,14 +83,23 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
         })
       }
 
-      // R16 — intervalos simultâneos (regra estrutural: max 1 por vez)
-      SLOT_KEYS.forEach(slot => {
+      // R16 — intervalos simultâneos (Regra: sem alertas se horários de início forem diferentes)
+      SLOT_KEYS.forEach((slot, idx) => {
         const onInterval = employees.filter(e => getSlot(e.id, dow, slot) === 'interval')
         if (onInterval.length >= 2) {
-          al.push({
-            type: 'critical',
-            message: `R16: ${label} ${slot} — ${onInterval.map(e => e.name.split(' ')[0]).join(' e ')} em intervalo simultâneo`
+          // Filtra apenas se houver pelo menos 2 pessoas que INICIARAM o intervalo no MESMO slot
+          // Se as pessoas iniciaram em horários diferentes, não gera alerta mesmo com sobreposição parcial
+          const starters = onInterval.filter(e => {
+            const prevSlot = idx > 0 ? SLOT_KEYS[idx - 1] : null
+            return !prevSlot || getSlot(e.id, dow, prevSlot) !== 'interval'
           })
+
+          if (starters.length >= 2) {
+            al.push({
+              type: 'critical',
+              message: `R16: ${label} ${slot} — ${starters.map(e => e.name.split(' ')[0]).join(' e ')} iniciaram intervalo simultaneamente`
+            })
+          }
         }
       })
 
