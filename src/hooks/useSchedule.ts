@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import type { Schedule, ScheduleSlot, SlotType, Employee } from "@/types";
+import type { Schedule, ScheduleSlot, SlotType, Employee, Store } from "@/types";
 import { validateScheduleRules } from "@/utils/scheduleRules";
 import { scheduleService } from "@/services/schedules";
 import { formatters } from "@/lib/formatters";
