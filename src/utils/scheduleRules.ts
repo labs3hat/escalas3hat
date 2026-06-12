@@ -86,7 +86,8 @@ export function validateScheduleRules(
       const fcCount = employees.filter(emp => {
         if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
           if (newChange.type !== 'work' || !newChange.payload) return false;
-          return checkClosing >= newChange.payload.entry && checkClosing < newChange.payload.exit && checkClosing !== (newChange.payload.breakStart);
+          const inBreak = newChange.payload.breakStart && newChange.payload.breakEnd && checkClosing >= newChange.payload.breakStart && checkClosing < newChange.payload.breakEnd;
+          return checkClosing >= newChange.payload.entry && checkClosing < newChange.payload.exit && !inBreak;
         }
         return slots.some(s => s.employee_id === emp.id && s.day_of_week === dow && s.slot_time === checkClosing && s.slot_type === 'work');
       }).length;
