@@ -148,6 +148,7 @@ export type Database = {
           employee_id: string
           extra_hours: number
           id: string
+          schedule_id: string | null
           scheduled_hours: number
           store_id: string
           updated_at: string
@@ -158,6 +159,7 @@ export type Database = {
           employee_id: string
           extra_hours?: number
           id?: string
+          schedule_id?: string | null
           scheduled_hours?: number
           store_id: string
           updated_at?: string
@@ -168,6 +170,7 @@ export type Database = {
           employee_id?: string
           extra_hours?: number
           id?: string
+          schedule_id?: string | null
           scheduled_hours?: number
           store_id?: string
           updated_at?: string
@@ -179,6 +182,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hours_bank_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "schedules"
             referencedColumns: ["id"]
           },
           {
