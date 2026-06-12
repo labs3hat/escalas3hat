@@ -72,7 +72,10 @@ async function fetchSheetRows(sheetName: string, range: string, lovableKey: stri
       "X-Connection-Api-Key": sheetsKey,
     },
   });
-  if (!res.ok) return []; 
+  if (!res.ok) {
+    console.error(`Failed to fetch ${sheetName}:`, await res.text());
+    return []; 
+  }
   const json = await res.json();
   return (json.values ?? []) as Row[];
 }
@@ -96,42 +99,10 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const sheetsKey = Deno.env.get("GOOGLE_SHEETS_API_KEY")!;
 
-    // Auth check - temporarily disabled for sync
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const userData = { user: { id: "00000000-0000-0000-0000-000000000000" } }; // Dummy for bypass
-    const isAdminCall = true; // Bypass profile check for now to execute sync
-    /*
-    const userClient = createClient(SUPABASE_URL, ANON, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    */
-
-
-
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-
-    // Get profile to check permissions
-    let isAdmin = true;
-    /*
-    if (!isAdminCall && userData) {
-      const { data: profile } = await admin
-        .from("profiles").select("role, store_ids").eq("id", userData.user.id).single();
-      if (!profile) throw new Error("Profile not found");
-      isAdmin = ["regional", "diretoria", "rh"].includes(profile.role);
-    }
-    */
-
-
 
     // Get active stores
     const { data: dbStores } = await admin.from("stores").select("id, code, name").eq("active", true);
@@ -197,15 +168,8 @@ Deno.serve(async (req) => {
       processedKeys.add(key);
       
       const role = (row[2] ?? "Atendente").trim();
-      // Main sheet status/info
-      // Assume anyone in the "FUNCIONÁRIOS" sheet is currently managed
-      // You might have a status column in J or similar if needed
-      
       const specific = storeSpecificData.get(key);
       const candidates = existingByKey.get(key) ?? [];
-      
-      // If we have multiple candidates, pick the one that was already active, or just the first one.
-      // We will deactivate/delete the others later.
       const found = candidates.find(c => c.active) || candidates[0];
 
       const payload: Record<string, unknown> = {
@@ -237,12 +201,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Cleanup: Deactivate OR remove duplicates
+    // 5. Cleanup: Deactivate
     for (const [key, emps] of existingByKey) {
       if (processedKeys.has(key)) {
-        // If they ARE in the sheet, but we have multiple records in DB,
-        // we already updated ONE to active=true. Deactivate the others.
-        const mainEmp = emps.find(e => e.active) || emps[0]; // Logic matches loop above
+        const mainEmp = emps.find(e => e.active) || emps[0];
         for (const emp of emps) {
           if (emp.id !== mainEmp.id && emp.active) {
             await admin.from("employees").update({ active: false }).eq("id", emp.id);
@@ -250,7 +212,6 @@ Deno.serve(async (req) => {
           }
         }
       } else {
-        // Not in the sheet at all - deactivate all records for this name/store
         for (const emp of emps) {
           if (emp.active) {
             const { error } = await admin.from("employees").update({ active: false }).eq("id", emp.id);
