@@ -1,0 +1,1 @@
+ALTER TABLE public.hours_bank DROP CONSTRAINT IF EXISTS hours_bank_store_id_employee_id_week_start_key;
