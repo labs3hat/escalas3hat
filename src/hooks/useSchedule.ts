@@ -237,7 +237,7 @@ export function useSchedule(storeId: string | null, weekStart: Date, store?: Sto
   }
 
   function validate(employees: Employee[], newChange?: any) {
-    return validateScheduleRules(employees, slots, newChange);
+    return validateScheduleRules(employees, slots, store, newChange);
   }
 
   return { 
