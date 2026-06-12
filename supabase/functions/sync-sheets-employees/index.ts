@@ -112,6 +112,8 @@ Deno.serve(async (req) => {
       });
     }
 
+
+
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     // Get profile to check permissions
@@ -119,6 +121,8 @@ Deno.serve(async (req) => {
       .from("profiles").select("role, store_ids").eq("id", userData.user.id).single();
     if (!profile) throw new Error("Profile not found");
     const isAdmin = ["regional", "diretoria", "rh"].includes(profile.role);
+
+
 
     // Get active stores
     const { data: dbStores } = await admin.from("stores").select("id, code, name").eq("active", true);
