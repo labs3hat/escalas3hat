@@ -1,0 +1,1 @@
+ALTER TYPE public.store_region ADD VALUE IF NOT EXISTS 'Curitiba e Região';
