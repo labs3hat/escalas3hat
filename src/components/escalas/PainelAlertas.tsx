@@ -54,8 +54,9 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       const fcCount = employees.filter(e => getSlot(e.id, dow, checkClosing) === 'work').length
       const fcFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
 
-      if (fcCount + fcFree < (store.min_closing_staff ?? 2)) {
-        al.push({ type: 'critical', message: `R2: ${label} — fechamento com ${fcCount + fcFree} func. (mín. ${store.min_closing_staff ?? 2})` })
+      const minClosing = isWknd ? (store.min_closing_weekend ?? 2) : (store.min_closing_staff ?? 2)
+      if (fcCount + fcFree < minClosing) {
+        al.push({ type: 'critical', message: `R2: ${label} — fechamento com ${fcCount + fcFree} func. (mín. ${minClosing})` })
       }
 
       // R3 — sem folga no sábado
