@@ -103,6 +103,17 @@ export default function SlotModal({ emp, dow, date, initial, isPublished, onClos
 
   async function handleSave() {
     if (!canSave) return
+    
+    // R18: Garantir que não trabalha mais de 6h seguidas
+    if (type === 'work') {
+      const workBeforeBreak = toMin(breakStart) - toMin(entry)
+      const workAfterBreak = toMin(exit) - toMin(breakEnd)
+      if (workBeforeBreak > 360 || workAfterBreak > 360) {
+        toast.error('Nenhum funcionário pode trabalhar mais de 6h seguidas sem intervalo.')
+        return
+      }
+    }
+
     setSaving(true)
     try {
       await onSave({
