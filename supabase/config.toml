@@ -1,7 +1,7 @@
 project_id = "qrujvdsmwgccxkgjznvx"
 
 [functions.sync-sheets-employees]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-sheets-stores]
 verify_jwt = true
