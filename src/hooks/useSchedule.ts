@@ -12,7 +12,7 @@ function normalizeSlot(slot: ScheduleSlot): ScheduleSlot {
   return { ...slot, slot_time: formatters.time(slot.slot_time) };
 }
 
-export function useSchedule(storeId: string | null, weekStart: Date) {
+export function useSchedule(storeId: string | null, weekStart: Date, store?: Store) {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
   const subscriptionId = useMemo(() => Math.random().toString(36).substring(7), []);
