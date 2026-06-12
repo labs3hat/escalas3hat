@@ -1,0 +1,1 @@
+ALTER FUNCTION public.generate_base_schedule(uuid, date, uuid) SET search_path = public;
