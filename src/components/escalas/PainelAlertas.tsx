@@ -29,13 +29,15 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       const label = `${DAY_NAMES[dow]} ${d.getDate()}/${d.getMonth()+1}`
 
       // R1 — mínimo na abertura
+      const isWknd = dow === 0 || dow === 6
       const rawOpening = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
       const openingTime = formatters.time(rawOpening)
       const abCount = employees.filter(e => getSlot(e.id, dow, openingTime) === 'work').length
       const abFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
       
-      if (abCount + abFree < (store.min_opening_staff ?? 1)) {
-        al.push({ type: 'critical', message: `R1: ${label} — abertura com ${abCount + abFree} func. (mín. ${store.min_opening_staff ?? 1})` })
+      const minOpening = isWknd ? (store.min_opening_weekend ?? 1) : (store.min_opening_staff ?? 1)
+      if (abCount + abFree < minOpening) {
+        al.push({ type: 'critical', message: `R1: ${label} — abertura com ${abCount + abFree} func. (mín. ${minOpening})` })
       }
 
       // R2 — mínimo no fechamento

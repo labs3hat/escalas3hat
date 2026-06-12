@@ -330,6 +330,8 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
               </td>
               {weekDates.map((d, di) => {
                 const dow = d.getDay()
+                const isWknd = dow === 0 || dow === 6
+                
                 const abSlot = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
                 const fcSlot = (dow === 0 ? (store.closing_time_sunday || store.closing_time_weekday) : (dow === 6 ? (store.closing_time_saturday || store.closing_time_weekday) : store.closing_time_weekday)) || '22:00'
                 
@@ -352,8 +354,11 @@ export default function GradeHoraria({ employees, weekDates, getSlot, updateDay,
                 const abCount = abEmpCount + abFreeCount
                 const fcCount = fcEmpCount + fcFreeCount
 
-                const abOk = abCount >= (store.min_opening_staff ?? 1)
-                const fcOk = fcCount >= (store.min_closing_staff ?? 2)
+                const minOpening = isWknd ? (store.min_opening_weekend ?? 1) : (store.min_opening_staff ?? 1)
+                const minClosing = isWknd ? (store.min_closing_weekend ?? 2) : (store.min_closing_staff ?? 2)
+
+                const abOk = abCount >= minOpening
+                const fcOk = fcCount >= minClosing
                 const ok = abOk && fcOk
 
                 return employees.map((emp, ei) => (
