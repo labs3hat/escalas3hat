@@ -58,7 +58,8 @@ export function validateScheduleRules(
       const abCount = employees.filter(emp => {
         if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
           if (newChange.type !== 'work' || !newChange.payload) return false;
-          return openingTime >= newChange.payload.entry && openingTime < newChange.payload.exit && openingTime !== (newChange.payload.breakStart);
+          const inBreak = newChange.payload.breakStart && newChange.payload.breakEnd && openingTime >= newChange.payload.breakStart && openingTime < newChange.payload.breakEnd;
+          return openingTime >= newChange.payload.entry && openingTime < newChange.payload.exit && !inBreak;
         }
         return slots.some(s => s.employee_id === emp.id && s.day_of_week === dow && s.slot_time === openingTime && s.slot_type === 'work');
       }).length;
