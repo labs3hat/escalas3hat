@@ -72,10 +72,7 @@ async function fetchSheetRows(sheetName: string, range: string, lovableKey: stri
       "X-Connection-Api-Key": sheetsKey,
     },
   });
-  if (!res.ok) {
-    console.error(`Failed to fetch ${sheetName}:`, await res.text());
-    return []; 
-  }
+  if (!res.ok) return []; 
   const json = await res.json();
   return (json.values ?? []) as Row[];
 }
@@ -99,10 +96,29 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const sheetsKey = Deno.env.get("GOOGLE_SHEETS_API_KEY")!;
 
+    // Auth check
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const userClient = createClient(SUPABASE_URL, ANON, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+    // Get profile to check permissions
+    const { data: profile } = await admin
+      .from("profiles").select("role, store_ids").eq("id", userData.user.id).single();
+    if (!profile) throw new Error("Profile not found");
+    const isAdmin = ["regional", "diretoria", "rh"].includes(profile.role);
 
     // Get active stores
     const { data: dbStores } = await admin.from("stores").select("id, code, name").eq("active", true);
@@ -168,6 +184,7 @@ Deno.serve(async (req) => {
       processedKeys.add(key);
       
       const role = (row[2] ?? "Atendente").trim();
+      
       const specific = storeSpecificData.get(key);
       const candidates = existingByKey.get(key) ?? [];
       const found = candidates.find(c => c.active) || candidates[0];
@@ -201,7 +218,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Cleanup: Deactivate
+    // 5. Cleanup: Deactivate OR remove duplicates
     for (const [key, emps] of existingByKey) {
       if (processedKeys.has(key)) {
         const mainEmp = emps.find(e => e.active) || emps[0];
