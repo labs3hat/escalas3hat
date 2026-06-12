@@ -29,13 +29,15 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       const label = `${DAY_NAMES[dow]} ${d.getDate()}/${d.getMonth()+1}`
 
       // R1 — mínimo na abertura
+      const isWknd = dow === 0 || dow === 6
       const rawOpening = (dow === 0 ? store.opening_time_sunday : (dow === 6 ? store.opening_time_saturday : store.opening_time_weekday)) || '10:00'
       const openingTime = formatters.time(rawOpening)
       const abCount = employees.filter(e => getSlot(e.id, dow, openingTime) === 'work').length
       const abFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Abertura' && s.filled_by).length
       
-      if (abCount + abFree < (store.min_opening_staff ?? 1)) {
-        al.push({ type: 'critical', message: `R1: ${label} — abertura com ${abCount + abFree} func. (mín. ${store.min_opening_staff ?? 1})` })
+      const minOpening = isWknd ? (store.min_opening_weekend ?? 1) : (store.min_opening_staff ?? 1)
+      if (abCount + abFree < minOpening) {
+        al.push({ type: 'critical', message: `R1: ${label} — abertura com ${abCount + abFree} func. (mín. ${minOpening})` })
       }
 
       // R2 — mínimo no fechamento
@@ -52,8 +54,9 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
       const fcCount = employees.filter(e => getSlot(e.id, dow, checkClosing) === 'work').length
       const fcFree = freelancerSlots.filter(s => s.day_of_week === dow && s.shift_name === 'Fechamento' && s.filled_by).length
 
-      if (fcCount + fcFree < (store.min_closing_staff ?? 2)) {
-        al.push({ type: 'critical', message: `R2: ${label} — fechamento com ${fcCount + fcFree} func. (mín. ${store.min_closing_staff ?? 2})` })
+      const minClosing = isWknd ? (store.min_closing_weekend ?? 2) : (store.min_closing_staff ?? 2)
+      if (fcCount + fcFree < minClosing) {
+        al.push({ type: 'critical', message: `R2: ${label} — fechamento com ${fcCount + fcFree} func. (mín. ${minClosing})` })
       }
 
       // R3 — sem folga no sábado
@@ -83,14 +86,23 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
         })
       }
 
-      // R16 — intervalos simultâneos (regra estrutural: max 1 por vez)
-      SLOT_KEYS.forEach(slot => {
+      // R16 — intervalos simultâneos (Regra: sem alertas se horários de início forem diferentes)
+      SLOT_KEYS.forEach((slot, idx) => {
         const onInterval = employees.filter(e => getSlot(e.id, dow, slot) === 'interval')
         if (onInterval.length >= 2) {
-          al.push({
-            type: 'critical',
-            message: `R16: ${label} ${slot} — ${onInterval.map(e => e.name.split(' ')[0]).join(' e ')} em intervalo simultâneo`
+          // Filtra apenas se houver pelo menos 2 pessoas que INICIARAM o intervalo no MESMO slot
+          // Se as pessoas iniciaram em horários diferentes, não gera alerta mesmo com sobreposição parcial
+          const starters = onInterval.filter(e => {
+            const prevSlot = idx > 0 ? SLOT_KEYS[idx - 1] : null
+            return !prevSlot || getSlot(e.id, dow, prevSlot) !== 'interval'
           })
+
+          if (starters.length >= 2) {
+            al.push({
+              type: 'critical',
+              message: `R16: ${label} ${slot} — ${starters.map(e => e.name.split(' ')[0]).join(' e ')} iniciaram intervalo simultaneamente`
+            })
+          }
         }
       })
 

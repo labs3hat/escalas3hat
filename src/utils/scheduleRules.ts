@@ -45,7 +45,7 @@ export function validateScheduleRules(
       });
     }
 
-    SLOT_KEYS.forEach(slotTime => {
+    SLOT_KEYS.forEach((slotTime, idx) => {
       const inBreak = employees.filter(emp => {
         if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
           if (newChange.type !== 'work' || !newChange.payload?.breakStart || !newChange.payload?.breakEnd) return false;
@@ -55,11 +55,25 @@ export function validateScheduleRules(
       });
 
       if (inBreak.length > 1) {
-        violations.push({
-          dayOfWeek: dow,
-          type: 'warning',
-          message: `Conflito de intervalo às ${slotTime}: ${inBreak.map(e => e.name.split(' ')[0]).join(', ')} estão em pausa.`
+        // R16: Apenas alerta se os intervalos iniciarem exatamente no mesmo slot
+        const starters = inBreak.filter(emp => {
+          const prevSlot = idx > 0 ? SLOT_KEYS[idx - 1] : null;
+          if (!prevSlot) return true;
+
+          if (newChange && newChange.employeeId === emp.id && newChange.dayOfWeek === dow) {
+            return slotTime === newChange.payload?.breakStart;
+          }
+          return slots.some(s => s.employee_id === emp.id && s.day_of_week === dow && s.slot_time === slotTime && s.slot_type === 'interval') &&
+                 !slots.some(s => s.employee_id === emp.id && s.day_of_week === dow && s.slot_time === prevSlot && s.slot_type === 'interval');
         });
+
+        if (starters.length >= 2) {
+          violations.push({
+            dayOfWeek: dow,
+            type: 'warning',
+            message: `Conflito de início de intervalo às ${slotTime}: ${starters.map(e => e.name.split(' ')[0]).join(', ')} iniciaram pausa juntos.`
+          });
+        }
       }
     });
 
