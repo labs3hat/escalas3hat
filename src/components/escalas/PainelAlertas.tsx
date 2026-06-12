@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { SLOT_KEYS, DAY_NAMES, type Employee, type Store, type Schedule } from '@/types'
 import { getContractWeeklyHours } from '@/lib/utils'
 import { formatters } from '@/lib/formatters'
+import { MAX_OFF_PER_DAY } from '@/utils/scheduleRules'
 
 interface Props {
   employees: Employee[]
