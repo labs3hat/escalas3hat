@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import type { Schedule, ScheduleSlot, SlotType, Employee } from "@/types";
+import type { Schedule, ScheduleSlot, SlotType, Employee, Store } from "@/types";
 import { validateScheduleRules } from "@/utils/scheduleRules";
 import { scheduleService } from "@/services/schedules";
 import { formatters } from "@/lib/formatters";
@@ -12,7 +12,7 @@ function normalizeSlot(slot: ScheduleSlot): ScheduleSlot {
   return { ...slot, slot_time: formatters.time(slot.slot_time) };
 }
 
-export function useSchedule(storeId: string | null, weekStart: Date) {
+export function useSchedule(storeId: string | null, weekStart: Date, store?: Store) {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
   const subscriptionId = useMemo(() => Math.random().toString(36).substring(7), []);
@@ -237,7 +237,7 @@ export function useSchedule(storeId: string | null, weekStart: Date) {
   }
 
   function validate(employees: Employee[], newChange?: any) {
-    return validateScheduleRules(employees, slots, newChange);
+    return validateScheduleRules(employees, slots, store, newChange);
   }
 
   return { 

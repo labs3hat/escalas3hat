@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { SLOT_KEYS, DAY_NAMES, type Employee, type Store, type Schedule } from '@/types'
 import { getContractWeeklyHours } from '@/lib/utils'
 import { formatters } from '@/lib/formatters'
+import { MAX_OFF_PER_DAY } from '@/utils/scheduleRules'
 
 interface Props {
   employees: Employee[]
@@ -108,7 +109,7 @@ export default function PainelAlertas({ employees, weekDates, getSlot, store, sc
 
       // R17 — Limite de folgas simultâneas (TRAVA CRÍTICA)
       const offCount = employees.filter(emp => SLOT_KEYS.some(s => getSlot(emp.id, dow, s) === 'day_off')).length
-      const maxOff = employees.length <= 6 ? 1 : 2;
+      const maxOff = MAX_OFF_PER_DAY(employees.length);
       if (offCount > maxOff) {
         al.push({ 
           type: 'critical', 

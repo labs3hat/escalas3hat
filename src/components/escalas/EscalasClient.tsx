@@ -153,6 +153,7 @@ export default function EscalasClient({ profile, initialStores, initialStoreId, 
   const { schedule, loading, updateDay, publish, getSlot, reload, validate } = useSchedule(
     selectedStore?.id ?? null,
     weekStart,
+    selectedStore
   );
 
   const { slots: freelancerSlots, openCount, refetch: refetchFreelancers } = useFreelancerSlots(schedule?.id ?? null);
