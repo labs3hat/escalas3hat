@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { DAY_NAMES } from '@/types'
 import type { Employee } from '@/types'
+import { toast } from 'sonner'
 
 export interface DayPayload {
   type: 'work' | 'day_off' | 'empty'
